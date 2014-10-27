@@ -1,0 +1,54 @@
+ --formatting [PRETTY_PRINT | PRINT_INP : Specifies which formatting options,
+ UT_DELIMITER | SINGLE_QUOTES]          : if any, should be applied to the
+                                          output JS. Options: PRETTY_PRINT,
+                                          PRINT_INPUT_DELIMITER, SINGLE_QUOTES
+
+
+ --js VAL                               : The JavaScript filename. You may
+                                          specify multiple
+ --js_output_file VAL                   : Primary output filename. If not
+                                          specified, output is written to stdout
+ --language_in VAL                      : Sets what language spec that input
+                                          sources conform. Options: ECMASCRIPT3
+                                          (default), ECMASCRIPT5, ECMASCRIPT5_ST
+                                          RICT
+
+
+ --output_manifest VAL                  : Prints out a list of all the files in
+                                          the compilation. If --manage_closure_d
+                                          ependencies is on, this will not
+                                          include files that got dropped
+                                          because they were not required. The
+                                          %outname% placeholder expands to the
+                                          JS output file. If you're using
+                                          modularization, using %outname% will
+                                          create a manifest for each module.
+
+
+ --summary_detail_level N               : Controls how detailed the compilation
+                                          summary is. Values: 0 (never print
+                                          summary), 1 (print summary only if
+                                          there are errors or warnings), 2
+                                          (print summary if the 'checkTypes'
+                                          diagnostic  group is enabled, see
+                                          --jscomp_warning), 3 (always print
+                                          summary). The default level is 1
+ --third_party                          : Check source validity but do not
+                                          enforce Closure style rules and
+                                          conventions
+
+--use_types_for_optimization           : Experimental: perform additional
+                                        optimizations based on available
+                                        information.  Inaccurate type
+                                        annotations may result in incorrect
+                                        results.
+
+ --version                              : Prints the compiler version to stderr.
+
+  --warning_level [QUIET | DEFAULT |     : Specifies the warning level to use.
+  VERBOSE]                               : Options: QUIET, DEFAULT, VERBOSE
+  --warnings_whitelist_file VAL          : A file containing warnings to
+                                           suppress. Each line should be of the
+                                           form
+                                           <file-name>:<line-number>?  <warning-d
+                                           escription>
