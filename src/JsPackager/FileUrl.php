@@ -15,7 +15,7 @@ class FileUrl
     /**
      * Takes a path to a file, and configuration, passes back a URL (path).
      * @param $src string
-     * @param $config Uses $config->shared_path $config->use_cdn_for_shared $config->cdn
+     * @param $config {object} Uses $config->shared_path $config->use_cdn_for_shared $config->cdn
      * @return string
      */
     public function srcToSharedUrl($src, $config)
