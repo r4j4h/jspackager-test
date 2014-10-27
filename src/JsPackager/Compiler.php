@@ -91,7 +91,8 @@ class Compiler
      */
     protected function generateClosureCompilerCommandString($fileList)
     {
-        $compilerPath = self::GCC_JAR_PATH . '/' . self::GCC_JAR_FILENAME;
+        $pathStart = dirname( dirname( dirname(__FILE__) ) );
+        $compilerPath = $pathStart . '/' . self::GCC_JAR_PATH . '/' . self::GCC_JAR_FILENAME;
 
         // Prepare command
         $command = '/usr/bin/java -jar "' . $compilerPath . '" ';
