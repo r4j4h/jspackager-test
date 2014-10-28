@@ -28,7 +28,7 @@ class DependencyTree
     /**
      * @var LoggerInterface
      */
-    protected $logger;
+    public $logger;
 
     /**
      * Constructor for DependencyTree
