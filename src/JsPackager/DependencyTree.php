@@ -12,6 +12,8 @@ namespace JsPackager;
 
 
 use JsPackager\Compiler\DependencySet;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class DependencyTree
 {
@@ -24,17 +26,30 @@ class DependencyTree
     const STYLESHEET_EXTENSION_PATTERN = '/.css$/';
 
     /**
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    /**
      * Constructor for DependencyTree
      * @param string $filePath
      * @param string $testsSourcePath Optional. For @tests annotations, the source scripts root path with no trailing
      * slash.
      * @param bool $muteMissingFileExceptions Optional. If true, missing file exceptions will not be thrown and
      * will be carried through as if they were there. Note: Obviously they will not be parsed for children.
+     * @param LoggerInterface $logger
      * @throws Exception\Recursion If the dependent files have a circular dependency
      * @throws Exception\MissingFile Through internal File object if $filePath does not point to a valid file
      */
-    public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false ) {
+    public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false, LoggerInterface $logger = null ) {
+        if ( $logger === null ) {
+            $this->logger = new NullLogger();
+        } else {
+            $this->logger = $logger;
+        }
+
         $treeParser = new DependencyTreeParser();
+        $treeParser->logger = $this->logger;
 
         if ( $muteMissingFileExceptions )
         {
@@ -89,6 +104,8 @@ class DependencyTree
      */
     private function flattenFile( $file, $respectingRootPackages = false )
     {
+        $this->logger->debug("flattenFile called for '{$file->getFullPath()}'.'");
+        $this->logger->debug( ( ($respectingRootPackages) ? 'Respecting' : 'Not respecting' ) . ' root packages.');
         $flattenedFile = array();
         $flattenedStylesheets = array();
         $fileIsNotAPackage = !$file->isRoot;
@@ -100,6 +117,7 @@ class DependencyTree
         if ( $respectingRootPackages && $file->isRoot ) {
 
             // TODO Handle order mapping inside packages
+            $this->logger->notice("Found a root file. Pulling in its packages/manifest files...");
 
             foreach( $file->stylesheets as $stylesheetFile )
             {
@@ -115,6 +133,7 @@ class DependencyTree
 
         // If we are respecting root packages and at one, skip, otherwise, pull in all dependent scripts
         if ( ( $notRespectingRootPackages ) || ( $respectingRootPackages && $fileIsNotAPackage ) ) {
+            $this->logger->notice("Found a non-root file (or a root and are not respecting packages). Scanning for dependencies...");
 
             foreach( $file->annotationOrderMap as $aOMEntry )
             {
@@ -132,10 +151,13 @@ class DependencyTree
 
                     $flattenedDependency = $this->flattenFile( $scriptFile, $respectingRootPackages );
                     $flattenedFile = array_merge_recursive( $flattenedFile, $flattenedDependency['scripts']);
+
+                    // More stylesheets
                     $flattenedStylesheets = array_merge_recursive( $flattenedStylesheets, $flattenedDependency['stylesheets'] );
                 }
                 else
                 {
+                    $this->logger->warning('Unknown annotation ' . $orderMapEntryAnnotationType . ' encountered.');
                     var_dump('Unknown annotation ' . $orderMapEntryAnnotationType . ' encountered');
                 }
 
@@ -169,6 +191,8 @@ class DependencyTree
      */
     public function getDependencySets()
     {
+        $this->logger->debug("getDependencySets called.");
+
         // In the context of the this function:
         //  A collection is a set of a set of dependent files and a set of dependent packages
         //  A root package is the file that depends on the other files and packages
@@ -242,6 +266,8 @@ class DependencyTree
      */
     private function getDependencySetFiles( $file )
     {
+        $this->logger->debug("getDependencySetFiles called with '{$file->getFullPath()}'.");
+
         $nonRootFilePaths = array();
         $rootFilePaths = array();
 

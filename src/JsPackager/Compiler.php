@@ -17,6 +17,8 @@ use JsPackager\Exception\CannotWrite as CannotWriteException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\Recursion as RecursionException;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use SplFileObject;
@@ -25,6 +27,17 @@ class Compiler
 {
     const COMPILED_SUFFIX = 'compiled';
     const MANIFEST_SUFFIX = 'manifest';
+
+    /**
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    public function __construct()
+    {
+        $this->logger = new NullLogger();
+    }
+
 
     /**
      * Take an array of files in dependency order and compile them, generating a manifest.
@@ -37,15 +50,20 @@ class Compiler
         $compiledFileContents = '';
         $compiledFileManifest = '';
 
+        $this->logger->debug("compileDependencySet called. Building manifest...");
+
         // Build manifest first
         $compiledFileManifest = $this->generateManifestFileContents(
             $dependencySet->packages,
             $dependencySet->stylesheets
         );
 
+        $this->logger->debug("Built manifest. Compiling with Google Closure Compiler .jar...");
+
         // Compile & Concatenate via Google closure Compiler Jar
         $compilationResults = $this->compileFileListUsingClosureCompilerJar( $dependencySet->dependencies );
 
+        $this->logger->debug("Compiled with Google Closure Compiler .jar.");
 
         $totalDependencies = count( $dependencySet->dependencies );
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
@@ -64,6 +82,7 @@ class Compiler
             $compilationResults['err'] = null;
         }
 
+        $this->logger->notice("Compiled dependency set for '" . $rootFile->path . "' consisting of " . $totalDependencies . " dependencies.");
 
         return new CompiledFile(
             $rootFile->path,
@@ -104,6 +123,9 @@ class Compiler
         $command .= '--compilation_level=' . self::GCC_COMPILATION_LEVEL . ' ';
 //        $command .= '--warning_level=VERBOSE ';
         $command .= '--summary_detail_level=3 ';
+
+        $this->logger->debug('Running shell command: ' . $command);
+
         $command = escapeshellcmd( $command );
 
         return $command;
@@ -236,6 +258,9 @@ class Compiler
         curl_setopt($post, CURLOPT_POST, 1);
         curl_setopt($post, CURLOPT_POSTFIELDS, $fields_string);
         curl_setopt($post, CURLOPT_RETURNTRANSFER, true);
+
+        $this->logger->debug("Running against Closure Compiler Api at url: '" . self::GCC_API_COMPILER_URL . "' with fields: '" . $fields_string . "'.");
+
         $response = json_decode( curl_exec($post) );
         curl_close($post);
 
@@ -247,21 +272,27 @@ class Compiler
             foreach ($response->serverErrors as $error) {
                 $errorMessage .= $error->error . "\n";
             }
+            $this->logger->error("Unable to compile code due to server errors: \n" . $errorMessage);
             throw new \Exception("Unable to compile code due to server errors: \n" . $errorMessage , 0);
         }
 
         if ( property_exists($response, 'warnings') ) {
             foreach ($response->warnings as $warning) {
-                echo sprintf("\t\t[WARNING] %s [#%d]`%s`\n", $warning->warning, $warning->lineno, $warning->line);
+                $warningString = sprintf("\t\t[WARNING] %s [#%d]`%s`\n", $warning->warning, $warning->lineno, $warning->line);
+                $this->logger->warning($warningString);
+                echo $warningString;
             }
         }
 
         if ( property_exists($response, 'errors') ) {
             foreach ($response->errors as $error) {
-                echo sprintf("\t\t[ERROR] %s [#%d]`%s`\n", $error->error, $error->lineno, $error->line);
+                $errorString = sprintf("\t\t[ERROR] %s [#%d]`%s`\n", $error->error, $error->lineno, $error->line);
+                $this->logger->error($errorString);
+                echo $errorString;
             }
             throw new \Exception('Failed to compile JS due to errors', 0);
         } else {
+            $this->logger->notice("Successfully compiled against closure Compiler Api");
             return $response->compiledCode;
         }
     }
@@ -279,6 +310,8 @@ class Compiler
     {
         $manifestFileContents = '';
 
+        $this->logger->debug("Generating manifest file contents...");
+
         foreach ($stylesheetPaths as $stylesheetPath)
         {
             $manifestFileContents .= $stylesheetPath . PHP_EOL;
@@ -288,6 +321,8 @@ class Compiler
         {
             $manifestFileContents .= $this->getCompiledFilename( $packagePath ) . PHP_EOL;
         }
+
+        $this->logger->debug("Generated manifest file contents.");
 
         return $manifestFileContents;
     }
@@ -303,6 +338,8 @@ class Compiler
     protected function concatenateFiles($filePathList)
     {
         $output = '';
+
+        $this->logger->debug("Concatenating files...");
 
         foreach( $filePathList as $thisFilePath )
         {
@@ -320,6 +357,8 @@ class Compiler
 
             $output .= $thisFileContents;
         }
+
+        $this->logger->debug("Concatenated files.");
 
         return $output;
     }
@@ -358,18 +397,21 @@ class Compiler
     public function compileAndWriteFilesAndManifests($inputFilename, $statusCallback = false)
     {
         $compiledFiles = array();
-        $dependencyTree = new DependencyTree( $inputFilename );
+        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger );
         $dependencySets = $dependencyTree->getDependencySets();
+
 
         foreach( $dependencySets as $dependencySet )
         {
             try {
                 $result = $this->compileDependencySet( $dependencySet );
+                $this->logger->notice('Successfully compiled Dependency Set: ' . $result->filename);
                 if ( is_callable( $statusCallback ) ) {
                     call_user_func( $statusCallback, 'Successfully compiled Dependency Set: ' . $result->filename, 'success' );
                 }
 
                 if ( strlen( $result->warnings ) > 0 ) {
+                    $this->logger->warning('Warnings: ' . PHP_EOL . $result->warnings);
                     if ( is_callable( $statusCallback ) ) {
                         call_user_func( $statusCallback, 'Warnings: ' . PHP_EOL . $result->warnings, 'warning' );
                     }
@@ -379,18 +421,22 @@ class Compiler
 
                 // Write compiled file
                 $outputFilename = $result->path . '/' . $result->filename;
+                $this->logger->info("Writing compiled file to '" . $result->filename . "'.");
                 $outputFile = file_put_contents( $outputFilename, $result->contents );
                 if ( $outputFile === FALSE )
                 {
+                    $this->logger->emergency("Cannot write compiled file to {$outputFilename}");
                     throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
                 }
                 $fileCompilationResult->setCompiledPath( $result->filename );
 
                 // Write manifest
                 $outputFilename = $result->path . '/' .$result->manifestFilename;
+                $this->logger->info("Writing compiled file manifest to '" . $result->manifestFilename . "'.");
                 $outputFile = file_put_contents( $outputFilename, $result->manifestContents );
                 if ( $outputFile === FALSE )
                 {
+                    $this->logger->critical("Cannot write manifest to {$outputFilename}");
                     throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
                 }
                 $fileCompilationResult->setManifestPath( $result->manifestFilename );
@@ -401,6 +447,7 @@ class Compiler
             }
             catch ( ParsingException $e )
             {
+                $this->logger->error($e->getMessage() . $e->getErrors());
                 if ( is_callable( $statusCallback ) ) {
                     call_user_func(
                         $statusCallback,
@@ -417,6 +464,8 @@ class Compiler
 
             }
         }
+
+        $this->logger->info("Finishing compiling and writing manifests.");
 
         return $compiledFiles;
     }
@@ -444,16 +493,19 @@ class Compiler
             if ( $file->isFile() && preg_match( '/.js$/', $file->getFilename() ) && !preg_match( '/.compiled.js$/', $file->getFilename() ) ) {
 
                 echo "[Clearing] Detected package {$file->getFilename()}\n";
+                $this->logger->notice("[Clearing] Detected package {$file->getFilename()}");
                 $sourceFileCount++;
 
                 $compiledFilename = $this->getCompiledFilename( $file->getRealPath() );
                 $manifestFilename = $this->getManifestFilename( $file->getRealPath() );
 
                 if ( is_file( $compiledFilename ) ) {
+                    $this->logger->notice('[Clearing] Removing ' . $compiledFilename);
                     echo '[Clearing] Removing ' . $compiledFilename . "\n";
                     $unlinkSuccess = unlink( $compiledFilename );
                     if ( !$unlinkSuccess )
                     {
+                        $this->logger->error('[Clearing] Failed to remove ' . $compiledFilename);
                         echo '[Clearing] Failed to remove ' . $compiledFilename . "\n";
                         $success = false;
                         continue;
@@ -461,10 +513,12 @@ class Compiler
                     $fileCount++;
                 }
                 if ( is_file( $manifestFilename ) ) {
+                    $this->logger->notice('[Clearing] Removing ' . $manifestFilename);
                     echo '[Clearing] Removing ' . $manifestFilename . "\n";
                     $unlinkSuccess = unlink( $manifestFilename );
                     if ( !$unlinkSuccess )
                     {
+                        $this->logger->error('[Clearing] Failed to remove ' . $manifestFilename);
                         echo '[Clearing] Failed to remove ' . $manifestFilename . "\n";
                         $success = false;
                         continue;
@@ -475,6 +529,7 @@ class Compiler
             }
         }
 
+        $this->logger->notice("[Clearing] Detected $sourceFileCount packages, resulting in $fileCount files being removed.");
         echo "[Clearing] Detected $sourceFileCount packages, resulting in $fileCount files being removed.\n";
         return $success;
     }
@@ -488,12 +543,14 @@ class Compiler
         $fileCount = 0;
         $files = array();
 
+        $this->logger->debug("Parsing folder '".$folderPath."' for source files...");
         foreach ($iterator as $file) {
             if ( $file->isFile() && preg_match( '/.js$/', $file->getFilename() ) && !preg_match( '/.compiled.js$/', $file->getFilename() ) ) {
                 $files[] = $file->getRealPath();
                 $fileCount++;
             }
         }
+        $this->logger->debug("Finished parsing folder. Found ".$fileCount." source files.");
 
         return $files;
     }

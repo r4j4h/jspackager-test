@@ -32,6 +32,8 @@ use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class DependencyTreeParser
 {
@@ -96,6 +98,17 @@ class DependencyTreeParser
 
 
     /**
+     * @var LoggerInterface
+     */
+    public $logger;
+
+    public function __construct()
+    {
+        $this->logger = new NullLogger();
+    }
+
+
+    /**
      * Prevent missing file exceptions from being thrown.
      */
     public function muteMissingFileExceptions() {
@@ -127,11 +140,17 @@ class DependencyTreeParser
      */
     public function parseFile( $filePath, $testsSourcePath = null, $recursing = false )
     {
+        $this->logger->info("Parsing file '" . $filePath . "'.");
+
         // If we're starting off (not recursing), Clear parsed filename caches
         if ( $recursing === false )
         {
+            $this->logger->debug("Not recursing, so clearing parsed filename caches.");
+
             $this->parsedFiles = array();
             $this->seenFiles = array();
+        } else {
+            $this->logger->debug("Recursing.");
         }
 
         // Create file object
@@ -150,16 +169,19 @@ class DependencyTreeParser
         // which restores the original behavior
         if ( !$testsSourcePath )
         {
+            $this->logger->info("testsSourcePath not provided, so defaulting it to file's path ('" . $file->path . "').");
             $testsSourcePath = $file->path;
         }
 
         // Build identifier
         $fileHtmlPath = $this->normalizeRelativePath( $file->path . '/' . $file->filename );
 
+        $this->logger->debug("Built identifier: '" . $fileHtmlPath . "'.");
+
         // Use cached parsed file if we already have parsed this file
         if ( array_key_exists( $fileHtmlPath, $this->parsedFiles ) )
         {
-//            echo 'Already parsed ' . $fileHtmlPath . ' - returning its cached File object' . PHP_EOL;
+            $this->logger->info('Already parsed ' . $fileHtmlPath . ' - returning its cached File object');
             return $this->parsedFiles[ $fileHtmlPath ];
         }
 
@@ -169,8 +191,11 @@ class DependencyTreeParser
             throw new RecursionException('Encountered recursion within file "' . $filePath . '".', RecursionException::ERROR_CODE);
         }
 
+        $this->logger->debug("Verifying file type '" . $file->filetype . "' is on parsing whitelist.");
+
         if ( in_array( $file->filetype, $this->filetypesAllowingAnnotations) )
         {
+            $this->logger->debug("Reading annotations in {$filePath}");
             // Read annotations
             $annotationsResponse = $this->getAnnotationsFromFile( $filePath );
 
@@ -178,11 +203,13 @@ class DependencyTreeParser
             $orderingMap = $annotationsResponse['orderingMap'];
 
             // Mark as seen
+            $this->logger->debug("Marking {$filePath} as seen.");
             $this->seenFiles[] = $filePath;
 
             // Mark isRoot
             if ( $annotations['root'] === true )
             {
+                $this->logger->debug("Marking {$filePath} as root.");
                 $file->isRoot = true;
             }
 
@@ -197,6 +224,7 @@ class DependencyTreeParser
 
                 if ( $action === 'requireRemote' )
                 {
+                    $this->logger->debug("Found requireRemote entry.");
 
                     // Use convention to alter path to shared files' root
                     $sharedPath = preg_replace( '/\/public\/.*$/', '/public/shared', $file->path );
@@ -204,9 +232,12 @@ class DependencyTreeParser
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
 
+                    $this->logger->debug("Calculated {$htmlPath} as shared files' path.");
+
                     // Call parseFile on it recursively
                     try
                     {
+                        $this->logger->debug("Checking it for dependencies...");
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
                     }
                     catch (MissingFileException $e)
@@ -217,14 +248,17 @@ class DependencyTreeParser
 
                     if ( $dependencyFile->isRoot )
                     {
+                        $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
                         $file->packages[] = $htmlPath;
                     }
 
                     // It has root set from parseFile so callee can handle that
+                    $this->logger->debug("Adding {$dependencyFile} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
                     // Switch order map to use require, since we normalized the shared files so they fit in
                     // same bucket as normal files.
+                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation instead of requireRemote since we have normalized the shared file's path.");
                     $file->annotationOrderMap[] = array(
                         'action' => 'require',
                         'annotationIndex' => count( $file->scripts ) - 1,
@@ -233,13 +267,17 @@ class DependencyTreeParser
                 }
                 else if ( $action === 'require' )
                 {
+                    $this->logger->debug("Found require entry.");
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $file->path . '/' . $path );
 
+                    $this->logger->debug("Calculated {$htmlPath} as required files' path.");
+
                     // Call parseFile on it recursively
                     try
                     {
+                        $this->logger->debug("Checking it for dependencies...");
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
                     }
                     catch (MissingFileException $e)
@@ -249,13 +287,16 @@ class DependencyTreeParser
 
                     if ( $dependencyFile->isRoot )
                     {
+                        $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
                         $file->packages[] = $htmlPath;
                     }
 
                     // It has root set from parseFile so callee can handle that
+                    $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
                     // Populate ordering map on File object
+                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
                     $file->annotationOrderMap[] = array(
                         'action' => $action,
                         'annotationIndex' => count( $file->scripts ) - 1,
@@ -265,6 +306,8 @@ class DependencyTreeParser
                 }
                 else if ( $action === 'requireRemoteStyle' )
                 {
+                    $this->logger->debug("Found requireRemoteStyle entry.");
+
                     $fileHandler = $this->getFileHandler();
 
                     // Use convention to alter path to shared files' root
@@ -272,6 +315,8 @@ class DependencyTreeParser
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
+
+                    $this->logger->debug("Calculated {$htmlPath} as required files' path.");
 
                     // When parsing CSS files is desired, it will go through parseFile so non file exceptions will
                     // be caught and thrown there before parsing. Until that is desired, we will just manually
@@ -282,10 +327,12 @@ class DependencyTreeParser
                     }
 
                     // Add to stylesheets list
+                    $this->logger->debug("Adding {$htmlPath} to stylesheets array.");
                     $file->stylesheets[] = $htmlPath;
 
                     // Switch order map to use requireStyle, since we normalized the shared files so they fit in
                     // same bucket as normal files.
+                    $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation instead of requireRemoteStyle since we have normalized the shared file's path.");
                     $file->annotationOrderMap[] = array(
                         'action' => 'requireStyle',
                         'annotationIndex' => count( $file->stylesheets ) - 1,
@@ -294,11 +341,15 @@ class DependencyTreeParser
                 }
                 else if ( $action === 'requireStyle' )
                 {
+                    $this->logger->debug("Found requireStyle entry.");
+
                     $fileHandler = $this->getFileHandler();
 
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $file->path . '/' . $path );
+
+                    $this->logger->debug("Calculated {$htmlPath} as required files' path.");
 
                     // When parsing CSS files is desired, it will go through parseFile so non file exceptions will
                     // be caught and thrown there before parsing. Until that is desired, we will just manually
@@ -309,9 +360,11 @@ class DependencyTreeParser
                     }
 
                     // Add to stylesheets list
+                    $this->logger->debug("Adding {$htmlPath} to stylesheets array.");
                     $file->stylesheets[] = $htmlPath;
 
                     // Populate ordering map on File object
+                    $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation.");
                     $file->annotationOrderMap[] = array(
                         'action' => $action,
                         'annotationIndex' => count( $file->stylesheets ) - 1,
@@ -320,13 +373,17 @@ class DependencyTreeParser
                 }
                 else if ( $action === 'tests' )
                 {
+                    $this->logger->debug("Found tests entry.");
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $testsSourcePath . '/' . $path );
 
+                    $this->logger->debug("Calculated {$htmlPath} as required files' path.");
+
                     // Call parseFile on it recursively
                     try
                     {
+                        $this->logger->debug("Checking it for dependencies...");
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
                     }
                     catch (MissingFileException $e)
@@ -336,13 +393,16 @@ class DependencyTreeParser
 
                     if ( $dependencyFile->isRoot )
                     {
+                        $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
                         $file->packages[] = $htmlPath;
                     }
 
                     // It has root set from parseFile so callee can handle that
+                    $this->logger->debug("Adding {$dependencyFile} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
                     // Populate ordering map on File object
+                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
                     $file->annotationOrderMap[] = array(
                         'action' => 'require',
                         'annotationIndex' => count( $file->scripts ) - 1,
@@ -355,6 +415,7 @@ class DependencyTreeParser
         }
 
         // Store in cache
+        $this->logger->debug("Storing {$file->getFullPath()} in parsedFiles array.");
         $this->parsedFiles[ $fileHtmlPath ] = $file;
 
         // Return populated object
@@ -390,6 +451,7 @@ class DependencyTreeParser
      */
     protected function getAnnotationsFromFile( $filePath )
     {
+        $this->logger->debug("Getting annotations from file '{$filePath}'.");
         $fileHandler = $this->getFileHandler();
 
         // Set up empty containers for all accepted annotations
@@ -423,6 +485,7 @@ class DependencyTreeParser
                     // Skip if its not a defined token
                     if ( !in_array( $action, $this->acceptedTokens ) )
                     {
+                        $this->logger->debug("Found {$action} but it was not in acceptedTokens array.");
                         continue;
                     }
 
@@ -437,6 +500,8 @@ class DependencyTreeParser
                             // get exploded as empty strings so skip them
                             if ( $param === "" )
                                 continue;
+
+                            $this->logger->info("Found '{$action}' annotation with param '{$param}'.");
 
                             // Add argument for this action
                             $annotations[ $action ][] = $param;
@@ -453,6 +518,8 @@ class DependencyTreeParser
                     // Otherwise we only care about the action
                     else
                     {
+                        $this->logger->info("Found '{$action}' action annotation.");
+
                         $annotations[ $action ] = true;
 
                         // Append to annotation ordering map
@@ -468,6 +535,8 @@ class DependencyTreeParser
             $fileHandler->fclose($fh);
 
         }
+
+        $this->logger->debug("Done getting annotations from file '{$filePath}'.");
 
         return array(
             'annotations' => $annotations,
