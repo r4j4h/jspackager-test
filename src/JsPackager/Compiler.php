@@ -31,7 +31,7 @@ class Compiler
     /**
      * @var LoggerInterface
      */
-    protected $logger;
+    public $logger;
 
     public function __construct()
     {
