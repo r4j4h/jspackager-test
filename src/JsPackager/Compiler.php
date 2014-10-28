@@ -280,7 +280,6 @@ class Compiler
             foreach ($response->warnings as $warning) {
                 $warningString = sprintf("\t\t[WARNING] %s [#%d]`%s`\n", $warning->warning, $warning->lineno, $warning->line);
                 $this->logger->warning($warningString);
-                echo $warningString;
             }
         }
 
@@ -288,7 +287,6 @@ class Compiler
             foreach ($response->errors as $error) {
                 $errorString = sprintf("\t\t[ERROR] %s [#%d]`%s`\n", $error->error, $error->lineno, $error->line);
                 $this->logger->error($errorString);
-                echo $errorString;
             }
             throw new \Exception('Failed to compile JS due to errors', 0);
         } else {
@@ -492,7 +490,6 @@ class Compiler
         foreach ($iterator as $file) {
             if ( $file->isFile() && preg_match( '/.js$/', $file->getFilename() ) && !preg_match( '/.compiled.js$/', $file->getFilename() ) ) {
 
-                echo "[Clearing] Detected package {$file->getFilename()}\n";
                 $this->logger->notice("[Clearing] Detected package {$file->getFilename()}");
                 $sourceFileCount++;
 
@@ -501,12 +498,10 @@ class Compiler
 
                 if ( is_file( $compiledFilename ) ) {
                     $this->logger->notice('[Clearing] Removing ' . $compiledFilename);
-                    echo '[Clearing] Removing ' . $compiledFilename . "\n";
                     $unlinkSuccess = unlink( $compiledFilename );
                     if ( !$unlinkSuccess )
                     {
                         $this->logger->error('[Clearing] Failed to remove ' . $compiledFilename);
-                        echo '[Clearing] Failed to remove ' . $compiledFilename . "\n";
                         $success = false;
                         continue;
                     }
@@ -514,12 +509,10 @@ class Compiler
                 }
                 if ( is_file( $manifestFilename ) ) {
                     $this->logger->notice('[Clearing] Removing ' . $manifestFilename);
-                    echo '[Clearing] Removing ' . $manifestFilename . "\n";
                     $unlinkSuccess = unlink( $manifestFilename );
                     if ( !$unlinkSuccess )
                     {
                         $this->logger->error('[Clearing] Failed to remove ' . $manifestFilename);
-                        echo '[Clearing] Failed to remove ' . $manifestFilename . "\n";
                         $success = false;
                         continue;
                     }
@@ -530,7 +523,6 @@ class Compiler
         }
 
         $this->logger->notice("[Clearing] Detected $sourceFileCount packages, resulting in $fileCount files being removed.");
-        echo "[Clearing] Detected $sourceFileCount packages, resulting in $fileCount files being removed.\n";
         return $success;
     }
 
