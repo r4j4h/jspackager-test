@@ -95,6 +95,25 @@ class DependencyTree
     }
 
     /**
+     * Converts a nested Dependency Tree File object hierarchy into a flat array.
+     *
+     * @param boolean $respectRootPackages Optional. Whether to respect root packages, defaults to false.
+     * @return array
+     */
+    public function flattenDependencyTreeFile( $respectRootPackages = false )
+    {
+        $thisTree = $this->getTree();
+
+        $flattenedFile = $this->flattenFile( $thisTree, $respectRootPackages );
+
+        // This is faster than array_unique and doesn't cause gaps in array keys
+        $flattenedFile['stylesheets'] = array_merge(array_keys(array_flip($flattenedFile['stylesheets'])));
+        $flattenedFile['scripts'] = array_merge(array_keys(array_flip($flattenedFile['scripts'])));
+
+        return $flattenedFile;
+    }
+
+    /**
      * Recursively converts a File's object hierarchy into a flat array.
      *
      * (Helper function for flattenDependencyTree)
