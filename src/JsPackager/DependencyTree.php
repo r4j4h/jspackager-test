@@ -48,8 +48,7 @@ class DependencyTree
             $this->logger = $logger;
         }
 
-        $treeParser = new DependencyTreeParser();
-        $treeParser->logger = $this->logger;
+        $treeParser = $this->getDependencyTreeParser();
 
         if ( $muteMissingFileExceptions )
         {
@@ -59,6 +58,17 @@ class DependencyTree
         $this->dependencyTreeRootFile = $treeParser->parseFile( $filePath, $testsSourcePath, false );
     }
 
+    /**
+     * Get a DependencyTreeParser
+     *
+     * @return DependencyTreeParser
+     */
+    protected function getDependencyTreeParser()
+    {
+        $treeParser = new DependencyTreeParser();
+        $treeParser->logger = $this->logger;
+        return $treeParser;
+    }
 
     /**
      * Get the raw nested File object hierarchy representing this dependency tree

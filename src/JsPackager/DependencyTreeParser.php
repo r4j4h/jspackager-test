@@ -63,6 +63,8 @@ class DependencyTreeParser
         'tests'
     );
 
+    public $sharedFolderPath = 'shared';
+
     /**
      * Definition list of file types that are scanned for annotation tokens
      * @var array
@@ -227,7 +229,7 @@ class DependencyTreeParser
                     $this->logger->debug("Found requireRemote entry.");
 
                     // Use convention to alter path to shared files' root
-                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/shared', $file->path );
+                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/' . $this->sharedFolderPath, $file->path );
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
@@ -311,7 +313,7 @@ class DependencyTreeParser
                     $fileHandler = $this->getFileHandler();
 
                     // Use convention to alter path to shared files' root
-                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/shared', $file->path );
+                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/' . $this->sharedFolderPath, $file->path );
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );

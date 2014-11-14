@@ -9,8 +9,6 @@ namespace JsPackager;
 
 class FileUrl
 {
-    protected $serviceLocator;
-
 
     /**
      * Takes a path to a file, and configuration, passes back a URL (path).
@@ -59,10 +57,6 @@ class FileUrl
     {
         $basePath = '';
 
-        if ( $this->serviceLocator ) {
-            $basePath = $this->serviceLocator->get('basePath')->__invoke();
-        }
-
         return $basePath;
     }
 
@@ -95,7 +89,7 @@ class FileUrl
             $path = $baseUrl . '/';
         }
 
-        $path .= 'shared';
+        $path .= $config->cdn->cdn_shared_path;
 
         return $path;
     }
@@ -161,20 +155,5 @@ class FileUrl
         return $cacheBustedSrc;
     }
 
-    /**
-     * @param mixed $serviceLocator
-     */
-    public function setServiceLocator($serviceLocator)
-    {
-        $this->serviceLocator = $serviceLocator;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getServiceLocator()
-    {
-        return $this->serviceLocator;
-    }
 
 }
