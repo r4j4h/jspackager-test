@@ -253,7 +253,7 @@ class DependencyTreeParser
                     }
 
                     // It has root set from parseFile so callee can handle that
-                    $this->logger->debug("Adding {$dependencyFile} to scripts array.");
+                    $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
                     // Switch order map to use require, since we normalized the shared files so they fit in
