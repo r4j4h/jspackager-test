@@ -44,7 +44,7 @@ class FileUrl
             $src = ltrim( $src, '/' );
         }
 
-        $cdnPath = self::getCurrentCdnPath($config);
+        $cdnPath = $this->getCurrentCdnPath($config);
         $path = $cdnPath . '/' . $src;
 
 
@@ -55,28 +55,34 @@ class FileUrl
      * Returns the baseUrl for building paths to stylesheet URL.
      * @return string
      */
-    public static function getBaseUrl()
+    public function getBaseUrl()
     {
-        return '';
+        $basePath = '';
+
+        if ( $this->serviceLocator ) {
+            $basePath = $this->serviceLocator->get('basePath')->__invoke();
+        }
+
+        return $basePath;
     }
 
-    public static function getCurrentCdnPath($config)
+    public function getCurrentCdnPath($config)
     {
         if (!$config->use_cdn_for_shared)
         {
-            return self::getDevelopmentCdnPath($config);
+            return $this->getDevelopmentCdnPath($config);
         }
         else
         {
-            return self::getProductionCdnPath($config);
+            return $this->getProductionCdnPath($config);
         }
     }
 
-    public static function getDevelopmentCdnPath($config)
+    public function getDevelopmentCdnPath($config)
     {
         /** In developmentMode, the /shared subfolder goes between the baseUrl and the src. */
 
-        $baseUrl = self::getBaseUrl();
+        $baseUrl = $this->getBaseUrl();
 
         // If baseUrl is not set, then we don't want to make a relative path absolute,
         // but baseUrls do not contain trailing slashes so otherwise we want one.
@@ -94,7 +100,7 @@ class FileUrl
         return $path;
     }
 
-    public static function getProductionCdnPath($config)
+    public function getProductionCdnPath($config)
     {
         $cdnUrl = $config->cdn->url;
         $sharedPath = $config->cdn->cdn_shared_path;
@@ -153,6 +159,22 @@ class FileUrl
         }
 
         return $cacheBustedSrc;
+    }
+
+    /**
+     * @param mixed $serviceLocator
+     */
+    public function setServiceLocator($serviceLocator)
+    {
+        $this->serviceLocator = $serviceLocator;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getServiceLocator()
+    {
+        return $this->serviceLocator;
     }
 
 }
