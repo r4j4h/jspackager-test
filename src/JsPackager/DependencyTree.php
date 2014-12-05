@@ -124,7 +124,8 @@ class DependencyTree
     }
 
     /**
-     * Recursively converts a File's object hierarchy into a flat array.
+     * Recursively converts a File's object hierarchy into flattened arrays with both scripts and stylesheets in
+     * separate, ordered arrays.
      *
      * (Helper function for flattenDependencyTree)
      *
