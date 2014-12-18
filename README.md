@@ -9,5 +9,7 @@ PHP based annotation parser and dependency resolver.
 Projects Using
 ------------
 
-- [A Symfony based Command Line Interface](r4j4h/jspackager-cli)
-- [Zend 2 View Helpers utilizing r4j4h/jspackager-test](r4j4h/jspackager-zf2)
+- [r4j4h/jspackager-cli](https://github.com/r4j4h/jspackager-cli)
+  - A Symfony based Command Line Interface
+- [r4j4h/jspackager-zf2](https://github.com/r4j4h/jspackager-zf2)
+  - Zend 2 View Helpers utilizing r4j4h/jspackager-test
