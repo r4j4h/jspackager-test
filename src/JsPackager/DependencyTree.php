@@ -93,7 +93,7 @@ class DependencyTree
     {
         $thisTree = $this->getTree();
 
-        $flattenedFile = $this->flattenFile( $thisTree, $respectRootPackages );
+        $flattenedFile = $this->flattenFileToAssocArray( $thisTree, $respectRootPackages );
 
         // Combine stylesheets and then scripts for proper dependency ordering
         $flattenedTree = array_merge_recursive( $flattenedFile['stylesheets'], $flattenedFile['scripts'] );
@@ -110,11 +110,11 @@ class DependencyTree
      * @param boolean $respectRootPackages Optional. Whether to respect root packages, defaults to false.
      * @return array
      */
-    public function flattenDependencyTreeFile( $respectRootPackages = false )
+    public function flattenDependencyTreeIntoAssocArrays( $respectRootPackages = false )
     {
         $thisTree = $this->getTree();
 
-        $flattenedFile = $this->flattenFile( $thisTree, $respectRootPackages );
+        $flattenedFile = $this->flattenFileToAssocArray( $thisTree, $respectRootPackages );
 
         // This is faster than array_unique and doesn't cause gaps in array keys
         $flattenedFile['stylesheets'] = array_merge(array_keys(array_flip($flattenedFile['stylesheets'])));
@@ -132,7 +132,7 @@ class DependencyTree
      * @param File $file
      * @return array
      */
-    private function flattenFile( $file, $respectingRootPackages = false )
+    private function flattenFileToAssocArray( $file, $respectingRootPackages = false )
     {
         $this->logger->debug("flattenFile called for '{$file->getFullPath()}'.'");
         $this->logger->debug( ( ($respectingRootPackages) ? 'Respecting' : 'Not respecting' ) . ' root packages.');
@@ -179,7 +179,7 @@ class DependencyTree
                 {
                     $scriptFile = $file->scripts[ $orderMapEntryBucketIndex ];
 
-                    $flattenedDependency = $this->flattenFile( $scriptFile, $respectingRootPackages );
+                    $flattenedDependency = $this->flattenFileToAssocArray( $scriptFile, $respectingRootPackages );
                     $flattenedFile = array_merge_recursive( $flattenedFile, $flattenedDependency['scripts']);
 
                     // More stylesheets
