@@ -61,6 +61,9 @@ class Compiler
         $compiledFilename = $this->getCompiledFilename( $rootFilename );
         $manifestFilename = $this->getManifestFilename( $rootFilename );
 
+
+        $this->logger->debug("Assembling manifest...");
+
         // Build manifest first
         $compiledFileManifest = $this->generateManifestFileContents(
             $dependencySet->packages,
