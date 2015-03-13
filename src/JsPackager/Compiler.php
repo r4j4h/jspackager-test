@@ -66,6 +66,7 @@ class Compiler
 
         // Build manifest first
         $compiledFileManifest = $this->generateManifestFileContents(
+            $rootFilePath,
             $dependencySet->packages,
             $dependencySet->stylesheets
         );
@@ -306,11 +307,12 @@ class Compiler
     /**
      * Take an array of stylesheet file paths and package file paths and generate a manifest file from them.
      *
+     * @param string $basePath The base path of the file this manifest belongs to for making paths relative
      * @param array $packagePaths Array of file paths
      * @param array $stylesheetPaths Array of file paths
      * @return string Manifest file's contents
      */
-    protected function generateManifestFileContents( $packagePaths, $stylesheetPaths )
+    protected function generateManifestFileContents( $basePath, $packagePaths, $stylesheetPaths )
     {
         $manifestFileContents = '';
 
@@ -318,11 +320,80 @@ class Compiler
 
         foreach ($stylesheetPaths as $stylesheetPath)
         {
+            // TODO Relative-ize this path
+
+            // !!! WARNING: This is not the right logic !!!
+            // The right logic makes these relative from the file the manifest is for
+            // This logic makes these relative from where the compile command was executed
+            // !!! WARNING: This is not the right logic !!!
+
+            // To use this way for now, run from <app>/public
+            // ../vendor/bin/jspackager compile-files ../public/js/layouts/emr-layout.js ../public/shared/js/layouts/emr.js
+
+            $cwd = getcwd();
+
+            var_dump( '$cwd is ' . $cwd );
+            $basePath = $cwd;
+
+            var_dump( '$basePath is ' . $basePath );
+            var_dump( '$stylesheetPath is ' . $stylesheetPath );
+            var_dump( 'substr is ' . substr( $stylesheetPath, 0, strlen($basePath) ) );
+
+            // Remove baseUrl if present
+            if ( $basePath !== '' && substr( $stylesheetPath, 0, strlen($basePath) ) === $basePath )
+            {
+                // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
+                // As if we are shared then we may want something in between baseUrl and the real src.
+                $pos = strpos($stylesheetPath,$basePath);
+                if ($pos !== false) {
+                    $stylesheetPath = substr_replace($stylesheetPath, '', $pos, strlen($basePath));
+                }
+            }
+
+            var_dump( '$stylesheetPath is ' . $stylesheetPath );
+
             $manifestFileContents .= $stylesheetPath . PHP_EOL;
+
         }
 
         foreach ($packagePaths as $packagePath)
         {
+            // TODO Relative-ize this path
+
+            // !!! WARNING: This is not the right logic !!!
+            // The right logic makes these relative from the file the manifest is for
+            // This logic makes these relative from where the compile command was executed
+            // !!! WARNING: This is not the right logic !!!
+
+            // To use this way for now, run from <app>/public
+            // ../vendor/bin/jspackager compile-files ../public/js/layouts/emr-layout.js ../public/shared/js/layouts/emr.js
+
+            $cwd = getcwd();
+
+            var_dump( '$cwd is ' . $cwd );
+            $basePath = $cwd;
+
+            var_dump( '$basePath is ' . $basePath );
+            var_dump( '$stylesheetPath is ' . $packagePath );
+            var_dump( 'substr is ' . substr( $packagePath, 0, strlen($basePath) ) );
+
+            // Remove baseUrl if present
+            if ( $basePath !== '' && substr( $packagePath, 0, strlen($basePath) ) === $basePath )
+            {
+                // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
+                // As if we are shared then we may want something in between baseUrl and the real src.
+                $pos = strpos($packagePath,$basePath);
+                if ($pos !== false) {
+                    $packagePath = substr_replace($packagePath, '', $pos, strlen($basePath));
+                }
+            }
+
+            var_dump( '$stylesheetPath is ' . $packagePath );
+
+            $this->logger->debug( $packagePath );
+            $this->logger->debug( "Converted to compiled filename..." );
+            $this->logger->debug( $this->getCompiledFilename( $packagePath ) );
+
             $manifestFileContents .= $this->getCompiledFilename( $packagePath ) . PHP_EOL;
         }
 
