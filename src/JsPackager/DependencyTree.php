@@ -130,6 +130,8 @@ class DependencyTree
      * (Helper function for flattenDependencyTree)
      *
      * @param File $file
+     * @param bool $respectingRootPackages Pass true to respect @root annotations, detecting packages. False to
+     * assume all dependent files should be included.
      * @return array
      */
     private function flattenFileToAssocArray( $file, $respectingRootPackages = false )

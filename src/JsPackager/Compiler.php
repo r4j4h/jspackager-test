@@ -52,6 +52,18 @@ class Compiler
 
         $this->logger->debug("compileDependencySet called. Building manifest...");
 
+        $totalDependencies = count( $dependencySet->dependencies );
+        $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
+        $rootFile = new File($lastDependency);
+
+        $rootFilePath = $rootFile->path;
+        $rootFilename = $rootFile->filename . '.' . $rootFile->filetype;
+        $compiledFilename = $this->getCompiledFilename( $rootFilename );
+        $manifestFilename = $this->getManifestFilename( $rootFilename );
+
+
+        $this->logger->debug("Assembling manifest...");
+
         // Build manifest first
         $compiledFileManifest = $this->generateManifestFileContents(
             $dependencySet->packages,
@@ -65,12 +77,6 @@ class Compiler
 
         $this->logger->debug("Compiled with Google Closure Compiler .jar.");
 
-        $totalDependencies = count( $dependencySet->dependencies );
-        $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
-        $rootFile = new File($lastDependency);
-        $rootFilename = $rootFile->filename . '.' . $rootFile->filetype;
-        $compiledFilename = $this->getCompiledFilename( $rootFilename );
-        $manifestFilename = $this->getManifestFilename( $rootFilename );
 
         $numberOfErrors = $compilationResults['returnCode'];
         if ( $numberOfErrors > 0 ) {
@@ -82,10 +88,10 @@ class Compiler
             $compilationResults['err'] = null;
         }
 
-        $this->logger->notice("Compiled dependency set for '" . $rootFile->path . "' consisting of " . $totalDependencies . " dependencies.");
+        $this->logger->notice("Compiled dependency set for '" . $rootFilePath . "' consisting of " . $totalDependencies . " dependencies.");
 
         return new CompiledFile(
-            $rootFile->path,
+            $rootFilePath,
             $compiledFilename,
             $compilationResults['output'],
             $manifestFilename,
@@ -330,7 +336,7 @@ class Compiler
      *
      * @param array $filePathList Array of file paths
      * @return string Concatenated file's contents
-     * @throw Exception\MissingFile If a file in the list does not exist
+     * @throws Exception\MissingFile If a file in the list does not exist
      * @throws Exception\Parsing If file was unable to be parsed
      */
     protected function concatenateFiles($filePathList)

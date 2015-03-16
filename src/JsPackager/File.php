@@ -64,7 +64,7 @@ class File
     public $annotationOrderMap;
 
     /**
-     * @param $filePath Path to file
+     * @param string $filePath Path to file
      * @param bool $silenceMissingFileException
      * @throws Exception\MissingFile If $filePath does not point to a valid file
      */
