@@ -60,6 +60,7 @@ class DependencyTreeParser
         'requireStyle',
         'requireRemoteStyle',
         'root',
+        'nocompile',
         'tests'
     );
 
