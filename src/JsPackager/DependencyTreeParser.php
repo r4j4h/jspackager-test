@@ -216,6 +216,13 @@ class DependencyTreeParser
                 $file->isRoot = true;
             }
 
+            // Mark isMarkedNoCompile
+            if ( $annotations['nocompile'] === true )
+            {
+                $this->logger->debug("Marking {$filePath} as nocompile.");
+                $file->isMarkedNoCompile = true;
+            }
+
 
             // Go through each required file and see if it has requirements and if so
             // Populate scripts/stylesheets w/ File objects

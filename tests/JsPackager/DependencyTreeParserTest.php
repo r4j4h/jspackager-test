@@ -1322,6 +1322,62 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 'dep_4', $dep5->scripts[0]->filename, "Dep #5 should depend on Dep #4" );
     }
 
+
+
+    /******************************************************************
+     * parseFile > annotation_nocompile
+     * Fixture folder: 3annotation_nocompile
+     *****************************************************************/
+
+    public function testParseFile_annotation_nocompile()
+    {
+        $basePath = self::fixturesBasePath . 'annotation_nocompile';
+        $filePath = $basePath . '/main.js';
+
+        $treeParser = new DependencyTreeParser();
+        $dependencyTree = $treeParser->parseFile( $filePath );
+
+        // Ensure root file was scanned properly
+        $this->assertEquals( 'main', $dependencyTree->filename, "Root file should be named main" );
+        $this->assertEquals( 'js', $dependencyTree->filetype, "Root file should be of js filetype" );
+        $this->assertEquals( $basePath, $dependencyTree->path, "Root file should be in the base path" );
+
+        $this->assertCount( 4, $dependencyTree->scripts, "main.js should contain 4 scripts" );
+        $this->assertCount( 2, $dependencyTree->packages, "main.js should contain 2 packages" );
+        $this->assertCount( 0, $dependencyTree->stylesheets, "main.js should contain no stylesheets" );
+
+        $this->assertFalse( $dependencyTree->isMarkedNoCompile, "main.js should not be marked no compile" );
+
+        // Shortcut for easier access and readability
+        $nocompilePackage = $dependencyTree->scripts[0];
+        $nocompileScript = $dependencyTree->scripts[1];
+        $normalPackage = $dependencyTree->scripts[2];
+        $normalScript = $dependencyTree->scripts[3];
+
+        // Ensure dependencies `root` annotations were handled
+        $this->assertTrue( $nocompilePackage->isRoot, 'Dep #1 should be marked isRoot' );
+        $this->assertFalse( $nocompileScript->isRoot, 'Dep #2 should not be marked isRoot' );
+        $this->assertTrue( $normalPackage->isRoot, 'Dep #3 should be marked isRoot' );
+        $this->assertFalse( $normalScript->isRoot, 'Dep #4 should not be marked isRoot' );
+
+        // Ensure dependencies `nocompile` annotations were handled
+        $this->assertTrue( $nocompilePackage->isMarkedNoCompile, 'Dep #1 should be marked no compile' );
+        $this->assertTrue( $nocompileScript->isMarkedNoCompile, 'Dep #2 should be be marked no compile' );
+        $this->assertFalse( $normalPackage->isMarkedNoCompile, 'Dep #3 should not be marked no compile' );
+        $this->assertFalse( $normalScript->isMarkedNoCompile, 'Dep #4 should not be marked no compile' );
+
+        // Ensure the packages were detected properly
+        $this->assertEquals(
+            "tests/JsPackager/fixtures/annotation_nocompile/some/nocompile/package.js",
+            $dependencyTree->packages[0]
+        );
+
+        $this->assertEquals(
+            "tests/JsPackager/fixtures/annotation_nocompile/some/normal/package.js",
+            $dependencyTree->packages[1]
+        );
+    }
+
     /******************************************************************
      * parseFile > Recursion (2 Dependencies, #1, #2)
      *      #1 with own dependency (#2)
