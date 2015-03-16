@@ -478,18 +478,15 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $annotationResponse = ReflectionHelper::invoke( $treeParser, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
-        $this->assertTrue( $annotations['root'] );
+        $this->assertTrue( $annotations['nocompile'] );
 
         $annotationOrderingMap = $annotationResponse['orderingMap'];
 
         $this->assertEquals( 'root', $annotationOrderingMap[0]['action'], "Should reflect appropriate bucket" );
         $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
 
-
-        // TODO Work on this test
-        $this->markTestIncomplete(
-            'This test is still being implemented.'
-        );
+        $this->assertEquals( 'nocompile', $annotationOrderingMap[1]['action'], "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $annotationOrderingMap[1]['annotationIndex'], "order is meaningless for boolean flag annotations" );
     }
 
 
