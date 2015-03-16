@@ -401,6 +401,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
 
     /**
+     * TODO This test will need to be updated when @nocompile within non-root scripts is enabled.
+     *
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
      * @runInSeparateProcess
      */
