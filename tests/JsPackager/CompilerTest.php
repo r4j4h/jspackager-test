@@ -178,6 +178,30 @@ BLOCK;
         $this->assertEquals( $expectedContents, $manifestFileContents );
     }
 
+    public function testGenerateManifestContainingNoCompileFile()
+    {
+        $compiler = new Compiler();
+
+        $stylesheets = array(
+            'css/my_stylesheet.css'
+        );
+        $packages = array(
+            'some/nocompile/package.js',
+            'some/normal/package.js'
+        );
+
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+
+        $expectedContents = <<<BLOCK
+css/my_stylesheet.css
+some/nocompile/package.js
+some/normal/package.compiled.js
+
+BLOCK;
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
+
 
     /******************************************************************
      * concatenateFiles
