@@ -112,7 +112,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $stylesheets = array();
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $this->assertEquals('', $manifestFileContents, "Manifest should be empty" );
 
@@ -133,7 +133,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
             'another/package.compiled.js'
         )) . PHP_EOL;
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( 'souffle', $packages, $stylesheets ) );
 
         $this->assertEquals($expectedOutput, $manifestFileContents, "Manifest should have packages" );
     }
@@ -148,7 +148,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         );
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( 'arby', $packages, $stylesheets ) );
 
     }
 
@@ -165,7 +165,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
             'another/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( 'arf', $packages, $stylesheets ) );
 
         $expectedContents = <<<BLOCK
 some/stylesheet.css
