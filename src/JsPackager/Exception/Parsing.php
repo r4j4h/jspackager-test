@@ -12,7 +12,7 @@ class Parsing extends \Exception
 
     protected $errors;
 
-    public function __construct($message = "", Exception $previous = null, $errors) {
+    public function __construct($message = "", \Exception $previous = null, $errors) {
         $code = self::ERROR_CODE;
         parent::__construct( $message, $code, $previous );
         $this->errors = $errors;

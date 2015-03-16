@@ -12,7 +12,7 @@ class CannotWrite extends \Exception
 
     protected $cannotWriteFilePath;
 
-    public function __construct($message = "", Exception $previous = null, $cannotWriteFilePath) {
+    public function __construct($message = "", \Exception $previous = null, $cannotWriteFilePath) {
         $code = self::ERROR_CODE;
         parent::__construct( $message, $code, $previous );
         $this->cannotWriteFilePath = $cannotWriteFilePath;

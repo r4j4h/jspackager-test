@@ -336,7 +336,7 @@ class Compiler
      *
      * @param array $filePathList Array of file paths
      * @return string Concatenated file's contents
-     * @throw Exception\MissingFile If a file in the list does not exist
+     * @throws Exception\MissingFile If a file in the list does not exist
      * @throws Exception\Parsing If file was unable to be parsed
      */
     protected function concatenateFiles($filePathList)
