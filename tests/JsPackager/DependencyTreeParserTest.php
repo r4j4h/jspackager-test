@@ -451,7 +451,7 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
      * @runInSeparateProcess
      */
-    public function testGetAnnotationsFromFileGetsNoCompileWithRootAnnotation()
+    public function testGetAnnotationsFromFileParsesNoCompileWithRootAnnotation()
     {
         $lineA = "window.wpt = window.wpt || {};";
         $lineB = "@root";
@@ -478,9 +478,6 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $annotationResponse = ReflectionHelper::invoke( $treeParser, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
-        $this->assertEmpty( $annotations['require'] );
-        $this->assertEmpty( $annotations['requireRemote'] );
-        $this->assertEmpty( $annotations['requireStyle'] );
         $this->assertTrue( $annotations['root'] );
 
         $annotationOrderingMap = $annotationResponse['orderingMap'];
