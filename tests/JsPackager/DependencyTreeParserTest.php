@@ -398,6 +398,105 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
     }
 
+
+
+    /**
+     * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
+     * @runInSeparateProcess
+     */
+    public function testGetAnnotationsFromFileGetsNoCompileWithNormalScriptAnnotation()
+    {
+        $lineA = "window.wpt = window.wpt || {};";
+        $lineB = "@nocompile";
+        $lineC = "// Some comment";
+        $treeParser = new DependencyTreeParser();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls($lineA, $lineB, $lineC, false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        $treeParser->setFileHandler( $mockedFileHandler );
+
+        $annotationResponse = ReflectionHelper::invoke( $treeParser, 'getAnnotationsFromFile', array( 'mocked' ) );
+        $annotations = $annotationResponse['annotations'];
+
+        $this->assertEmpty( $annotations['require'] );
+        $this->assertEmpty( $annotations['requireRemote'] );
+        $this->assertEmpty( $annotations['requireStyle'] );
+        $this->assertEmpty( $annotations['root'] );
+
+        $annotationOrderingMap = $annotationResponse['orderingMap'];
+
+        // TODO Work on this test
+        $this->markTestIncomplete(
+            'This test has not been implemented yet.'
+        );
+        
+        $this->assertEquals( 'root', $annotationOrderingMap[0]['action'], "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
+
+    }
+
+    /**
+     * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
+     * @runInSeparateProcess
+     */
+    public function testGetAnnotationsFromFileGetsNoCompileWithRootAnnotation()
+    {
+        $lineA = "window.wpt = window.wpt || {};";
+        $lineB = "@root";
+        $lineC = "@nocompile";
+        $lineD = "// Some comment";
+        $treeParser = new DependencyTreeParser();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls($lineA, $lineB, $lineC, $lineD, false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        $treeParser->setFileHandler( $mockedFileHandler );
+
+        $annotationResponse = ReflectionHelper::invoke( $treeParser, 'getAnnotationsFromFile', array( 'mocked' ) );
+        $annotations = $annotationResponse['annotations'];
+
+        $this->assertEmpty( $annotations['require'] );
+        $this->assertEmpty( $annotations['requireRemote'] );
+        $this->assertEmpty( $annotations['requireStyle'] );
+        $this->assertTrue( $annotations['root'] );
+
+        $annotationOrderingMap = $annotationResponse['orderingMap'];
+
+        $this->assertEquals( 'root', $annotationOrderingMap[0]['action'], "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
+
+
+        // TODO Work on this test
+        $this->markTestIncomplete(
+            'This test is still being implemented.'
+        );
+    }
+
+
+
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
      * @runInSeparateProcess
