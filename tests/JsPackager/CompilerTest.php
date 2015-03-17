@@ -584,7 +584,7 @@ MANIFEST;
             "Manifest filename should be from dep_3"
         );
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
-        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+        $this->assertEquals( null, $result->manifestContents, "Manifest file should contain dependent files" );
 
 
         // Grab third (and last) dependency set
