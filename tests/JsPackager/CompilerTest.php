@@ -133,7 +133,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
             'another/package.compiled.js'
         )) . PHP_EOL;
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( 'souffle', $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $this->assertEquals($expectedOutput, $manifestFileContents, "Manifest should have packages" );
     }
@@ -148,7 +148,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         );
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( 'arby', $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
     }
 
@@ -165,7 +165,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
             'another/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( 'arf', $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $expectedContents = <<<BLOCK
 some/stylesheet.css
@@ -193,7 +193,39 @@ BLOCK;
             'some/nocompile/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets, $filesMarkedNoCompile ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets, $filesMarkedNoCompile ) );
+
+        $expectedContents = <<<BLOCK
+css/my_stylesheet.css
+some/nocompile/package.js
+some/normal/package.compiled.js
+
+BLOCK;
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
+
+    public function testGenerateManifestHandlesBasePath()
+    {
+        $compiler = new Compiler();
+
+        $stylesheets = array(
+            '/some/absolute/path/to/websites/website_1/css/my_stylesheet.css'
+        );
+        $packages = array(
+            '/some/absolute/path/to/websites/website_1/some/nocompile/package.js',
+            '/some/absolute/path/to/websites/website_1/some/normal/package.js'
+        );
+        $filesMarkedNoCompile = array(
+            '/some/absolute/path/to/websites/website_1/some/nocompile/package.js'
+        );
+
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array(
+            '/some/absolute/path/to/websites/website_1/',
+            $packages,
+            $stylesheets,
+            $filesMarkedNoCompile
+        ) );
 
         $expectedContents = <<<BLOCK
 css/my_stylesheet.css
@@ -455,7 +487,7 @@ BLOCK;
 
         $compiledFilesContents = "window.dep_5=!0;window.dep_4=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/subpackage/dep_4_style.css
+dep_4_style.css
 
 MANIFEST;
 
@@ -480,8 +512,8 @@ MANIFEST;
 
         $compiledFilesContents = "window.dep_3=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/dep_3_style.css
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/subpackage/dep_4.compiled.js
+dep_3_style.css
+subpackage/dep_4.compiled.js
 
 MANIFEST;
 
@@ -505,7 +537,7 @@ MANIFEST;
         $result = $compiler->compileDependencySet( $dependencySet );
 
         $compiledFilesContents = "window.dep_1=!0;window.dep_2=!0;window.main=!0;" . PHP_EOL;
-        $manifestContents = $basePath . '/package/dep_3.compiled.js' . PHP_EOL;
+        $manifestContents = 'package/dep_3.compiled.js' . PHP_EOL;
 
         $this->assertEquals( $basePath, $result->path, "Compiled path should be main.js's path" );
         $this->assertEquals(
@@ -593,8 +625,8 @@ MANIFEST;
 
         $compiledFilesContents = "window.nocompile_script=!0;window.normal_script=!0;window.main=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-tests/JsPackager/fixtures/annotation_nocompile/some/nocompile/package.js
-tests/JsPackager/fixtures/annotation_nocompile/some/normal/package.compiled.js
+some/nocompile/package.js
+some/normal/package.compiled.js
 
 MANIFEST;
 

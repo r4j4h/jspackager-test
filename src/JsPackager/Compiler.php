@@ -84,7 +84,7 @@ class Compiler
         if ( count( $dependencySet->stylesheets ) > 0 || $totalDependencies > 1 ) {
             // Build manifest first
             $compiledFileManifest = $this->generateManifestFileContents(
-                $rootFilePath,
+                $rootFilePath . '/',
                 $dependencySet->packages,
                 $dependencySet->stylesheets,
                 $this->rollingPathsMarkedNoCompile
@@ -370,10 +370,10 @@ class Compiler
             // To use this way for now, run from <app>/public
             // ../vendor/bin/jspackager compile-files ../public/js/layouts/emr-layout.js ../public/shared/js/layouts/emr.js
 
-            $cwd = getcwd();
+//            $cwd = getcwd();
 
-            var_dump( '$cwd is ' . $cwd );
-            $basePath = $cwd;
+//            var_dump( '$cwd is ' . $cwd );
+//            $basePath = $cwd;
 
             var_dump( '$basePath is ' . $basePath );
             var_dump( '$stylesheetPath is ' . $stylesheetPath );
@@ -423,10 +423,10 @@ class Compiler
             // To use this way for now, run from <app>/public
             // ../vendor/bin/jspackager compile-files ../public/js/layouts/emr-layout.js ../public/shared/js/layouts/emr.js
 
-            $cwd = getcwd();
+//            $cwd = getcwd();
 
-            var_dump( '$cwd is ' . $cwd );
-            $basePath = $cwd;
+//            var_dump( '$cwd is ' . $cwd );
+//            $basePath = $cwd;
 
             var_dump( '$basePath is ' . $basePath );
             var_dump( '$stylesheetPath is ' . $packagePath );
