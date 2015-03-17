@@ -73,12 +73,6 @@ class Compiler
         );
 
         $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
-        $this->logger->debug( '$dependencySet->pathsMarkedNoCompile' );
-        $this->logger->debug( print_r($dependencySet->pathsMarkedNoCompile, 1) );
-        $this->logger->debug( '$this->rollingPathsMarkedNoCompile' );
-        $this->logger->debug( print_r($this->rollingPathsMarkedNoCompile, 1) );
-
-
 
 
         if ( count( $dependencySet->stylesheets ) > 0 || $totalDependencies > 1 ) {
@@ -354,43 +348,33 @@ class Compiler
      */
     protected function generateManifestFileContents( $basePath, $packagePaths, $stylesheetPaths, $pathsMarkedNoCompile = array() )
     {
+        $pathFinder = new PathFinder();
         $manifestFileContents = '';
 
         $this->logger->debug("Generating manifest file contents...");
 
         foreach ($stylesheetPaths as $stylesheetPath)
         {
-            // TODO Relative-ize this path
 
-            // !!! WARNING: This is not the right logic !!!
-            // The right logic makes these relative from the file the manifest is for
-            // This logic makes these relative from where the compile command was executed
-            // !!! WARNING: This is not the right logic !!!
+            $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
+            $fibble = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
+            $this->logger->debug( "Calculated relative path to be '{$fibble}'." );
+            $stylesheetPath = $fibble;
 
-            // To use this way for now, run from <app>/public
-            // ../vendor/bin/jspackager compile-files ../public/js/layouts/emr-layout.js ../public/shared/js/layouts/emr.js
-
-//            $cwd = getcwd();
-
-//            var_dump( '$cwd is ' . $cwd );
-//            $basePath = $cwd;
-
-            var_dump( '$basePath is ' . $basePath );
-            var_dump( '$stylesheetPath is ' . $stylesheetPath );
-            var_dump( 'substr is ' . substr( $stylesheetPath, 0, strlen($basePath) ) );
-
-            // Remove baseUrl if present
+            $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
             if ( $basePath !== '' && substr( $stylesheetPath, 0, strlen($basePath) ) === $basePath )
             {
                 // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
                 // As if we are shared then we may want something in between baseUrl and the real src.
                 $pos = strpos($stylesheetPath,$basePath);
                 if ($pos !== false) {
+                    $this->logger->debug( "baseUrl needs to be removed from '{$stylesheetPath}'." );
                     $stylesheetPath = substr_replace($stylesheetPath, '', $pos, strlen($basePath));
+                    $this->logger->debug( "baseUrl removed, new path is '{$stylesheetPath}'." );
                 }
             }
 
-            var_dump( '$stylesheetPath is ' . $stylesheetPath );
+            $this->logger->debug( "Final path for stylesheet in manifest is '{$stylesheetPath}." );
 
             $manifestFileContents .= $stylesheetPath . PHP_EOL;
 
@@ -398,11 +382,10 @@ class Compiler
 
         foreach ($packagePaths as $packagePath)
         {
+
             $filePath = '';
-            var_dump( 'arf');
-            var_dump( $packagePath);
-            var_dump( $pathsMarkedNoCompile);
-            var_dump( in_array( $packagePath, $pathsMarkedNoCompile ) );
+            $this->logger->debug( "Determining if should compile file or not..." );
+
             if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
                 $this->logger->debug( "Did not compile, leaving as uncompiled filename..." );
                 $packagePath = $packagePath;
@@ -410,42 +393,30 @@ class Compiler
                 $this->logger->debug( "Converted to compiled filename..." );
                 $packagePath = $this->getCompiledFilename($packagePath);
             }
-//            $manifestFileContents .= $filePath . PHP_EOL;
 
 
-            // TODO Relative-ize this path
+            $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
+            $fibble = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
+            $this->logger->debug( "Calculated relative path to be '{$fibble}'." );
+            $packagePath = $fibble;
 
-            // !!! WARNING: This is not the right logic !!!
-            // The right logic makes these relative from the file the manifest is for
-            // This logic makes these relative from where the compile command was executed
-            // !!! WARNING: This is not the right logic !!!
 
-            // To use this way for now, run from <app>/public
-            // ../vendor/bin/jspackager compile-files ../public/js/layouts/emr-layout.js ../public/shared/js/layouts/emr.js
-
-//            $cwd = getcwd();
-
-//            var_dump( '$cwd is ' . $cwd );
-//            $basePath = $cwd;
-
-            var_dump( '$basePath is ' . $basePath );
-            var_dump( '$stylesheetPath is ' . $packagePath );
-            var_dump( 'substr is ' . substr( $packagePath, 0, strlen($basePath) ) );
-
-            // Remove baseUrl if present
+            $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
             if ( $basePath !== '' && substr( $packagePath, 0, strlen($basePath) ) === $basePath )
             {
+
                 // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
                 // As if we are shared then we may want something in between baseUrl and the real src.
                 $pos = strpos($packagePath,$basePath);
                 if ($pos !== false) {
+                    $this->logger->debug( "baseUrl needs to be removed from '{$packagePath}'." );
                     $packagePath = substr_replace($packagePath, '', $pos, strlen($basePath));
+                    $this->logger->debug( "baseUrl removed, new path is '{$packagePath}'." );
+
                 }
             }
 
-            var_dump( '$stylesheetPath is ' . $packagePath );
-
-            $this->logger->debug( $packagePath );
+            $this->logger->debug( "Final path for package in manifest is '{$packagePath}." );
 
             $manifestFileContents .= $packagePath . PHP_EOL;
         }
@@ -534,7 +505,6 @@ class Compiler
         foreach( $dependencySets as $dependencySet )
         {
             try {
-                echo 'a';
                 $result = $this->compileDependencySet( $dependencySet );
                 $this->logger->notice('Successfully compiled Dependency Set: ' . $result->filename);
                 if ( is_callable( $statusCallback ) ) {
