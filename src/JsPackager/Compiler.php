@@ -67,7 +67,8 @@ class Compiler
         // Build manifest first
         $compiledFileManifest = $this->generateManifestFileContents(
             $dependencySet->packages,
-            $dependencySet->stylesheets
+            $dependencySet->stylesheets,
+            $dependencySet->pathsMarkedNoCompile
         );
 
         $this->logger->debug("Built manifest. Compiling with Google Closure Compiler .jar...");
@@ -302,15 +303,15 @@ class Compiler
     }
 
 
-
     /**
      * Take an array of stylesheet file paths and package file paths and generate a manifest file from them.
      *
      * @param array $packagePaths Array of file paths
      * @param array $stylesheetPaths Array of file paths
+     * @param boolean $pathsMarkedNoCompile Array of file paths that are marked `do not compile`
      * @return string Manifest file's contents
      */
-    protected function generateManifestFileContents( $packagePaths, $stylesheetPaths )
+    protected function generateManifestFileContents( $packagePaths, $stylesheetPaths, $pathsMarkedNoCompile = array() )
     {
         $manifestFileContents = '';
 
@@ -323,7 +324,14 @@ class Compiler
 
         foreach ($packagePaths as $packagePath)
         {
-            $manifestFileContents .= $this->getCompiledFilename( $packagePath ) . PHP_EOL;
+            $filePath = '';
+            if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
+                $filePath = $packagePath;
+            } else {
+                $filePath = $this->getCompiledFilename($packagePath);
+            }
+            $manifestFileContents .= $filePath . PHP_EOL;
+
         }
 
         $this->logger->debug("Generated manifest file contents.");

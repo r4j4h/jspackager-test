@@ -401,8 +401,6 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
 
     /**
-     * TODO This test will need to be updated when @nocompile within non-root scripts is enabled.
-     *
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
      * @runInSeparateProcess
      */
@@ -436,15 +434,11 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEmpty( $annotations['requireRemote'] );
         $this->assertEmpty( $annotations['requireStyle'] );
         $this->assertEmpty( $annotations['root'] );
+        $this->assertTrue( $annotations['nocompile'] );
 
         $annotationOrderingMap = $annotationResponse['orderingMap'];
 
-        // TODO Work on this test
-        $this->markTestIncomplete(
-            'This test has not been implemented yet.'
-        );
-        
-        $this->assertEquals( 'root', $annotationOrderingMap[0]['action'], "Should reflect appropriate bucket" );
+        $this->assertEquals( 'nocompile', $annotationOrderingMap[0]['action'], "Should reflect appropriate bucket" );
         $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
 
     }

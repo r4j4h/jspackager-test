@@ -28,6 +28,11 @@ class DependencySet
      */
     public $dependencies;
 
+    /**
+     * @var array
+     */
+    public $pathsMarkedNoCompile;
+
 
     /**
      * DependencySet Constructor
@@ -37,11 +42,13 @@ class DependencySet
      * @param array $stylesheets Array of relative stylesheet paths
      * @param array $packages Array of relative package root paths
      * @param array $dependencies Array of relative script paths, with this root file being the last
+     * @param array $pathsMarkedNoCompile Array of paths of files that should not be compiled
      */
-    public function __construct( $stylesheets = array(), $packages = array(), $dependencies = array() )
+    public function __construct( $stylesheets = array(), $packages = array(), $dependencies = array(), $pathsMarkedNoCompile = array() )
     {
         $this->stylesheets = $stylesheets;
         $this->packages = $packages;
         $this->dependencies = $dependencies;
+        $this->pathsMarkedNoCompile = $pathsMarkedNoCompile;
     }
 }
