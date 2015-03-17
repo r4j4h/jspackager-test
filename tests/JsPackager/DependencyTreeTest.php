@@ -408,6 +408,27 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( $basePath . '/stylesheet_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
     }
 
+
+    public function testGetFlattenHandlesCompiledManifestsProperly()
+    {
+        $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_package_compiled';
+        $filePath = $basePath . '/main.js';
+
+        $dependencyTree = new DependencyTree( $filePath );
+
+        $fileHierarchy = $dependencyTree->flattenDependencyTree();
+
+        $this->assertCount( 5, $fileHierarchy );
+
+        $i = 0;
+        $this->assertEquals( $basePath . '/dep_1.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/dep_2.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/dep_4.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/dep_3.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $filePath, $fileHierarchy[ $i ], "Given file is last" );
+    }
+
+
     /******************************************************************
      * getDependencySets
      *****************************************************************/
