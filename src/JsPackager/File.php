@@ -38,6 +38,13 @@ class File
     public $isRoot;
 
     /**
+     * If this file is marked to skip compilation
+     *
+     * @var boolean
+     */
+    public $isMarkedNoCompile;
+
+    /**
      * Scripts this file is dependent on
      *
      * @var File[]
@@ -84,6 +91,7 @@ class File
         $this->path     = $filePathParts['dirname'];
 
         $this->isRoot      = false;
+        $this->isMarkedNoCompile = false;
         $this->stylesheets = array();
         $this->scripts     = array();
         $this->packages    = array();

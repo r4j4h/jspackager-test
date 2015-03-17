@@ -60,6 +60,7 @@ class DependencyTreeParser
         'requireStyle',
         'requireRemoteStyle',
         'root',
+        'nocompile',
         'tests'
     );
 
@@ -213,6 +214,13 @@ class DependencyTreeParser
             {
                 $this->logger->debug("Marking {$filePath} as root.");
                 $file->isRoot = true;
+            }
+
+            // Mark isMarkedNoCompile
+            if ( $annotations['nocompile'] === true )
+            {
+                $this->logger->debug("Marking {$filePath} as nocompile.");
+                $file->isMarkedNoCompile = true;
             }
 
 

@@ -36,13 +36,18 @@ class Compiler
     public function __construct()
     {
         $this->logger = new NullLogger();
+        $this->rollingPathsMarkedNoCompile = array();
     }
 
+    /**
+     * @var array
+     */
+    private $rollingPathsMarkedNoCompile;
 
     /**
      * Take an array of files in dependency order and compile them, generating a manifest.
      *
-     * @param DependencySet $dependencySet Array containing keys 'stylesheets', 'packages', and 'dependencies'
+     * @param DependencySet $dependencySet Array containing keys 'stylesheets', 'packages', 'dependencies', and 'pathsMarkedNoCompile'
      * @return CompiledFile containing the contents of the resulting compiled file and its manifest.
      */
     public function compileDependencySet($dependencySet)
@@ -62,21 +67,57 @@ class Compiler
         $manifestFilename = $this->getManifestFilename( $rootFilename );
 
 
-        $this->logger->debug("Assembling manifest...");
-
-        // Build manifest first
-        $compiledFileManifest = $this->generateManifestFileContents(
-            $rootFilePath,
-            $dependencySet->packages,
-            $dependencySet->stylesheets
+        $this->rollingPathsMarkedNoCompile = array_merge(
+            $this->rollingPathsMarkedNoCompile,
+            $dependencySet->pathsMarkedNoCompile
         );
 
-        $this->logger->debug("Built manifest. Compiling with Google Closure Compiler .jar...");
+        $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
+        $this->logger->debug( '$dependencySet->pathsMarkedNoCompile' );
+        $this->logger->debug( print_r($dependencySet->pathsMarkedNoCompile, 1) );
+        $this->logger->debug( '$this->rollingPathsMarkedNoCompile' );
+        $this->logger->debug( print_r($this->rollingPathsMarkedNoCompile, 1) );
 
-        // Compile & Concatenate via Google closure Compiler Jar
-        $compilationResults = $this->compileFileListUsingClosureCompilerJar( $dependencySet->dependencies );
 
-        $this->logger->debug("Compiled with Google Closure Compiler .jar.");
+
+
+        if ( count( $dependencySet->stylesheets ) > 0 || $totalDependencies > 1 ) {
+            // Build manifest first
+            $compiledFileManifest = $this->generateManifestFileContents(
+                $rootFilePath,
+                $dependencySet->packages,
+                $dependencySet->stylesheets,
+                $this->rollingPathsMarkedNoCompile
+            );
+        } else {
+            $this->logger->debug("Skipping building manifest '{$manifestFilename}' for because file has no other dependencies than itself.");
+            $compiledFileManifest = null;
+        }
+
+        $this->logger->debug("Built manifest.");
+
+
+        if ( in_array( $rootFilePath .'/'. $rootFilename, $dependencySet->pathsMarkedNoCompile ) ) {
+            $this->logger->debug("File marked as do not compile. Skipping compiling with Google Closure Compiler .jar by pretending it succeeded with no output...");
+            $compilationResults = array(
+                'returnCode' => 0,
+                'err' => null,
+                'output' => null
+            );
+
+        } else {
+
+            $this->logger->debug("Compiling with Google Closure Compiler .jar...");
+
+            // Compile & Concatenate via Google closure Compiler Jar
+            $compilationResults = $this->compileFileListUsingClosureCompilerJar( $dependencySet->dependencies );
+
+            $this->logger->debug("Compiled with Google Closure Compiler .jar.");
+        }
+
+
+
+        $compiledFileContents = $compilationResults['output'];
 
 
         $numberOfErrors = $compilationResults['returnCode'];
@@ -89,12 +130,12 @@ class Compiler
             $compilationResults['err'] = null;
         }
 
-        $this->logger->notice("Compiled dependency set for '" . $rootFilePath . "' consisting of " . $totalDependencies . " dependencies.");
+        $this->logger->notice("Compiled dependency set for '" . $rootFilename . "' consisting of " . $totalDependencies . " dependencies.");
 
         return new CompiledFile(
             $rootFilePath,
             $compiledFilename,
-            $compilationResults['output'],
+            $compiledFileContents,
             $manifestFilename,
             $compiledFileManifest,
             $compilationResults['err']
@@ -272,7 +313,6 @@ class Compiler
         curl_close($post);
 
         // @TODO Make exceptions for these cases
-        // @TODO Handle the output results
 
         if ( property_exists($response, 'serverErrors') ) {
             $errorMessage = '';
@@ -303,16 +343,16 @@ class Compiler
     }
 
 
-
     /**
      * Take an array of stylesheet file paths and package file paths and generate a manifest file from them.
      *
      * @param string $basePath The base path of the file this manifest belongs to for making paths relative
      * @param array $packagePaths Array of file paths
      * @param array $stylesheetPaths Array of file paths
+     * @param boolean $pathsMarkedNoCompile Array of file paths that are marked `do not compile`
      * @return string Manifest file's contents
      */
-    protected function generateManifestFileContents( $basePath, $packagePaths, $stylesheetPaths )
+    protected function generateManifestFileContents( $basePath, $packagePaths, $stylesheetPaths, $pathsMarkedNoCompile = array() )
     {
         $manifestFileContents = '';
 
@@ -358,6 +398,21 @@ class Compiler
 
         foreach ($packagePaths as $packagePath)
         {
+            $filePath = '';
+            var_dump( 'arf');
+            var_dump( $packagePath);
+            var_dump( $pathsMarkedNoCompile);
+            var_dump( in_array( $packagePath, $pathsMarkedNoCompile ) );
+            if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
+                $this->logger->debug( "Did not compile, leaving as uncompiled filename..." );
+                $packagePath = $packagePath;
+            } else {
+                $this->logger->debug( "Converted to compiled filename..." );
+                $packagePath = $this->getCompiledFilename($packagePath);
+            }
+//            $manifestFileContents .= $filePath . PHP_EOL;
+
+
             // TODO Relative-ize this path
 
             // !!! WARNING: This is not the right logic !!!
@@ -391,10 +446,8 @@ class Compiler
             var_dump( '$stylesheetPath is ' . $packagePath );
 
             $this->logger->debug( $packagePath );
-            $this->logger->debug( "Converted to compiled filename..." );
-            $this->logger->debug( $this->getCompiledFilename( $packagePath ) );
 
-            $manifestFileContents .= $this->getCompiledFilename( $packagePath ) . PHP_EOL;
+            $manifestFileContents .= $packagePath . PHP_EOL;
         }
 
         $this->logger->debug("Generated manifest file contents.");
@@ -476,10 +529,12 @@ class Compiler
         $dependencyTree->logger = $this->logger;
         $dependencySets = $dependencyTree->getDependencySets();
 
+        $this->rollingPathsMarkedNoCompile = array();
 
         foreach( $dependencySets as $dependencySet )
         {
             try {
+                echo 'a';
                 $result = $this->compileDependencySet( $dependencySet );
                 $this->logger->notice('Successfully compiled Dependency Set: ' . $result->filename);
                 if ( is_callable( $statusCallback ) ) {
@@ -495,27 +550,49 @@ class Compiler
 
                 $fileCompilationResult = new FileCompilationResult();
 
-                // Write compiled file
-                $outputFilename = $result->path . '/' . $result->filename;
-                $this->logger->info("Writing compiled file to '" . $result->filename . "'.");
-                $outputFile = file_put_contents( $outputFilename, $result->contents );
-                if ( $outputFile === FALSE )
-                {
-                    $this->logger->emergency("Cannot write compiled file to {$outputFilename}");
-                    throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
-                }
-                $fileCompilationResult->setCompiledPath( $result->filename );
+                if ( is_null( $result->contents ) ) {
 
-                // Write manifest
-                $outputFilename = $result->path . '/' .$result->manifestFilename;
-                $this->logger->info("Writing compiled file manifest to '" . $result->manifestFilename . "'.");
-                $outputFile = file_put_contents( $outputFilename, $result->manifestContents );
-                if ( $outputFile === FALSE )
-                {
-                    $this->logger->critical("Cannot write manifest to {$outputFilename}");
-                    throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
+                    $this->logger->info("No compiled file contents, so not writing compiled file to '" . $result->filename . "'.");
+                    $fileCompilationResult->setCompiledPath( 'not_compiled' );
+
+                } else {
+
+                    // Write compiled file
+                    $outputFilename = $result->path . '/' . $result->filename;
+                    $this->logger->info("Writing compiled file to '" . $result->filename . "'.");
+                    $outputFile = file_put_contents( $outputFilename, $result->contents );
+                    if ( $outputFile === FALSE )
+                    {
+                        $this->logger->emergency("Cannot write compiled file to {$outputFilename}");
+                        throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
+                    }
+                    $this->logger->info("Wrote compiled file to '" . $result->filename . "'.");
+                    $fileCompilationResult->setCompiledPath( $result->filename );
+
                 }
-                $fileCompilationResult->setManifestPath( $result->manifestFilename );
+
+
+                if ( is_null( $result->manifestContents ) ) {
+
+                    $this->logger->info("No manifest file contents, so not writing manifest file to '" . $result->manifestFilename . "'.");
+                    $fileCompilationResult->setManifestPath( 'not_compiled' );
+
+                } else {
+
+                    // Write manifest
+                    $outputFilename = $result->path . '/' .$result->manifestFilename;
+                    $this->logger->info("Writing compiled file manifest to '" . $result->manifestFilename . "'.");
+                    $outputFile = file_put_contents( $outputFilename, $result->manifestContents );
+                    if ( $outputFile === FALSE )
+                    {
+                        $this->logger->critical("Cannot write manifest to {$outputFilename}");
+                        throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
+                    }
+                    $this->logger->info("Wrote compiled file manifest to '" . $result->manifestFilename . "'.");
+
+                    $fileCompilationResult->setManifestPath( $result->manifestFilename );
+
+                }
 
                 $fileCompilationResult->setSourcePath( $result->path );
 
