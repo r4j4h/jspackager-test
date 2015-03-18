@@ -2,6 +2,7 @@
 
 namespace JsPackager;
 
+use JsPackager\Compiler\DependencySet;
 use JsPackager\File;
 use JsPackager\DependencyTree;
 use JsPackager\Compiler;
@@ -644,6 +645,82 @@ MANIFEST;
         );
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
         $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+    }
+
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testCompileDependencySetHandlesRemoteAnnotations()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $sharedPath = $basePath . '-remote';
+
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
+
+        $roots = $dependencyTree->getDependencySets();
+
+        $compiler = new Compiler();
+
+        // Grab first dependency set
+        $dependencySet = $roots[0];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = <<< 'COMPILEFILE'
+window.remotepackage_local_on_remote=!0;window.remotepackage_remote_on_remote=!0;window.remotepackage_script=!0;
+
+COMPILEFILE;
+
+        $manifestContents = <<< 'MANIFEST'
+
+MANIFEST;
+
+        $this->assertEquals( $sharedPath . '/remotepackage', $result->path, "Path should point to remote folder" );
+        $this->assertEquals(
+            'script.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_4.js"
+        );
+        // todo when manifests arent needed they should not be generated for optimization!
+        $this->assertEquals(
+            'script.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_4"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
+        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+
+
+        // Grab second dependency set
+        $dependencySet = $roots[1];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = <<<COMPILEFILE
+window.remotescript_local_on_remote=!0;window.remotescript_remote_on_remote=!0;window.remotescript_script=!0;window.main_js=!0;
+
+COMPILEFILE;
+
+        $manifestContents = <<<'MANIFEST'
+$remote/remotepackage/script.compiled.js
+
+MANIFEST;
+
+        $this->assertEquals( $basePath, $result->path, "Compiled path should be local path" );
+        $this->assertEquals(
+            'main.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_3.js"
+        );
+        $this->assertEquals(
+            'main.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_3"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should be null so compilers can safely skip it" );
+        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should be null so compilers can safely skip it" );
+
     }
 
 
