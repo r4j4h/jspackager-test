@@ -705,6 +705,92 @@ MANIFEST;
     }
 
 
+    /**
+     * @throws Exception\Parsing
+     */
+    public function testGetDependencySetsHandlesRemoteAnnotations()
+    {
+        /**
+         * @var DependencySet $remoteDependencySet
+         * @var DependencySet $localDependencySet
+         */
+
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $sharedPath = $basePath . '-remote';
+
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
+
+        $dependencySets = $dependencyTree->getDependencySets();
+
+        $this->assertEquals(
+            2,
+            count( $dependencySets ),
+            "Expect 2 packages -- 1 for the file, 1 for the remote package"
+        );
+
+        $remoteDependencySet = $dependencySets[0];
+        $localDependencySet  = $dependencySets[1];
+
+        $this->assertEquals(
+            3,
+            count( $remoteDependencySet->dependencies ),
+            "Remote package has 3 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/local_on_remote.js',
+            $remoteDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/remote_on_remote.js',
+            $remoteDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.js',
+            $remoteDependencySet->dependencies[2]
+        );
+
+
+
+        $this->assertEquals(
+            4,
+            count( $localDependencySet->dependencies ),
+            "Local package has 4 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            1,
+            count( $localDependencySet->packages ),
+            "Local dependency set has 1 package."
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.js',
+            $localDependencySet->packages[0],
+            "Local dependency set's package is the remote package."
+        );
+
+
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/local_on_remote.js',
+            $localDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/remote_on_remote.js',
+            $localDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script.js',
+            $localDependencySet->dependencies[2]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/main.js',
+            $localDependencySet->dependencies[3]
+        );
+
+    }
+
 
     /******************************************************************
      * compileAndWriteFilesAndManifests
