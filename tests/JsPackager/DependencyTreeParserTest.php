@@ -962,8 +962,33 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertTrue(
+            $dependencyTree->scripts[0]->scripts[0]->isRemote,
+            'Remote script\'s locally required file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[0]->scripts[1]->isRemote,
+            'Remote script\'s remotely required file should be marked remote'
+        );
+
+        $this->assertTrue(
             $dependencyTree->scripts[1]->isRemote,
             'Remote package file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[1]->isRemote,
+            'Remote package file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[1]->scripts[0]->isRemote,
+            'Remote script\'s locally required file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[1]->scripts[1]->isRemote,
+            'Remote script\'s remotely required file should be marked remote'
         );
 
     }
