@@ -909,7 +909,7 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $filePath = $basePath . '/main.js';
 
         $treeParser = new DependencyTreeParser();
-        $treeParser->sharedFolderPath = self::fixturesBasePath . 'remote_annotation-remotemote';
+        $treeParser->sharedFolderPath = self::fixturesBasePath . '1_broken_js_reference_remote-remote';
 
         try {
             $dependencyTree = $treeParser->parseFile( $filePath );
@@ -917,15 +917,15 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         } catch (ParsingException $e) {
             $this->assertEquals(
                 'Failed to include missing file ' .
-                '"tests/JsPackager/fixtures/remote_annotation-remotemote/heeper.js"'.
+                '"tests/JsPackager/fixtures/1_broken_js_reference_remote-remote/heeper.js"'.
                 ' while trying to parse ' .
-                '"tests/JsPackager/fixtures/remote_annotation-remotemote/helper.js"',
+                '"tests/JsPackager/fixtures/1_broken_js_reference_remote-remote/main.js"',
                 $e->getMessage(),
                 'Exception should contain failed file\'s path information'
             );
 
             $this->assertEquals(
-                'tests/JsPackager/fixtures/remote_annotation-remotemote/heeper.js',
+                'tests/JsPackager/fixtures/1_broken_js_reference_remote-remote/heeper.js',
                 $e->getErrors(),
                 'Exception should contain failed file\'s path information'
             );
@@ -960,7 +960,7 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
             $dependencyTree->scripts[0]->isRemote,
             'Remote script file should be marked remote'
         );
-        
+
         $this->assertTrue(
             $dependencyTree->scripts[1]->isRemote,
             'Remote package file should be marked remote'
