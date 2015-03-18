@@ -237,7 +237,8 @@ class DependencyTree
         $rootPackages[] = new DependencySet(
             $nonRootFiles['stylesheetFilePaths'],
             $nonRootFiles['rootFilePaths'],
-            $nonRootFiles['nonRootFilePaths']
+            $nonRootFiles['nonRootFilePaths'],
+            $nonRootFiles['pathsMarkedNoCompile']
         );
 
         // Hold a cache of sets that need to be visited
@@ -256,7 +257,8 @@ class DependencyTree
                 $rootPackages[] = new DependencySet(
                     $furtherRoots['stylesheetFilePaths'],
                     $furtherRoots['rootFilePaths'],
-                    $furtherRoots['nonRootFilePaths']
+                    $furtherRoots['nonRootFilePaths'],
+                    $furtherRoots['pathsMarkedNoCompile']
                 );
 
                 // Add any new sets to examine to sets remaining to be examined list
@@ -306,6 +308,8 @@ class DependencyTree
         $rootsToVisit = array();
         $stylesheetFilePaths = array();
 
+        $pathsMarkedNoCompile = array();
+
         foreach( $file->annotationOrderMap as $aOMEntry )
         {
             $orderMapEntryAnnotationType = $aOMEntry['action'];
@@ -351,6 +355,10 @@ class DependencyTree
                     $rootFilePaths[] = $scriptFile->getFullPath();
                     $rootsToVisit[] = $scriptFile;
                 }
+
+                if ( $scriptFile->isMarkedNoCompile ) {
+                    $pathsMarkedNoCompile[] = $scriptFile->getFullPath();
+                }
             }
             else
             {
@@ -361,6 +369,12 @@ class DependencyTree
         // Add this file to the list
         $nonRootFilePaths[] = $file->getFullPath();
 
+
+        if ( $file->isMarkedNoCompile ) {
+            $pathsMarkedNoCompile[] = $file->getFullPath();
+        }
+
+
         // This is faster than array_unique and doesn't cause gaps in array keys
         $nonRootFilePaths = array_merge(array_keys(array_flip($nonRootFilePaths)));
 
@@ -369,6 +383,7 @@ class DependencyTree
             'rootFilePaths' => $rootFilePaths,
             'rootsToVisit' => $rootsToVisit,
             'stylesheetFilePaths' => $stylesheetFilePaths,
+            'pathsMarkedNoCompile' => $pathsMarkedNoCompile,
         );
     }
 

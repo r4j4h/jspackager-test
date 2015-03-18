@@ -112,7 +112,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $stylesheets = array();
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $this->assertEquals('', $manifestFileContents, "Manifest should be empty" );
 
@@ -129,11 +129,11 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         );
 
         $expectedOutput = join( PHP_EOL, array(
-            'some/package.compiled.js',
-            'another/package.compiled.js'
+            './some/package.compiled.js',
+            './another/package.compiled.js'
         )) . PHP_EOL;
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $this->assertEquals($expectedOutput, $manifestFileContents, "Manifest should have packages" );
     }
@@ -148,7 +148,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         );
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
     }
 
@@ -165,13 +165,72 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
             'another/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $expectedContents = <<<BLOCK
-some/stylesheet.css
-some/modifiers.css
-some/package.compiled.js
-another/package.compiled.js
+./some/stylesheet.css
+./some/modifiers.css
+./some/package.compiled.js
+./another/package.compiled.js
+
+BLOCK;
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
+
+    public function testGenerateManifestContainingNoCompileFile()
+    {
+        $compiler = new Compiler();
+
+        $stylesheets = array(
+            'css/my_stylesheet.css'
+        );
+        $packages = array(
+            'some/nocompile/package.js',
+            'some/normal/package.js'
+        );
+        $filesMarkedNoCompile = array(
+            'some/nocompile/package.js'
+        );
+
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets, $filesMarkedNoCompile ) );
+
+        $expectedContents = <<<BLOCK
+./css/my_stylesheet.css
+./some/nocompile/package.js
+./some/normal/package.compiled.js
+
+BLOCK;
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
+
+    public function testGenerateManifestHandlesBasePath()
+    {
+        $compiler = new Compiler();
+
+        $stylesheets = array(
+            '/some/absolute/path/to/websites/website_1/css/my_stylesheet.css'
+        );
+        $packages = array(
+            '/some/absolute/path/to/websites/website_1/some/nocompile/package.js',
+            '/some/absolute/path/to/websites/website_1/some/normal/package.js'
+        );
+        $filesMarkedNoCompile = array(
+            '/some/absolute/path/to/websites/website_1/some/nocompile/package.js'
+        );
+
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array(
+            '/some/absolute/path/to/websites/website_1/',
+            $packages,
+            $stylesheets,
+            $filesMarkedNoCompile
+        ) );
+
+        $expectedContents = <<<BLOCK
+./css/my_stylesheet.css
+./some/nocompile/package.js
+./some/normal/package.compiled.js
 
 BLOCK;
 
@@ -428,7 +487,7 @@ BLOCK;
 
         $compiledFilesContents = "window.dep_5=!0;window.dep_4=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/subpackage/dep_4_style.css
+./dep_4_style.css
 
 MANIFEST;
 
@@ -453,8 +512,8 @@ MANIFEST;
 
         $compiledFilesContents = "window.dep_3=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/dep_3_style.css
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/subpackage/dep_4.compiled.js
+./dep_3_style.css
+./subpackage/dep_4.compiled.js
 
 MANIFEST;
 
@@ -478,7 +537,99 @@ MANIFEST;
         $result = $compiler->compileDependencySet( $dependencySet );
 
         $compiledFilesContents = "window.dep_1=!0;window.dep_2=!0;window.main=!0;" . PHP_EOL;
-        $manifestContents = $basePath . '/package/dep_3.compiled.js' . PHP_EOL;
+        $manifestContents = './package/dep_3.compiled.js' . PHP_EOL;
+
+        $this->assertEquals( $basePath, $result->path, "Compiled path should be main.js's path" );
+        $this->assertEquals(
+            'main.compiled.js',
+            $result->filename,
+            "Compiled file should be from main.js"
+        );
+        $this->assertEquals(
+            'main.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from main"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
+        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+    }
+
+
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testCompileDependencySetHandlesDependenciesWithPackagesMarkedNoCompile()
+    {
+        $basePath = self::fixturesBasePath . 'annotation_nocompile';
+        $mainJsPath = $basePath . '/main.js';
+
+        $dependencyTree = new DependencyTree( $mainJsPath );
+
+        $roots = $dependencyTree->getDependencySets();
+
+        $compiler = new Compiler();
+
+        // Grab first dependency set
+        $dependencySet = $roots[0];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = "window.normal_package=!0;" . PHP_EOL;
+        $manifestContents = <<<MANIFEST
+
+MANIFEST;
+
+        $this->assertEquals( $basePath . '/some/normal', $result->path, "Compiled path should be dep_4's path" );
+        $this->assertEquals(
+            'package.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_4.js"
+        );
+        // todo when manifests arent needed they should not be generated for optimization!
+        $this->assertEquals(
+            'package.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_4"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
+        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+
+
+        // Grab second dependency set
+        $dependencySet = $roots[1];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = "window.nocompile_package=!0;" . PHP_EOL;
+        $manifestContents = <<<MANIFEST
+
+MANIFEST;
+
+        $this->assertEquals( $basePath . '/some/nocompile', $result->path, "Compiled path should be dep_3's path" );
+        $this->assertEquals(
+            'package.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_3.js"
+        );
+        $this->assertEquals(
+            'package.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_3"
+        );
+        $this->assertEquals( null, $result->contents, "Compiled file should be null so compilers can safely skip it" );
+        $this->assertEquals( null, $result->manifestContents, "Manifest file should be null so compilers can safely skip it" );
+
+
+        // Grab third (and last) dependency set
+        $dependencySet = $roots[2];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = "window.nocompile_script=!0;window.normal_script=!0;window.main=!0;" . PHP_EOL;
+        $manifestContents = <<<MANIFEST
+./some/nocompile/package.js
+./some/normal/package.compiled.js
+
+MANIFEST;
+
 
         $this->assertEquals( $basePath, $result->path, "Compiled path should be main.js's path" );
         $this->assertEquals(
@@ -552,6 +703,8 @@ MANIFEST;
         $this->assertEquals( $basePath . '/dep_1.js', $roots[2]->dependencies[0], "Should include dep_1.js" );
         $this->assertEquals( $basePath . '/main.js', $roots[2]->dependencies[1], "Should include main.js" );
     }
+
+
 
     /******************************************************************
      * compileAndWriteFilesAndManifests
