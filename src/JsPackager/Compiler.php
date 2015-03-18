@@ -357,9 +357,8 @@ class Compiler
         {
 
             $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
-            $fibble = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
-            $this->logger->debug( "Calculated relative path to be '{$fibble}'." );
-            $stylesheetPath = $fibble;
+            $stylesheetPath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
+            $this->logger->debug( "Calculated relative path to be '{$stylesheetPath}'." );
 
             $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
             if ( $basePath !== '' && substr( $stylesheetPath, 0, strlen($basePath) ) === $basePath )
@@ -396,9 +395,8 @@ class Compiler
 
 
             $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
-            $fibble = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
-            $this->logger->debug( "Calculated relative path to be '{$fibble}'." );
-            $packagePath = $fibble;
+            $packagePath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
+            $this->logger->debug( "Calculated relative path to be '{$packagePath}'." );
 
 
             $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
