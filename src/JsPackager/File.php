@@ -45,6 +45,13 @@ class File
     public $isMarkedNoCompile;
 
     /**
+     * If this file is marked as existing on `remote` server
+     *
+     * @var boolean
+     */
+    public $isRemote;
+
+    /**
      * Scripts this file is dependent on
      *
      * @var File[]
@@ -92,6 +99,7 @@ class File
 
         $this->isRoot      = false;
         $this->isMarkedNoCompile = false;
+        $this->isRemote = false;
         $this->stylesheets = array();
         $this->scripts     = array();
         $this->packages    = array();

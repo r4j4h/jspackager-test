@@ -236,8 +236,11 @@ class DependencyTreeParser
                 {
                     $this->logger->debug("Found requireRemote entry.");
 
-                    // Use convention to alter path to shared files' root
-                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/' . $this->sharedFolderPath, $file->path );
+                    // need to load actual file
+                    // but store $remote/
+
+                    // Alter path to shared files' root
+                    $sharedPath = $this->sharedFolderPath;
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
@@ -249,11 +252,13 @@ class DependencyTreeParser
                     {
                         $this->logger->debug("Checking it for dependencies...");
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
+                        $dependencyFile->isRemote = true;
                     }
                     catch (MissingFileException $e)
                     {
                         throw new ParsingException("Failed to include missing file \"{$e->getMissingFilePath()}\" while trying to parse \"{$filePath}\"", null, $e->getMissingFilePath());
                     }
+
 
 
                     if ( $dependencyFile->isRoot )

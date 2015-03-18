@@ -901,6 +901,74 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
     }
 
 
+    public function testParseFileThrowsParsingExceptionOnMissingFileDuringRecursionIntoRemoteFile()
+    {
+        // Test JavaScript files
+
+        $basePath = self::fixturesBasePath . '1_broken_js_reference_remote';
+        $filePath = $basePath . '/main.js';
+
+        $treeParser = new DependencyTreeParser();
+        $treeParser->sharedFolderPath = self::fixturesBasePath . 'remote_annotation-remotemote';
+
+        try {
+            $dependencyTree = $treeParser->parseFile( $filePath );
+            $this->fail('Set should throw a missing file exception');
+        } catch (ParsingException $e) {
+            $this->assertEquals(
+                'Failed to include missing file ' .
+                '"tests/JsPackager/fixtures/remote_annotation-remotemote/heeper.js"'.
+                ' while trying to parse ' .
+                '"tests/JsPackager/fixtures/remote_annotation-remotemote/helper.js"',
+                $e->getMessage(),
+                'Exception should contain failed file\'s path information'
+            );
+
+            $this->assertEquals(
+                'tests/JsPackager/fixtures/remote_annotation-remotemote/heeper.js',
+                $e->getErrors(),
+                'Exception should contain failed file\'s path information'
+            );
+
+            $this->assertEquals(
+                ParsingException::ERROR_CODE,
+                $e->getCode(),
+                'Exception should contain proper error code'
+            );
+        }
+
+    }
+
+    public function testParseFileMarksIsRemote()
+    {
+        // Test JavaScript files
+
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $filePath = $basePath . '/main.js';
+
+        $treeParser = new DependencyTreeParser();
+        $treeParser->sharedFolderPath = self::fixturesBasePath . 'remote_annotation-remote';
+
+        $dependencyTree = $treeParser->parseFile( $filePath );
+
+        $this->assertFalse(
+            $dependencyTree->isRemote,
+            'Main file should not be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[0]->isRemote,
+            'Remote script file should be marked remote'
+        );
+        
+        $this->assertTrue(
+            $dependencyTree->scripts[1]->isRemote,
+            'Remote package file should be marked remote'
+        );
+
+    }
+
+
     /******************************************************************
      * parseFile > 2 Dependencies, #1 and #2
      * Fixture folder: 2_indep_deps

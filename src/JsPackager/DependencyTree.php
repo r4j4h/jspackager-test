@@ -25,6 +25,13 @@ class DependencyTree
     const SCRIPT_EXTENSION_PATTERN     = '/.js$/';
     const STYLESHEET_EXTENSION_PATTERN = '/.css$/';
 
+
+    /**
+     * @var String
+     */
+    public $sharedFolderPath = 'shared';
+
+
     /**
      * @var LoggerInterface
      */
@@ -38,15 +45,18 @@ class DependencyTree
      * @param bool $muteMissingFileExceptions Optional. If true, missing file exceptions will not be thrown and
      * will be carried through as if they were there. Note: Obviously they will not be parsed for children.
      * @param LoggerInterface $logger
+     * @param String $sharedPath
      * @throws Exception\Recursion If the dependent files have a circular dependency
      * @throws Exception\MissingFile Through internal File object if $filePath does not point to a valid file
      */
-    public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false, LoggerInterface $logger = null ) {
+    public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false, LoggerInterface $logger = null, $sharedPath = 'shared' ) {
         if ( $logger === null ) {
             $this->logger = new NullLogger();
         } else {
             $this->logger = $logger;
         }
+
+        $this->sharedFolderPath = $sharedPath;
 
         $treeParser = $this->getDependencyTreeParser();
 
@@ -67,6 +77,7 @@ class DependencyTree
     {
         $treeParser = new DependencyTreeParser();
         $treeParser->logger = $this->logger;
+        $treeParser->sharedFolderPath = $this->sharedFolderPath;
         return $treeParser;
     }
 
