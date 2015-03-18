@@ -1,0 +1,1 @@
+window.remote_helper = 1;

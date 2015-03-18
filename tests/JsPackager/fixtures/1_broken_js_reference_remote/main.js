@@ -1,4 +1,4 @@
 
-// @requireRemote heeper.js
+// @requireRemote main.js
 
-window.main = true;
+window.local_main = true;
