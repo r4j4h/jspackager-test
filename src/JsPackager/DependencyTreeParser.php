@@ -333,8 +333,8 @@ class DependencyTreeParser
 
                     $fileHandler = $this->getFileHandler();
 
-                    // Use convention to alter path to shared files' root
-                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/' . $this->sharedFolderPath, $file->path );
+                    // Alter path to shared files' root
+                    $sharedPath = $this->sharedFolderPath;
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
