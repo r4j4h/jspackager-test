@@ -368,9 +368,20 @@ class Compiler
         foreach ($stylesheetPaths as $stylesheetPath)
         {
 
-            $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
-            $stylesheetPath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
-            $this->logger->debug( "Calculated relative path to be '{$stylesheetPath}'." );
+            $pathUsesRemote = ( strpos($stylesheetPath, '@remote') !== FALSE );
+
+            if ( !$pathUsesRemote )
+            {
+                $this->logger->debug( "{$stylesheetPath} is local." );
+
+                $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
+                $stylesheetPath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
+                $this->logger->debug( "Calculated relative path to be '{$stylesheetPath}'." );
+            }
+            else
+            {
+                $this->logger->debug( "Determined {$stylesheetPath} contains @remote" );
+            }
 
             $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
             if ( $basePath !== '' && substr( $stylesheetPath, 0, strlen($basePath) ) === $basePath )
