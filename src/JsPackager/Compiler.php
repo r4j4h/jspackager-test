@@ -40,10 +40,17 @@ class Compiler
     }
 
     /**
+     * An aggregated array of paths used to skip compilation.
+     * 
      * @var array
      */
     private $rollingPathsMarkedNoCompile;
 
+    /**
+     * Path to replace `@remote` symbols with.
+     *
+     * @var string
+     */
     public $sharedFolderPath = 'shared';
 
     /**
