@@ -703,7 +703,7 @@ window.remotescript_local_on_remote=!0;window.remotescript_remote_on_remote=!0;w
 COMPILEFILE;
 
         $manifestContents = <<<'MANIFEST'
-$remote/remotepackage/script.compiled.js
+@remote/remotepackage/script.compiled.js
 
 MANIFEST;
 
@@ -804,7 +804,7 @@ MANIFEST;
         $this->assertEquals(
             $sharedPath,
             $dependencyTree->sharedFolderPath,
-            'Should provide a default value to use in place of $remote'
+            'Should provide a default value to use in place of @remote'
         );
 
         $this->assertEquals(
@@ -823,15 +823,15 @@ MANIFEST;
         );
 
         $this->assertEquals(
-            '$remote/remotepackage/local_on_remote.js',
+            '@remote/remotepackage/local_on_remote.js',
             $remoteDependencySet->dependencies[0]
         );
         $this->assertEquals(
-            '$remote/remotepackage/remote_on_remote.js',
+            '@remote/remotepackage/remote_on_remote.js',
             $remoteDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            '$remote/remotepackage/script.js',
+            '@remote/remotepackage/script.js',
             $remoteDependencySet->dependencies[2]
         );
 
@@ -849,22 +849,22 @@ MANIFEST;
             "Local dependency set has 1 package."
         );
         $this->assertEquals(
-            '$remote/remotepackage/script.js',
+            '@remote/remotepackage/script.js',
             $localDependencySet->packages[0],
             "Local dependency set's package is the remote package."
         );
 
 
         $this->assertEquals(
-            '$remote/remotescript/local_on_remote.js',
+            '@remote/remotescript/local_on_remote.js',
             $localDependencySet->dependencies[0]
         );
         $this->assertEquals(
-            '$remote/remotescript/remote_on_remote.js',
+            '@remote/remotescript/remote_on_remote.js',
             $localDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            '$remote/remotescript/script.js',
+            '@remote/remotescript/script.js',
             $localDependencySet->dependencies[2]
         );
         $this->assertEquals(

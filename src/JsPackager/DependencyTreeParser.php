@@ -262,7 +262,7 @@ class DependencyTreeParser
                     $this->logger->debug("Found requireRemote entry.");
 
                     // need to load actual file
-                    // but store $remote/
+                    // but store @remote/
 
                     // Alter path to shared files' root
                     $sharedPath = $this->sharedFolderPath;
