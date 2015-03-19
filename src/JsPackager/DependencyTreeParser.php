@@ -127,6 +127,7 @@ class DependencyTreeParser
 
     }
 
+    public $currentlyRecursingInRemoteFile = false;
 
     /**
      * Converts a file via path into a JsPackager\File object and
@@ -152,6 +153,7 @@ class DependencyTreeParser
 
             $this->parsedFiles = array();
             $this->seenFiles = array();
+            $this->currentlyRecursingInRemoteFile = false;
         } else {
             $this->logger->debug("Recursing.");
         }
@@ -251,8 +253,9 @@ class DependencyTreeParser
                     try
                     {
                         $this->logger->debug("Checking it for dependencies...");
+                        $this->currentlyRecursingInRemoteFile = true;
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
-                        $dependencyFile->isRemote = true;
+                        $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
                     }
                     catch (MissingFileException $e)
                     {
@@ -266,6 +269,7 @@ class DependencyTreeParser
                         $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
                         $file->packages[] = $htmlPath;
                     }
+
 
                     // It has root set from parseFile so callee can handle that
                     $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
@@ -294,6 +298,7 @@ class DependencyTreeParser
                     {
                         $this->logger->debug("Checking it for dependencies...");
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
+                        $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
                     }
                     catch (MissingFileException $e)
                     {
@@ -309,6 +314,9 @@ class DependencyTreeParser
                     // It has root set from parseFile so callee can handle that
                     $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
                     $file->scripts[] = $dependencyFile;
+
+
+
 
                     // Populate ordering map on File object
                     $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
