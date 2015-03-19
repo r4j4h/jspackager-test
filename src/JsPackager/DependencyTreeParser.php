@@ -127,6 +127,29 @@ class DependencyTreeParser
 
     }
 
+
+    /**
+     * Get the base path to a file.
+     *
+     * Give it something like '/my/cool/file.jpg' and get '/my/cool/' back.
+     * @param $sourceFilePath
+     * @return string
+     */
+    protected function getBasePathFromSourceFileWithoutTrailingSlash($sourceFilePath) {
+        return ltrim( ( substr( $sourceFilePath, 0, strrpos($sourceFilePath, '/' ) ) ), '/' );
+    }
+    /**
+     * Get the base path to a file.
+     *
+     * Give it something like '/my/cool/file.jpg' and get '/my/cool/' back.
+     * @param $sourceFilePath
+     * @return string
+     */
+    protected function getBasePathFromSourceFileWithTrailingSlash($sourceFilePath) {
+        return ltrim( ( substr( $sourceFilePath, 0, strrpos($sourceFilePath, '/' )+1 ) ), '/' );
+    }
+
+
     public $currentlyRecursingInRemoteFile = false;
 
     /**
