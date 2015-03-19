@@ -663,6 +663,7 @@ MANIFEST;
         $roots = $dependencyTree->getDependencySets();
 
         $compiler = new Compiler();
+        $compiler->sharedFolderPath = $sharedPath;
 
         // Grab first dependency set
         $dependencySet = $roots[0];
@@ -718,8 +719,8 @@ MANIFEST;
             $result->manifestFilename,
             "Manifest filename should be from dep_3"
         );
-        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should be null so compilers can safely skip it" );
-        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should be null so compilers can safely skip it" );
+        $this->assertEquals( $compiledFilesContents, $result->contents );
+        $this->assertEquals( $manifestContents, $result->manifestContents );
 
     }
 
