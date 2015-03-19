@@ -405,6 +405,10 @@ class DependencyTreeParser
                         throw new Exception\MissingFile($sharedPath . '/' . $path . ' is not a valid file!', 0, null, $sharedPath . '/' . $path);
                     }
 
+                    // Reset path from actual to using @remote symbol
+                    $htmlPath = '@remote' . '/' . $path;
+
+
                     // Add to stylesheets list
                     $this->logger->debug("Adding {$htmlPath} to stylesheets array.");
                     $file->stylesheets[] = $htmlPath;
@@ -436,6 +440,11 @@ class DependencyTreeParser
                     if ( $fileHandler->is_file( $file->path . '/' . $path ) === false && $this->mutingMissingFileExceptions === false )
                     {
                         throw new Exception\MissingFile($file->path . '/' . $path . ' is not a valid file!', 0, null, $file->path . '/' . $path);
+                    }
+
+                    if ( $this->currentlyRecursingInRemoteFile ) {
+                        // Reset path from actual to using @remote symbol
+                        $htmlPath = '@remote' . '/' . $path;
                     }
 
                     // Add to stylesheets list
