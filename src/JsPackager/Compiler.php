@@ -517,7 +517,7 @@ class Compiler
     public function compileAndWriteFilesAndManifests($inputFilename, $statusCallback = false)
     {
         $compiledFiles = array();
-        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger );
+        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger, $this->sharedFolderPath );
         $dependencyTree->logger = $this->logger;
         $dependencySets = $dependencyTree->getDependencySets();
 
