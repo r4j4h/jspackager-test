@@ -386,13 +386,16 @@ class DependencyTreeParser
 
                     $fileHandler = $this->getFileHandler();
 
+                    // need to load actual file
+                    // but store @remote/
+
                     // Alter path to shared files' root
                     $sharedPath = $this->sharedFolderPath;
 
                     // Build dependency's identifier
                     $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
 
-                    $this->logger->debug("Calculated {$htmlPath} as required files' path.");
+                    $this->logger->debug("Calculated {$htmlPath} as shared files' path.");
 
                     // When parsing CSS files is desired, it will go through parseFile so non file exceptions will
                     // be caught and thrown there before parsing. Until that is desired, we will just manually
