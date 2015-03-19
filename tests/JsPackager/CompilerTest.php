@@ -802,6 +802,12 @@ MANIFEST;
         $dependencySets = $dependencyTree->getDependencySets();
 
         $this->assertEquals(
+            $sharedPath,
+            $dependencyTree->sharedFolderPath,
+            'Should provide a default value to use in place of $remote'
+        );
+
+        $this->assertEquals(
             2,
             count( $dependencySets ),
             "Expect 2 packages -- 1 for the file, 1 for the remote package"
