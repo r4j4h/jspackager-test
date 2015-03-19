@@ -44,6 +44,8 @@ class Compiler
      */
     private $rollingPathsMarkedNoCompile;
 
+    public $sharedFolderPath = 'shared';
+
     /**
      * Take an array of files in dependency order and compile them, generating a manifest.
      *
@@ -59,6 +61,16 @@ class Compiler
 
         $totalDependencies = count( $dependencySet->dependencies );
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
+        $lastDependencyIsRemote = ( strpos($lastDependency, '@remote') === false ) ? false : true;
+
+        // Expand out any @remote annotations
+        foreach( $dependencySet->dependencies as $idx => $dependency ) {
+            $dependencySet->dependencies[$idx] = str_replace( '@remote', $this->sharedFolderPath, $dependency );
+        }
+
+        $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
+
+
         $rootFile = new File($lastDependency);
 
         $rootFilePath = $rootFile->path;
@@ -382,7 +394,6 @@ class Compiler
         foreach ($packagePaths as $packagePath)
         {
 
-            $filePath = '';
             $this->logger->debug( "Determining if should compile file or not..." );
 
             if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
@@ -394,9 +405,21 @@ class Compiler
             }
 
 
-            $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
-            $packagePath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
-            $this->logger->debug( "Calculated relative path to be '{$packagePath}'." );
+
+            $pathUsesRemote = ( strpos($packagePath, '@remote') !== FALSE );
+
+            if ( !$pathUsesRemote )
+            {
+                $this->logger->debug( "{$packagePath} is local." );
+
+                $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
+                $packagePath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
+                $this->logger->debug( "Calculated relative path to be '{$packagePath}'." );
+            }
+            else
+            {
+                $this->logger->debug( "Determined {$packagePath} contains @remote" );
+            }
 
 
             $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
