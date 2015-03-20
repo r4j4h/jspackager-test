@@ -508,9 +508,32 @@ class Compiler
      * @param string $filename
      * @return string
      */
+    public function getSourceFilenameFromCompiledFilename($filename)
+    {
+        return preg_replace('/.' . self::COMPILED_SUFFIX . '.js$/', '.js', $filename);
+    }
+
+    /**
+     * Convert a given filename to its compiled equivalent
+     *
+     * @param string $filename
+     * @return string
+     */
     public function getCompiledFilename($filename)
     {
         return preg_replace('/.js$/', '.' . self::COMPILED_SUFFIX . '.js', $filename);
+    }
+
+
+    /**
+     * Convert a given filename to its manifest equivalent
+     *
+     * @param string $filename
+     * @return string
+     */
+    public function getSourceFilenameFromManifestFilename($filename)
+    {
+        return preg_replace('/.js.' . self::MANIFEST_SUFFIX . '$/', '.js', $filename);
     }
 
     /**
