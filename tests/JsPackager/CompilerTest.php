@@ -861,11 +861,11 @@ MANIFEST;
             $localDependencySet->dependencies[0]
         );
         $this->assertEquals(
-            '@remote/remotescript/package_subfolder/local_on_remote.js',
+            '@remote/remotescript/script_subfolder/local_on_remote.js',
             $localDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            '@remote/remotescript/package_subfolder/remote_on_remote.js',
+            '@remote/remotescript/script_subfolder/remote_on_remote.js',
             $localDependencySet->dependencies[2]
         );
         $this->assertEquals(
