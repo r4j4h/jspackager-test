@@ -839,9 +839,9 @@ MANIFEST;
 
 
         $this->assertEquals(
-            4,
+            6,
             count( $localDependencySet->dependencies ),
-            "Local package has 4 dependencies, including itself."
+            "Local package has 6 dependencies, including itself."
         );
 
         $this->assertEquals(
@@ -857,20 +857,28 @@ MANIFEST;
 
 
         $this->assertEquals(
-            '@remote/remotescript/local_on_remote.js',
+            'tests/JsPackager/fixtures/remote_annotation/local_file_before.js',
             $localDependencySet->dependencies[0]
         );
         $this->assertEquals(
-            '@remote/remotescript/remote_on_remote.js',
+            '@remote/remotescript/local_on_remote.js',
             $localDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            '@remote/remotescript/script.js',
+            '@remote/remotescript/remote_on_remote.js',
             $localDependencySet->dependencies[2]
         );
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation/main.js',
+            '@remote/remotescript/script.js',
             $localDependencySet->dependencies[3]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_file_after.js',
+            $localDependencySet->dependencies[4]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/main.js',
+            $localDependencySet->dependencies[5]
         );
 
     }
