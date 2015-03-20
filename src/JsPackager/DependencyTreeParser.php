@@ -350,7 +350,7 @@ class DependencyTreeParser
                         if ( $dependencyFile->isRemote ) {
                             // Reset path from actual to using @remote symbol
                             $basePathFromSource = implode('/', $this->recursedPath);
-                            $dependencyFile->path = '@remote' . '/' . $basePathFromSource;
+                            $dependencyFile->path = '@remote' . '/' . $basePathFromSource . '/' . $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
                         }
                     }
                     catch (MissingFileException $e)
