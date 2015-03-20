@@ -525,6 +525,10 @@ class DependencyTreeParser
         while ( preg_match( $pattern, $relativePath ) ) {
             $relativePath = preg_replace( $pattern, '', $relativePath );
         }
+        $pattern = '/\/\.\//';
+        while ( preg_match( $pattern, $relativePath ) ) {
+            $relativePath = preg_replace( $pattern, '/', $relativePath );
+        }
         return $relativePath;
     }
 
