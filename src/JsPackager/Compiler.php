@@ -53,6 +53,15 @@ class Compiler
      */
     public $sharedFolderPath = 'shared';
 
+
+    public function expandOutRemoteAnnotation($string) {
+        return str_replace( '@remote', $this->sharedFolderPath, $string );
+    }
+
+    public function stringContainsRemoteAnnotation($string) {
+        return ( strpos($string, '@remote') !== FALSE );
+    }
+
     /**
      * Take an array of files in dependency order and compile them, generating a manifest.
      *
@@ -68,11 +77,11 @@ class Compiler
 
         $totalDependencies = count( $dependencySet->dependencies );
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
-        $lastDependencyIsRemote = ( strpos($lastDependency, '@remote') === false ) ? false : true;
+        $lastDependencyIsRemote = $this->stringContainsRemoteAnnotation( $lastDependency );
 
         // Expand out any @remote annotations
         foreach( $dependencySet->dependencies as $idx => $dependency ) {
-            $dependencySet->dependencies[$idx] = str_replace( '@remote', $this->sharedFolderPath, $dependency );
+            $dependencySet->dependencies[$idx] = $this->expandOutRemoteAnnotation( $dependency );
         }
 
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
@@ -375,7 +384,7 @@ class Compiler
         foreach ($stylesheetPaths as $stylesheetPath)
         {
 
-            $pathUsesRemote = ( strpos($stylesheetPath, '@remote') !== FALSE );
+            $pathUsesRemote = $this->stringContainsRemoteAnnotation( $stylesheetPath );
 
             if ( !$pathUsesRemote )
             {
@@ -424,7 +433,7 @@ class Compiler
 
 
 
-            $pathUsesRemote = ( strpos($packagePath, '@remote') !== FALSE );
+            $pathUsesRemote = $this->stringContainsRemoteAnnotation( $packagePath );
 
             if ( !$pathUsesRemote )
             {
