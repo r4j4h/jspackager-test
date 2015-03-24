@@ -164,7 +164,25 @@ class ManifestResolver
      * @return string
      */
     protected function getBasePathFromSourceFile($sourceFilePath) {
-        return ltrim( ( substr( $sourceFilePath, 0, strrpos($sourceFilePath, '/' )+1 ) ), '/' );
+        $posOfLastSlash = strrpos($sourceFilePath, '/' );
+        $basePathPortion = substr( $sourceFilePath, 0, $posOfLastSlash+1 );
+        return $basePathPortion;
+    }
+
+    /**
+     * Remove sub-string from a string if it is in there.
+     *
+     * @param $path
+     * @return string
+     */
+    protected function removeSubstringFromString($string, $substringToRemoveIfPresent) {
+        $posInString = strpos( $string, $substringToRemoveIfPresent );
+        $subStringLength = strlen( $substringToRemoveIfPresent );
+        $subStringInString = ( $posInString !== FALSE );
+        if ( $subStringInString ) {
+            $string = substr( $string, $posInString + $subStringLength );
+        }
+        return $string;
     }
 
     /**
@@ -175,13 +193,7 @@ class ManifestResolver
      */
     protected function removeCurrentWorkingDirectionFromPath($path) {
         $cwd = getcwd() . '/';
-        $cwdPosInPath = strpos( $path, $cwd );
-        $cwdLength = strlen( $cwd );
-        $cwdInPath = ( $cwdPosInPath !== FALSE );
-        if ( $cwdInPath ) {
-            $path = substr( $path, $cwdPosInPath + $cwdLength );
-        }
-        return $path;
+        return $this->removeSubstringFromString($path, $cwd);
     }
 
     /**
@@ -191,14 +203,9 @@ class ManifestResolver
      * @return string
      */
     protected function removeBaseUrlFromPath($path) {
-        $basePath = rtrim($this->baseFolderPath, '/') . '/';
-        $cwdPosInPath = strpos( $path, $basePath );
-        $cwdLength = strlen( $basePath );
-        $cwdInPath = ( $cwdPosInPath !== FALSE );
-        if ( $cwdInPath ) {
-            $path = substr( $path, $cwdPosInPath + $cwdLength );
-        }
-        return $path;
+//        $basePath = rtrim($this->baseFolderPath, '/') . '/';
+        $basePath = $this->baseFolderPath . '/';
+        return $this->removeSubstringFromString($path, $basePath);
     }
 
 
