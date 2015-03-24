@@ -244,7 +244,7 @@ class ManifestResolver
 //        }
 
         $pathToSourceFile = $this->replaceRemoteSymbolIfPresent($pathToSourceFile, $this->sharedFolderPath);
-        $sourceFilePath = $this->replaceRemoteSymbolIfPresent($sourceFilePath, $this->sharedFolderPath);
+        $sourceFilePath   = $this->replaceRemoteSymbolIfPresent($sourceFilePath,   $this->sharedFolderPath);
         $manifestFilePath = $this->replaceRemoteSymbolIfPresent($manifestFilePath, $this->sharedFolderPath);
         $compiledFilePath = $this->replaceRemoteSymbolIfPresent($compiledFilePath, $this->sharedFolderPath);
 
