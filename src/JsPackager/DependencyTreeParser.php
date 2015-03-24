@@ -174,6 +174,22 @@ class DependencyTreeParser
     public $recursionDepth = 0;
 
     /**
+     * Grab the last item in an array.
+     * 
+     * Thanks, http://stackoverflow.com/a/8205332/1347604
+     *
+     * @param $array
+     * @return null
+     */
+    protected function array_last($array) {
+        if (count($array) < 1)
+            return null;
+
+        $keys = array_keys($array);
+        return $array[$keys[sizeof($keys) - 1]];
+    }
+
+    /**
      * Converts a file via path into a JsPackager\File object and
      * parses it for dependencies, caching it for re-use if called again
      * with same file.
@@ -362,8 +378,12 @@ class DependencyTreeParser
                         $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
                         if ( $dependencyFile->isRemote ) {
                             // Reset path from actual to using @remote symbol
-                            $basePathFromSource = implode('/', $this->recursedPath);
-                            $dependencyFile->path = '@remote' . '/' . $basePathFromSource . '/' . $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+                            $basePathFromDependents = $this->array_last( $this->recursedPath );
+                            $basePathFromSourceFile = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+                            // don't prepend recursedPath if it already is the beginning
+
+                                $dependencyFile->path = rtrim('@remote' . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/');
+
                         }
                     }
                     catch (MissingFileException $e)
