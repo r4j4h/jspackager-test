@@ -219,7 +219,7 @@ class ManifestResolver
      */
     protected function reverseResolveFromCompiledFile($sourceFilePath, $deeper = false)
     {
-        $baseUrl = rtrim($this->baseFolderPath, '/') . '/';
+        $baseUrl = $this->baseFolderPath . '/';
         $files = array();
         $compiler = $this->getCompiler();
         $compiler->sharedFolderPath = $this->sharedFolderPath;
@@ -288,7 +288,7 @@ class ManifestResolver
 
         // If we are recursing, we've already handled prepending the baseUrl
         if ( !$deeper ) {
-            $files[] = $baseUrl . ltrim($sourceFilePath, '/');
+            $files[] = $baseUrl . $sourceFilePath;
         }
 
         return $files;
