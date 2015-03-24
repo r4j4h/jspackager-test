@@ -240,7 +240,7 @@ class DependencyTreeParser
         }
 
         // Build identifier
-        $fileHtmlPath = $this->normalizeRelativePath( $file->path . '/' . $file->filename );
+        $fileHtmlPath = $this->normalizeRelativePath( $file->getFullPath() );
 
         $this->logger->debug("Built identifier: '" . $fileHtmlPath . "'.");
 
