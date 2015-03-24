@@ -651,7 +651,7 @@ MANIFEST;
     /**
      * @runInSeparateProcess
      */
-    public function testCompileDependencySetHandlesRemoteAnnotations()
+    public function testCompileDependencySetExpandsRemoteAnnotations()
     {
         $basePath = self::fixturesBasePath . 'remote_annotation';
         $mainJsPath = $basePath . '/main.js';

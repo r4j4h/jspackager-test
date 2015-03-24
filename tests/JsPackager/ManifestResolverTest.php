@@ -26,7 +26,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
      *****************************************************************/
 
 
-    public function testHandlesPackages()
+    public function testParsesCompiledFilesFromPackages()
     {
 
         $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_package';
@@ -52,28 +52,65 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
     public function testUsesBaseFolderPath()
     {
-
-        $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_package';
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
         $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = 'public'; //self::fixturesBasePath;
-        $manifestResolver->sharedFolderPath = 'public/remote';
+        $manifestResolver->baseFolderPath = $basePath;
+        $manifestResolver->sharedFolderPath = $remotePath;
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
-        $this->assertEquals( 2, count( $paths ) );
+//        $this->assertEquals( 2, count( $paths ) );
         $this->assertEquals(
-            'public/tests/JsPackager/fixtures/3_deps_1_feedback_shared_package/dep_3.compiled.js',
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
             $paths[0]
         );
         $this->assertEquals(
-            'public/tests/JsPackager/fixtures/3_deps_1_feedback_shared_package/main.compiled.js',
+            'tests/JsPackager/fixtures/remote_annotation/tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
             $paths[1]
         );
 
+        $manifestResolver->baseFolderPath = 'dorf';
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+//        $this->assertEquals( 2, count( $paths ) );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
+            $paths[0]
+        );
+        $this->assertEquals(
+            'dorf/tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
+            $paths[1]
+        );
+
+
     }
 
+    public function testDoesNotOutputRemoteSymbols()
+    {
+
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = $basePath . '-remote';
+        $filePath = $basePath . '/main.js';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = 'basey'; //self::fixturesBasePath;
+        $manifestResolver->sharedFolderPath = 'remmy';
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+
+        $this->assertEquals( 2, count( $paths ) );
+        $this->assertEquals( 'remmy/remotepackage/script.compiled.js', $paths[0] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/main.compiled.js', $paths[1] );
+
+        $this->assertStringStartsNotWith('@remote', $paths[0]);
+        $this->assertStringStartsNotWith('@remote', $paths[1]);
+
+    }
 
     public function testExpandsRemoteSymbols()
     {
@@ -117,9 +154,23 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
             $paths[1]
         );
 
+        $manifestResolver->sharedFolderPath = 'dorf';
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+//        $this->assertEquals( 2, count( $paths ) );
+        $this->assertEquals(
+            'dorf/remotepackage/script.compiled.js',
+            $paths[0]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
+            $paths[1]
+        );
+
     }
 
-    public function testHandlesRelativeFilePathWithRelativeBaseAndRemotePaths()
+    public function testReturnsRelativeFilePathsWhenGivenRelativeFilesWithRelativeRemotePaths()
     {
 
         $basePath = self::fixturesBasePath . 'remote_annotation';
@@ -145,7 +196,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
     }
 
-    public function testHandlesRelativeFilePathWithAbsoluteBaseAndRemotePaths()
+    public function testReturnsRelativeFilePathsWhenGivenAbsoluteFilesWithAbsoluteRemotePaths()
     {
 
         $basePath = self::fixturesBasePath . 'remote_annotation';
@@ -158,7 +209,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
 
 
-        $paths = $manifestResolver->resolveFile( $filePath );
+        $paths = $manifestResolver->resolveFile( getcwd() . '/' . $filePath );
 
         $this->assertEquals( 2, count( $paths ) );
         $this->assertEquals(
@@ -172,7 +223,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
     }
 
-    public function testHandlesAbsoluteFilePathWithLocalBaseAndRemotePaths()
+    public function testReturnsRelativeFilePathsWhenGivenAbsoluteFilesWithRelativeRemotePath()
     {
 
         $basePath = self::fixturesBasePath . 'remote_annotation';
@@ -197,16 +248,16 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
     }
 
-    public function testHandlesAbsoluteFilePathWithAbsoluteBaseAndRemotePaths()
+    public function testReturnsRelativeFilePathsWhenGivenRelativeFilesWithAbsoluteRemotePathsAndRelativeBasePath()
     {
 
-        $basePath = getcwd() . '/' . self::fixturesBasePath . 'remote_annotation';
+        $basePath = self::fixturesBasePath . 'remote_annotation';
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->sharedFolderPath = $remotePath;
+        $manifestResolver->sharedFolderPath = getcwd() . '/' . $remotePath;
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
