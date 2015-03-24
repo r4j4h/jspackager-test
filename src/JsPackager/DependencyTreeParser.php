@@ -358,9 +358,7 @@ class DependencyTreeParser
                     try
                     {
                         $this->logger->debug("Checking it for dependencies...");
-                        $this->recursionDepth++;
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
-                        $this->recursionDepth--;
                         $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
                         if ( $dependencyFile->isRemote ) {
                             // Reset path from actual to using @remote symbol
