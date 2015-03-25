@@ -219,6 +219,8 @@ class ManifestResolver
      */
     protected function reverseResolveFromCompiledFile($sourceFilePath, $deeper = false)
     {
+        $this->logger->info('reverseResolveFromCompiledFile given ' . $sourceFilePath );
+
         $baseUrl = $this->baseFolderPath . '/';
         $files = array();
         $compiler = $this->getCompiler();
@@ -229,6 +231,7 @@ class ManifestResolver
 //        $sourceFilePath = $this->removeCurrentWorkingDirectionFromPath( $sourceFilePath );
 
         $sourceFilePath = $compiler->getSourceFilenameFromCompiledFilename( $sourceFilePath );
+        $this->logger->info('Reverse resolving for source file ' . $sourceFilePath );
 
         $compiledFilePath = $compiler->getCompiledFilename( $sourceFilePath );
         $manifestFilePath = $compiler->getManifestFilename( $sourceFilePath );
@@ -249,40 +252,64 @@ class ManifestResolver
         $compiledFilePath = $this->replaceRemoteSymbolIfPresent($compiledFilePath, $this->remoteFolderPath);
 
 
-        if ( $fileHandler->is_file( $manifestFilePath  ) ) {
-            $filesFromManifest = $this->parseManifestFile( $manifestFilePath, $pathToSourceFile );
-
-            foreach( $filesFromManifest['stylesheets'] as $idx => $file ) {
-                $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
-            }
-            foreach( $filesFromManifest['packages'] as $idx => $file ) {
-                $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
-            }
-            if ( $filesFromManifest ) {
-                $files = array_merge( $files, $filesFromManifest['stylesheets'] );
-                $files = array_merge( $files, $filesFromManifest['packages'] );
-            }
-
-            // Look at each package for further potential manifests
-            foreach( $filesFromManifest['packages'] as $package ) {
-                $package = $this->replaceRemoteSymbolIfPresent($package, $this->remoteFolderPath);
-
-                $furtherFiles = $this->reverseResolveFromCompiledFile( $package, true );
-
-                $files = array_merge( $files, $furtherFiles );
-            }
-        }
-
-        // If there is a compiled path, use it
-        var_dump( '$sourceFilePath' );
-        var_dump( $sourceFilePath );
-        var_dump( '$manifestFilePath' );
-        var_dump( $manifestFilePath );
-        var_dump( '$compiledFilePath' );
-        var_dump( $compiledFilePath );
 
         if ( $fileHandler->is_file( $compiledFilePath  ) ) {
+
             $sourceFilePath = $compiledFilePath;
+
+            $this->logger->info('Compiled version detected. Using compiled file ' . $sourceFilePath );
+
+            if ( $fileHandler->is_file( $manifestFilePath  ) ) {
+
+                $this->logger->info('Manifest detected at ' . $manifestFilePath);
+                $this->logger->info('Parsing manifest for files...');
+
+                $filesFromManifest = $this->parseManifestFile( $manifestFilePath, $pathToSourceFile );
+
+                foreach( $filesFromManifest['stylesheets'] as $idx => $file ) {
+                    $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
+                    $this->logger->info('Parsing stylesheet from manifest: ' . $filesFromManifest['stylesheets'][$idx]);
+
+                }
+                foreach( $filesFromManifest['packages'] as $idx => $file ) {
+                    $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
+                    $this->logger->info('Parsing package from manifest: ' . $filesFromManifest['packages'][$idx]);
+                }
+                if ( $filesFromManifest ) {
+                    $files = array_merge( $files, $filesFromManifest['stylesheets'] );
+                    $files = array_merge( $files, $filesFromManifest['packages'] );
+                }
+
+                $numberOfPackages = count( $filesFromManifest['packages'] );
+
+                if ( $numberOfPackages > 0 ) {
+
+                    // Look at each package for further potential manifests
+                    $this->logger->info("Looking at packages for further potential dependencies for {$sourceFilePath}...");
+
+                    foreach ($filesFromManifest['packages'] as $package) {
+                        $package = $this->replaceRemoteSymbolIfPresent($package, $this->remoteFolderPath);
+
+                        $this->logger->info("Looking in package {$package}...");
+
+                        $furtherFiles = $this->reverseResolveFromCompiledFile($package, true);
+
+                        $numberOfFiles = count( $furtherFiles );
+                        $this->logger->info("Found {$numberOfFiles} dependencies while looking in package {$package}...");
+
+                        $files = array_merge($files, $furtherFiles);
+                    }
+
+                    $this->logger->info("Finished looking for further potential dependencies for {$sourceFilePath}...");
+
+                }
+
+            } else {
+
+                $this->logger->info('Manifest not present. No big deal. Moving on.' );
+
+            }
+
         }
 
 
