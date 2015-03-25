@@ -675,6 +675,8 @@ window.remotepackage_local_on_remote=!0;window.remotepackage_remote_on_remote=!0
 COMPILEFILE;
 
         $manifestContents = <<< 'MANIFEST'
+@remote/remotepackage/package_subfolder/local_on_remote.css
+@remote/remotepackage/package_subfolder/remote_on_remote.css
 
 MANIFEST;
 
