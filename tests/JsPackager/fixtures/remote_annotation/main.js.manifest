@@ -1,1 +1,7 @@
+./stylesheet_before.css
+./local_subfolder/local_subfolder_before.css
+@remote/remotescript/script_subfolder/local_on_remote.css
+@remote/remotescript/script_subfolder/remote_on_remote.css
+./local_subfolder/local_subfolder_after.css
+./stylesheet_after.css
 @remote/remotepackage/script.compiled.js

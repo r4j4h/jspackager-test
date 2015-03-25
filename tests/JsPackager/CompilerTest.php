@@ -706,6 +706,12 @@ window.main_local_file_before=!0;window.main_local_subfolder_script_before=!0;wi
 COMPILEFILE;
 
         $manifestContents = <<<'MANIFEST'
+./stylesheet_before.css
+./local_subfolder/local_subfolder_before.css
+@remote/remotescript/script_subfolder/local_on_remote.css
+@remote/remotescript/script_subfolder/remote_on_remote.css
+./local_subfolder/local_subfolder_after.css
+./stylesheet_after.css
 @remote/remotepackage/script.compiled.js
 
 MANIFEST;
@@ -841,7 +847,7 @@ MANIFEST;
 
 
         $this->assertEquals(
-            6,
+            8,
             count( $localDependencySet->dependencies ),
             "Local package has 6 dependencies, including itself."
         );
@@ -863,24 +869,32 @@ MANIFEST;
             $localDependencySet->dependencies[0]
         );
         $this->assertEquals(
-            '@remote/remotescript/script_subfolder/local_on_remote.js',
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.js',
             $localDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            '@remote/remotescript/script_subfolder/remote_on_remote.js',
+            '@remote/remotescript/script_subfolder/local_on_remote.js',
             $localDependencySet->dependencies[2]
         );
         $this->assertEquals(
-            '@remote/remotescript/script.js',
+            '@remote/remotescript/script_subfolder/remote_on_remote.js',
             $localDependencySet->dependencies[3]
         );
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation/local_file_after.js',
+            '@remote/remotescript/script.js',
             $localDependencySet->dependencies[4]
         );
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation/main.js',
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.js',
             $localDependencySet->dependencies[5]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_file_after.js',
+            $localDependencySet->dependencies[6]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/main.js',
+            $localDependencySet->dependencies[7]
         );
 
     }
