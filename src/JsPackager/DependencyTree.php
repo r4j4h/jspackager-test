@@ -77,7 +77,7 @@ class DependencyTree
     {
         $treeParser = new DependencyTreeParser();
         $treeParser->logger = $this->logger;
-        $treeParser->sharedFolderPath = $this->sharedFolderPath;
+        $treeParser->remoteFolderPath = $this->sharedFolderPath;
         return $treeParser;
     }
 

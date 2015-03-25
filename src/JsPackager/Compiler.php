@@ -51,11 +51,11 @@ class Compiler
      *
      * @var string
      */
-    public $sharedFolderPath = 'shared';
+    public $remoteFolderPath = 'shared';
 
 
     public function expandOutRemoteAnnotation($string) {
-        return str_replace( '@remote', $this->sharedFolderPath, $string );
+        return str_replace( '@remote', $this->remoteFolderPath, $string );
     }
 
     public function stringContainsRemoteAnnotation($string) {
@@ -396,14 +396,16 @@ class Compiler
             }
             else
             {
-                $this->logger->debug( "Determined {$stylesheetPath} contains @remote" );
+                $this->logger->debug(
+                    "Determined {$stylesheetPath} contains @remote, so not converting path to relative."
+                );
             }
 
             $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
             if ( $basePath !== '' && substr( $stylesheetPath, 0, strlen($basePath) ) === $basePath )
             {
                 // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
-                // As if we are shared then we may want something in between baseUrl and the real src.
+                // As if we are shared/remote then we may want something in between baseUrl and the real src.
                 $pos = strpos($stylesheetPath,$basePath);
                 if ($pos !== false) {
                     $this->logger->debug( "baseUrl needs to be removed from '{$stylesheetPath}'." );
@@ -445,7 +447,9 @@ class Compiler
             }
             else
             {
-                $this->logger->debug( "Determined {$packagePath} contains @remote" );
+                $this->logger->debug(
+                    "Determined {$packagePath} contains @remote, so not converting path to relative."
+                );
             }
 
 
@@ -454,7 +458,7 @@ class Compiler
             {
 
                 // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
-                // As if we are shared then we may want something in between baseUrl and the real src.
+                // As if we are shared/remote then we may want something in between baseUrl and the real src.
                 $pos = strpos($packagePath,$basePath);
                 if ($pos !== false) {
                     $this->logger->debug( "baseUrl needs to be removed from '{$packagePath}'." );
@@ -567,7 +571,7 @@ class Compiler
     public function compileAndWriteFilesAndManifests($inputFilename, $statusCallback = false)
     {
         $compiledFiles = array();
-        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger, $this->sharedFolderPath );
+        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger, $this->remoteFolderPath );
         $dependencyTree->logger = $this->logger;
         $dependencySets = $dependencyTree->getDependencySets();
 

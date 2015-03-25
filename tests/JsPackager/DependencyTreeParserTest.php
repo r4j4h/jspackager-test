@@ -909,7 +909,7 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $filePath = $basePath . '/main.js';
 
         $treeParser = new DependencyTreeParser();
-        $treeParser->sharedFolderPath = self::fixturesBasePath . '1_broken_js_reference_remote-remote';
+        $treeParser->remoteFolderPath = self::fixturesBasePath . '1_broken_js_reference_remote-remote';
 
         try {
             $dependencyTree = $treeParser->parseFile( $filePath );
@@ -947,7 +947,7 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $filePath = $basePath . '/main.js';
 
         $treeParser = new DependencyTreeParser();
-        $treeParser->sharedFolderPath = self::fixturesBasePath . 'remote_annotation-remote';
+        $treeParser->remoteFolderPath = self::fixturesBasePath . 'remote_annotation-remote';
 
         $dependencyTree = $treeParser->parseFile( $filePath );
 

@@ -58,7 +58,7 @@ class ManifestResolver
     /**
      * @var string
      */
-    public $sharedFolderPath = 'shared';
+    public $remoteFolderPath = 'shared';
 
 
 
@@ -222,7 +222,7 @@ class ManifestResolver
         $baseUrl = $this->baseFolderPath . '/';
         $files = array();
         $compiler = $this->getCompiler();
-        $compiler->sharedFolderPath = $this->sharedFolderPath;
+        $compiler->remoteFolderPath = $this->remoteFolderPath;
         $fileHandler = $this->getFileHandler();
 
         // Lets try to always trim out the cwd if we can
@@ -243,20 +243,20 @@ class ManifestResolver
             $pathToSourceFile = $baseUrl . $basePathFromSourceFile;
 //        }
 
-        $pathToSourceFile = $this->replaceRemoteSymbolIfPresent($pathToSourceFile, $this->sharedFolderPath);
-        $sourceFilePath   = $this->replaceRemoteSymbolIfPresent($sourceFilePath,   $this->sharedFolderPath);
-        $manifestFilePath = $this->replaceRemoteSymbolIfPresent($manifestFilePath, $this->sharedFolderPath);
-        $compiledFilePath = $this->replaceRemoteSymbolIfPresent($compiledFilePath, $this->sharedFolderPath);
+        $pathToSourceFile = $this->replaceRemoteSymbolIfPresent($pathToSourceFile, $this->remoteFolderPath);
+        $sourceFilePath   = $this->replaceRemoteSymbolIfPresent($sourceFilePath,   $this->remoteFolderPath);
+        $manifestFilePath = $this->replaceRemoteSymbolIfPresent($manifestFilePath, $this->remoteFolderPath);
+        $compiledFilePath = $this->replaceRemoteSymbolIfPresent($compiledFilePath, $this->remoteFolderPath);
 
 
         if ( $fileHandler->is_file( $manifestFilePath  ) ) {
             $filesFromManifest = $this->parseManifestFile( $manifestFilePath, $pathToSourceFile );
 
             foreach( $filesFromManifest['stylesheets'] as $idx => $file ) {
-                $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->sharedFolderPath);
+                $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
             }
             foreach( $filesFromManifest['packages'] as $idx => $file ) {
-                $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->sharedFolderPath);
+                $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
             }
             if ( $filesFromManifest ) {
                 $files = array_merge( $files, $filesFromManifest['stylesheets'] );
@@ -265,7 +265,7 @@ class ManifestResolver
 
             // Look at each package for further potential manifests
             foreach( $filesFromManifest['packages'] as $package ) {
-                $package = $this->replaceRemoteSymbolIfPresent($package, $this->sharedFolderPath);
+                $package = $this->replaceRemoteSymbolIfPresent($package, $this->remoteFolderPath);
 
                 $furtherFiles = $this->reverseResolveFromCompiledFile( $package, true );
 

@@ -34,7 +34,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = '.'; //self::fixturesBasePath;
-        $manifestResolver->sharedFolderPath = '.';
+        $manifestResolver->remoteFolderPath = '.';
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -58,7 +58,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->sharedFolderPath = $remotePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -98,7 +98,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = 'basey'; //self::fixturesBasePath;
-        $manifestResolver->sharedFolderPath = 'remmy';
+        $manifestResolver->remoteFolderPath = 'remmy';
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -121,7 +121,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = 'basey'; //self::fixturesBasePath;
-        $manifestResolver->sharedFolderPath = 'remmy';
+        $manifestResolver->remoteFolderPath = 'remmy';
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -140,7 +140,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->sharedFolderPath = $remotePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -154,7 +154,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
             $paths[1]
         );
 
-        $manifestResolver->sharedFolderPath = 'dorf';
+        $manifestResolver->remoteFolderPath = 'dorf';
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -179,7 +179,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->sharedFolderPath = $remotePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
 
 
         $paths = $manifestResolver->resolveFile( $filePath );
@@ -205,7 +205,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = getcwd() . '/' . $basePath;
-        $manifestResolver->sharedFolderPath = getcwd() . '/' . $remotePath;
+        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
 
 
 
@@ -232,7 +232,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->sharedFolderPath = $remotePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
 
         $paths = $manifestResolver->resolveFile( getcwd() . '/' . $filePath );
 
@@ -257,7 +257,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $manifestResolver = new ManifestResolver();
         $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->sharedFolderPath = getcwd() . '/' . $remotePath;
+        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
 
         $paths = $manifestResolver->resolveFile( $filePath );
 

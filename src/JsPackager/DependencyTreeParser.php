@@ -64,7 +64,7 @@ class DependencyTreeParser
         'tests'
     );
 
-    public $sharedFolderPath = 'shared';
+    public $remoteFolderPath = 'shared';
 
     /**
      * Definition list of file types that are scanned for annotation tokens
@@ -302,13 +302,13 @@ class DependencyTreeParser
                     // need to load actual file
                     // but store @remote/
 
-                    // Alter path to shared files' root
-                    $sharedPath = $this->sharedFolderPath;
+                    // Alter path to remote files' root
+                    $remotePath = $this->remoteFolderPath;
 
                     // Build dependency's identifier
-                    $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
+                    $htmlPath = $this->normalizeRelativePath( $remotePath . '/' . $path );
 
-                    $this->logger->debug("Calculated {$htmlPath} as shared files' path.");
+                    $this->logger->debug("Calculated {$htmlPath} as remote files' path.");
 
                     // Call parseFile on it recursively
                     try
@@ -352,9 +352,9 @@ class DependencyTreeParser
                     $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
-                    // Switch order map to use require, since we normalized the shared files so they fit in
+                    // Switch order map to use require, since we normalized the remote files so they fit in
                     // same bucket as normal files.
-                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation instead of requireRemote since we have normalized the shared file's path.");
+                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation instead of requireRemote since we have normalized the remote file's path.");
                     $file->annotationOrderMap[] = array(
                         'action' => 'require',
                         'annotationIndex' => count( $file->scripts ) - 1,
@@ -442,20 +442,20 @@ class DependencyTreeParser
                     // need to load actual file
                     // but store @remote/
 
-                    // Alter path to shared files' root
-                    $sharedPath = $this->sharedFolderPath;
+                    // Alter path to remote files' root
+                    $remotePath = $this->remoteFolderPath;
 
                     // Build dependency's identifier
-                    $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
+                    $htmlPath = $this->normalizeRelativePath( $remotePath . '/' . $path );
 
-                    $this->logger->debug("Calculated {$htmlPath} as shared files' path.");
+                    $this->logger->debug("Calculated {$htmlPath} as remote files' path.");
 
                     // When parsing CSS files is desired, it will go through parseFile so non file exceptions will
                     // be caught and thrown there before parsing. Until that is desired, we will just manually
                     // do it without parsing the file.
-                    if ( $fileHandler->is_file( $sharedPath . '/' . $path ) === false && $this->mutingMissingFileExceptions === false )
+                    if ( $fileHandler->is_file( $remotePath . '/' . $path ) === false && $this->mutingMissingFileExceptions === false )
                     {
-                        throw new Exception\MissingFile($sharedPath . '/' . $path . ' is not a valid file!', 0, null, $sharedPath . '/' . $path);
+                        throw new Exception\MissingFile($remotePath . '/' . $path . ' is not a valid file!', 0, null, $remotePath . '/' . $path);
                     }
 
                     // Reset path from actual to using @remote symbol
@@ -466,9 +466,9 @@ class DependencyTreeParser
                     $this->logger->debug("Adding {$htmlPath} to stylesheets array.");
                     $file->stylesheets[] = $htmlPath;
 
-                    // Switch order map to use requireStyle, since we normalized the shared files so they fit in
+                    // Switch order map to use requireStyle, since we normalized the remote files so they fit in
                     // same bucket as normal files.
-                    $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation instead of requireRemoteStyle since we have normalized the shared file's path.");
+                    $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation instead of requireRemoteStyle since we have normalized the remote file's path.");
                     $file->annotationOrderMap[] = array(
                         'action' => 'requireStyle',
                         'annotationIndex' => count( $file->stylesheets ) - 1,

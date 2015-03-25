@@ -663,7 +663,7 @@ MANIFEST;
         $roots = $dependencyTree->getDependencySets();
 
         $compiler = new Compiler();
-        $compiler->sharedFolderPath = $sharedPath;
+        $compiler->remoteFolderPath = $sharedPath;
 
         // Grab first dependency set
         $dependencySet = $roots[0];
