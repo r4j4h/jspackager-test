@@ -1,0 +1,1 @@
+window.main_local_subfolder_script_after = true;
