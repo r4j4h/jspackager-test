@@ -415,4 +415,137 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
 
     }
+
+    public function testReturnsRelativeFilePathsWhenGivenRelativeFilesWithAbsoluteRemotePathsAndAbsoluteBasePath()
+    {
+
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = $basePath . '-remote';
+        $filePath = $basePath . '/main.js';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = getcwd() . '/' . $basePath;
+        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+        $this->assertEquals( 2, count( $paths ) );
+        $this->assertEquals(
+            getcwd() . '/' . $remotePath . '/remotepackage/script.compiled.js',
+            $paths[0]
+        );
+        $this->assertEquals(
+            getcwd() . '/' . $basePath . '/main.compiled.js',
+            $paths[1]
+        );
+// this guy is doubling up the tests/jsPackager parts...coming form the relative file path?
+    }
+
+    // Missing File behavior
+
+    public function testMissingFileBehaviorSupportsFailingOnMissingFile()
+    {
+
+    }
+
+    public function testMissingFileBehaviorSupportsCompilingMissingFilesOnTheFly()
+    {
+
+    }
+
+    public function testMissingFileBehaviorSupportsFallingBackToUncompiledFiles()
+    {
+
+    }
+
+    // Filename resolution
+
+    public function testResolvesUncompiledFileByUncompiledFilename()
+    {
+
+    }
+
+    public function testResolvesCompiledFileByUncompiledFilename()
+    {
+
+    }
+
+    public function testResolvesManifestFileByUncompiledFilename()
+    {
+
+    }
+
+
+
+    public function testDoesNotCrashIfFileIsMissing()
+    {
+
+    }
+
+
+    // Remote Annotation Expansion
+
+
+    public function testResolvesCompiledFilesExpandingRemoteAnnotationsToRelativePath()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $remotePath = 'hella_rela_path';
+
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = './';
+        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
+
+        $paths = $manifestResolver->resolveFile( $mainJsPath );
+
+        $this->assertEquals(
+            'hella_rela_path/remotepackage/script.compiled.js',
+            $paths[0]
+        );
+
+    }
+
+    public function testResolvesCompiledFilesExpandingRemoteAnnotationsToAbsolutePath()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $remotePath = '/abso_path';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = $basePath;
+        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
+
+        $paths = $manifestResolver->resolveFile( $mainJsPath );
+
+        $this->assertEquals(
+            '/abso_path/remotepackage/script.compiled.js',
+            $paths[0]
+        );
+
+    }
+
+
+    public function testResolvesCompiledFilesExpandingRemoteAnnotationsToHttpPath()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $remotePath = 'http://theinternet.con/abso_path';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = $basePath;
+        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
+
+        $paths = $manifestResolver->resolveFile( $mainJsPath );
+
+        $this->assertEquals(
+            'http://theinternet.con/abso_path/remotepackage/script.compiled.js',
+            $paths[0]
+        );
+
+    }
+
 }
