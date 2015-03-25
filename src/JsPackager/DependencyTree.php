@@ -176,7 +176,7 @@ class DependencyTree
 
         // If we are respecting root packages and at one, skip, otherwise, pull in all dependent scripts
         if ( ( $notRespectingRootPackages ) || ( $respectingRootPackages && $fileIsNotAPackage ) ) {
-            $this->logger->notice("Found a non-root file (or a root and are not respecting packages). Scanning for dependencies...");
+            $this->logger->notice("Found a non-root file (or a root and are not respecting packages). Scanning {$file->getFullPath()} for dependencies...");
 
             foreach( $file->annotationOrderMap as $aOMEntry )
             {
