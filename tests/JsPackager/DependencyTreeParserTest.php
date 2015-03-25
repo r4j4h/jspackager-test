@@ -960,40 +960,14 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
             $dependencyTree->scripts[0]->isRemote,
             'Local file before remotes in main file should not be marked remote'
         );
-
-
-
         $this->assertFalse(
-            $dependencyTree->scripts[3]->isRemote,
-            'Local file after remotes in main file should not be marked remote'
-        );
-
-
-
-
-        $this->assertTrue(
             $dependencyTree->scripts[1]->isRemote,
+            'Local file in subfolder before remotes in main file should not be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[2]->isRemote,
             'Remote script file should be marked remote'
-        );
-
-        $this->assertTrue(
-            $dependencyTree->scripts[1]->scripts[0]->isRemote,
-            'Remote script\'s locally required file should be marked remote'
-        );
-
-        $this->assertTrue(
-            $dependencyTree->scripts[1]->scripts[1]->isRemote,
-            'Remote script\'s remotely required file should be marked remote'
-        );
-
-        $this->assertTrue(
-            $dependencyTree->scripts[2]->isRemote,
-            'Remote package file should be marked remote'
-        );
-
-        $this->assertTrue(
-            $dependencyTree->scripts[2]->isRemote,
-            'Remote package file should be marked remote'
         );
 
         $this->assertTrue(
@@ -1004,6 +978,36 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(
             $dependencyTree->scripts[2]->scripts[1]->isRemote,
             'Remote script\'s remotely required file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->isRemote,
+            'Remote package file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->isRemote,
+            'Remote package file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->scripts[0]->isRemote,
+            'Remote script\'s locally required file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->scripts[1]->isRemote,
+            'Remote script\'s remotely required file should be marked remote'
+        );
+
+        $this->assertFalse(
+            $dependencyTree->scripts[4]->isRemote,
+            'Local file  in subfolder after remotes in main file should not be marked remote'
+        );
+
+        $this->assertFalse(
+            $dependencyTree->scripts[5]->isRemote,
+            'Local file after remotes in main file should not be marked remote'
         );
 
     }
