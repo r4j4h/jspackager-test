@@ -29,7 +29,7 @@ class DependencyTree
     /**
      * @var String
      */
-    public $sharedFolderPath = 'shared';
+    public $remoteFolderPath = 'shared';
 
 
     /**
@@ -56,7 +56,7 @@ class DependencyTree
             $this->logger = $logger;
         }
 
-        $this->sharedFolderPath = $sharedPath;
+        $this->remoteFolderPath = $sharedPath;
 
         $treeParser = $this->getDependencyTreeParser();
 
@@ -77,7 +77,7 @@ class DependencyTree
     {
         $treeParser = new DependencyTreeParser();
         $treeParser->logger = $this->logger;
-        $treeParser->remoteFolderPath = $this->sharedFolderPath;
+        $treeParser->remoteFolderPath = $this->remoteFolderPath;
         return $treeParser;
     }
 

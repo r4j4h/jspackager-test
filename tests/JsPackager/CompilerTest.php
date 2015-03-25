@@ -804,7 +804,7 @@ MANIFEST;
 
         $this->assertEquals(
             $sharedPath,
-            $dependencyTree->sharedFolderPath,
+            $dependencyTree->remoteFolderPath,
             'Should provide a default value to use in place of @remote'
         );
 
