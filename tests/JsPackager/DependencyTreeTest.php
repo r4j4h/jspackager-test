@@ -307,22 +307,26 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree();
 
-        $this->assertCount( 15, $fileHierarchy );
+        $this->assertCount( 19, $fileHierarchy );
 
         $i = 0;
         $this->assertEquals( $basePath . '/stylesheet_before.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/stylesheet_after.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_file_before.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/script.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_file_after.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $filePath, $fileHierarchy[ $i ], "Given file is last" );
     }
@@ -338,27 +342,31 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
 
         $fileHierarchy = $dependencyTree->flattenDependencyTreeIntoAssocArrays( false );
 
-        $this->assertCount( 9, $fileHierarchy['scripts'] );
+        $this->assertCount( 11, $fileHierarchy['scripts'] );
 
         $i = 0;
         $this->assertEquals( $basePath . '/local_file_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_file_after.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $filePath, $fileHierarchy['scripts'][ $i ], "Given file is last" );
 
-        $this->assertCount( 6, $fileHierarchy['stylesheets'] );
+        $this->assertCount( 8, $fileHierarchy['stylesheets'] );
 
         $i = 0;
         $this->assertEquals( $basePath . '/stylesheet_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/stylesheet_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
     }
 
@@ -372,26 +380,31 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
 
         $fileHierarchy = $dependencyTree->flattenDependencyTreeIntoAssocArrays( true );
 
-        $this->assertCount( 7, $fileHierarchy['scripts'] );
+        $this->assertCount( 9, $fileHierarchy['scripts'] );
 
         $i = 0;
         $this->assertEquals( $basePath . '/local_file_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/script.compiled.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+//        $this->assertEquals( '@remote/remotepackage/script.compiled.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order and points to compiled file" );
         $i++;
+
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_file_after.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $filePath, $fileHierarchy['scripts'][ $i ], "Given file is last" );
 
-        $this->assertCount( 6, $fileHierarchy['stylesheets'] );
+        $this->assertCount( 8, $fileHierarchy['stylesheets'] );
 
         $i = 0;
         $this->assertEquals( $basePath . '/stylesheet_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/stylesheet_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
     }
 
