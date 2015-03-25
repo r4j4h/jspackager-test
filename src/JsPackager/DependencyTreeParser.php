@@ -497,7 +497,9 @@ class DependencyTreeParser
 
                     if ( $this->currentlyRecursingInRemoteFile ) {
                         // Reset path from actual to using @remote symbol
-                        $htmlPath = '@remote' . '/' . $path;
+                        // Reset path from actual to using @remote symbol
+                        $basePathFromDependents = $this->array_last( $this->recursedPath );
+                        $htmlPath = '@remote' . '/' . $basePathFromDependents .'/' . $path;
                     }
 
                     // Add to stylesheets list
