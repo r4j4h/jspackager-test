@@ -392,6 +392,10 @@ class Compiler
 
                 $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
                 $stylesheetPath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
+                // If we start with ./ then trim that out, we aint got time for that business
+                if ( strpos($stylesheetPath, './') === 0 ) {
+                    $stylesheetPath = substr( $stylesheetPath, 2 );
+                }
                 $this->logger->debug( "Calculated relative path to be '{$stylesheetPath}'." );
             }
             else
@@ -443,6 +447,10 @@ class Compiler
 
                 $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
                 $packagePath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
+                // If we start with ./ then trim that out, we aint got time for that business
+                if ( strpos($packagePath, './') === 0 ) {
+                    $packagePath = substr( $packagePath, 2 );
+                }
                 $this->logger->debug( "Calculated relative path to be '{$packagePath}'." );
             }
             else

@@ -130,8 +130,8 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         );
 
         $expectedOutput = join( PHP_EOL, array(
-            './some/package.compiled.js',
-            './another/package.compiled.js'
+            'some/package.compiled.js',
+            'another/package.compiled.js'
         )) . PHP_EOL;
 
         $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
@@ -169,10 +169,10 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $expectedContents = <<<BLOCK
-./some/stylesheet.css
-./some/modifiers.css
-./some/package.compiled.js
-./another/package.compiled.js
+some/stylesheet.css
+some/modifiers.css
+some/package.compiled.js
+another/package.compiled.js
 
 BLOCK;
 
@@ -197,9 +197,9 @@ BLOCK;
         $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets, $filesMarkedNoCompile ) );
 
         $expectedContents = <<<BLOCK
-./css/my_stylesheet.css
-./some/nocompile/package.js
-./some/normal/package.compiled.js
+css/my_stylesheet.css
+some/nocompile/package.js
+some/normal/package.compiled.js
 
 BLOCK;
 
@@ -229,9 +229,9 @@ BLOCK;
         ) );
 
         $expectedContents = <<<BLOCK
-./css/my_stylesheet.css
-./some/nocompile/package.js
-./some/normal/package.compiled.js
+css/my_stylesheet.css
+some/nocompile/package.js
+some/normal/package.compiled.js
 
 BLOCK;
 
@@ -488,7 +488,7 @@ BLOCK;
 
         $compiledFilesContents = "window.dep_5=!0;window.dep_4=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-./dep_4_style.css
+dep_4_style.css
 
 MANIFEST;
 
@@ -513,8 +513,8 @@ MANIFEST;
 
         $compiledFilesContents = "window.dep_3=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-./dep_3_style.css
-./subpackage/dep_4.compiled.js
+dep_3_style.css
+subpackage/dep_4.compiled.js
 
 MANIFEST;
 
@@ -538,7 +538,7 @@ MANIFEST;
         $result = $compiler->compileDependencySet( $dependencySet );
 
         $compiledFilesContents = "window.dep_1=!0;window.dep_2=!0;window.main=!0;" . PHP_EOL;
-        $manifestContents = './package/dep_3.compiled.js' . PHP_EOL;
+        $manifestContents = 'package/dep_3.compiled.js' . PHP_EOL;
 
         $this->assertEquals( $basePath, $result->path, "Compiled path should be main.js's path" );
         $this->assertEquals(
@@ -626,8 +626,8 @@ MANIFEST;
 
         $compiledFilesContents = "window.nocompile_script=!0;window.normal_script=!0;window.main=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-./some/nocompile/package.js
-./some/normal/package.compiled.js
+some/nocompile/package.js
+some/normal/package.compiled.js
 
 MANIFEST;
 
@@ -706,12 +706,12 @@ window.main_local_file_before=!0;window.main_local_subfolder_script_before=!0;wi
 COMPILEFILE;
 
         $manifestContents = <<<'MANIFEST'
-./stylesheet_before.css
-./local_subfolder/local_subfolder_before.css
+stylesheet_before.css
+local_subfolder/local_subfolder_before.css
 @remote/remotescript/script_subfolder/local_on_remote.css
 @remote/remotescript/script_subfolder/remote_on_remote.css
-./local_subfolder/local_subfolder_after.css
-./stylesheet_after.css
+local_subfolder/local_subfolder_after.css
+stylesheet_after.css
 @remote/remotepackage/script.compiled.js
 
 MANIFEST;

@@ -64,11 +64,11 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $i = 0;
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation/./stylesheet_before.css',
+            'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_before.css',
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -80,11 +80,11 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
             $paths[$i++]
         );
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_after.css',
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css',
             $paths[$i++]
         );
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation/./stylesheet_after.css',
+            'tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -110,11 +110,11 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $i = 0;
         $this->assertEquals(
-            'dorf/tests/JsPackager/fixtures/remote_annotation/./stylesheet_before.css',
+            'dorf/tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
         $this->assertEquals(
-            'dorf/tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_before.css',
+            'dorf/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -126,11 +126,11 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
             $paths[$i++]
         );
         $this->assertEquals(
-            'dorf/tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_after.css',
+            'dorf/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css',
             $paths[$i++]
         );
         $this->assertEquals(
-            'dorf/tests/JsPackager/fixtures/remote_annotation/./stylesheet_after.css',
+            'dorf/tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -168,12 +168,12 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals( 8, count( $paths ) );
         $i = 0;
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./stylesheet_before.css', $paths[$i++] );
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_before.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotescript/script_subfolder/local_on_remote.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotescript/script_subfolder/remote_on_remote.css', $paths[$i++] );
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_after.css', $paths[$i++] );
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./stylesheet_after.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotepackage/script.compiled.js', $paths[$i++] );
         $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/main.compiled.js', $paths[$i++] );
 
@@ -205,12 +205,12 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 8, count( $paths ) );
 
         $i = 0;
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./stylesheet_before.css', $paths[$i++] );
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_before.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotescript/script_subfolder/local_on_remote.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotescript/script_subfolder/remote_on_remote.css', $paths[$i++] );
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./local_subfolder/local_subfolder_after.css', $paths[$i++] );
-        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/./stylesheet_after.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css', $paths[$i++] );
+        $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotepackage/script.compiled.js', $paths[$i++] );
         $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/main.compiled.js', $paths[$i++] );
 
