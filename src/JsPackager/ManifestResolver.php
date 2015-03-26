@@ -182,6 +182,9 @@ class ManifestResolver
         if ( $subStringInString ) {
             $string = substr( $string, $posInString + $subStringLength );
         }
+        if ( $string === false ) {
+            $string = '';
+        }
         return $string;
     }
 
