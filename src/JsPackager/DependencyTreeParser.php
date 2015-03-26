@@ -375,9 +375,9 @@ class DependencyTreeParser
                     {
                         $this->logger->debug("Checking it for dependencies...");
 
-                        if ( $this->currentlyRecursingInRemoteFile ) {
+                        $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
 
-                            $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+                        if ( $this->currentlyRecursingInRemoteFile ) {
 
                             if ( $basePathFromSourceFileWithoutTrailingSlash !== '' ) {
                                 $this->recursedPath[] = $this->array_last( $this->recursedPath ) . '/' . $basePathFromSourceFileWithoutTrailingSlash;
