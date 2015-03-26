@@ -194,7 +194,7 @@ class ManifestResolver
      * @param $path
      * @return string
      */
-    protected function removeCurrentWorkingDirectionFromPath($path) {
+    protected function removeCurrentWorkingDirectoryFromPath($path) {
         $cwd = getcwd() . '/';
         return $this->removeSubstringFromString($path, $cwd);
     }
@@ -224,14 +224,23 @@ class ManifestResolver
     {
         $this->logger->info('reverseResolveFromCompiledFile given ' . $sourceFilePath );
 
-        $baseUrl = $this->baseFolderPath . '/';
+        // Lets try to always trim out the cwd if we can
+        $this->baseFolderPath = $this->removeCurrentWorkingDirectoryFromPath( $this->baseFolderPath );
+        $this->remoteFolderPath = $this->removeCurrentWorkingDirectoryFromPath( $this->remoteFolderPath );
+
+        if ( $this->baseFolderPath !== '' ) {
+            $baseUrl = $this->baseFolderPath . '/';
+        } else {
+            $baseUrl = '';
+        }
+
         $files = array();
         $compiler = $this->getCompiler();
         $compiler->remoteFolderPath = $this->remoteFolderPath;
         $fileHandler = $this->getFileHandler();
 
         // Lets try to always trim out the cwd if we can
-//        $sourceFilePath = $this->removeCurrentWorkingDirectionFromPath( $sourceFilePath );
+        $sourceFilePath = $this->removeCurrentWorkingDirectoryFromPath( $sourceFilePath );
 
         $sourceFilePath = $compiler->getSourceFilenameFromCompiledFilename( $sourceFilePath );
         $this->logger->info('Reverse resolving for source file ' . $sourceFilePath );
@@ -241,13 +250,16 @@ class ManifestResolver
 
         // If we are using absolute paths, we want to trim the duplicative parts here
         $basePathFromSourceFile = $this->getBasePathFromSourceFile( $sourceFilePath );
-        $basePathFromSourceFile = $this->removeBaseUrlFromPath( $basePathFromSourceFile );
 
-//        if ( $basePathFromSourceFile === $baseUrl ) {
-//            $pathToSourceFile = $basePathFromSourceFile;
-//        } else {
+        if ( $this->baseFolderPath !== '' ) {
+            $basePathFromSourceFile = $this->removeBaseUrlFromPath($basePathFromSourceFile);
+        }
+
+        if ( $basePathFromSourceFile === $baseUrl ) {
+            $pathToSourceFile = $basePathFromSourceFile;
+        } else {
             $pathToSourceFile = $baseUrl . $basePathFromSourceFile;
-//        }
+        }
 
         $pathToSourceFile = $this->replaceRemoteSymbolIfPresent($pathToSourceFile, $this->remoteFolderPath);
         $sourceFilePath   = $this->replaceRemoteSymbolIfPresent($sourceFilePath,   $this->remoteFolderPath);
@@ -318,6 +330,12 @@ class ManifestResolver
 
         // If we are recursing, we've already handled prepending the baseUrl
         if ( !$deeper ) {
+
+            // Prevent redundant baseUrls
+            if ( $this->baseFolderPath !== '' ) {
+                $sourceFilePath = $this->removeBaseUrlFromPath($sourceFilePath);
+            }
+
             $files[] = $baseUrl . $sourceFilePath;
         }
 
@@ -347,8 +365,12 @@ class ManifestResolver
             // Strip new line characters
             $line = rtrim( $line, "\r\n" );
 
+            $lineStartsWithRemote = ( strpos($line, '@remote') === 0 );
+
             // Pre-pend current basepath extension
-            $line = $basePath . $line;
+            if ( !$lineStartsWithRemote ) {
+                $line = $basePath . $line;
+            }
 
             if ( preg_match('/.js$/i', $line ) ) {
                 $packages[] = $line;
