@@ -355,6 +355,7 @@ class ManifestResolver
         $packages = array();
 
         if ( !$fileHandler->is_file( $filePath ) ) {
+            $this->logger->error("Failed parsing manifest file: '{$filePath}''");
             return false;
         }
 
@@ -379,7 +380,7 @@ class ManifestResolver
                 $stylesheets[] = $line;
             }
             else {
-                throw new ParsingException("Malformed manifest entry encountered", null, $line);
+                throw new ParsingException("Malformed manifest entry encountered while reading '{$filePath}''", null, $line);
             }
         }
         $fileHandler->fclose($fh);
