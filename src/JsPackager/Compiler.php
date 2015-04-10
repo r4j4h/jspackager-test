@@ -40,9 +40,27 @@ class Compiler
     }
 
     /**
+     * An aggregated array of paths used to skip compilation.
+     * 
      * @var array
      */
     private $rollingPathsMarkedNoCompile;
+
+    /**
+     * Path to replace `@remote` symbols with.
+     *
+     * @var string
+     */
+    public $remoteFolderPath = 'shared';
+
+
+    public function expandOutRemoteAnnotation($string) {
+        return str_replace( '@remote', $this->remoteFolderPath, $string );
+    }
+
+    public function stringContainsRemoteAnnotation($string) {
+        return ( strpos($string, '@remote') !== FALSE );
+    }
 
     /**
      * Take an array of files in dependency order and compile them, generating a manifest.
@@ -59,6 +77,16 @@ class Compiler
 
         $totalDependencies = count( $dependencySet->dependencies );
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
+        $lastDependencyIsRemote = $this->stringContainsRemoteAnnotation( $lastDependency );
+
+        // Expand out any @remote annotations
+        foreach( $dependencySet->dependencies as $idx => $dependency ) {
+            $dependencySet->dependencies[$idx] = $this->expandOutRemoteAnnotation( $dependency );
+        }
+
+        $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
+
+
         $rootFile = new File($lastDependency);
 
         $rootFilePath = $rootFile->path;
@@ -356,15 +384,32 @@ class Compiler
         foreach ($stylesheetPaths as $stylesheetPath)
         {
 
-            $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
-            $stylesheetPath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
-            $this->logger->debug( "Calculated relative path to be '{$stylesheetPath}'." );
+            $pathUsesRemote = $this->stringContainsRemoteAnnotation( $stylesheetPath );
+
+            if ( !$pathUsesRemote )
+            {
+                $this->logger->debug( "{$stylesheetPath} is local." );
+
+                $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
+                $stylesheetPath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
+                // If we start with ./ then trim that out, we aint got time for that business
+                if ( strpos($stylesheetPath, './') === 0 ) {
+                    $stylesheetPath = substr( $stylesheetPath, 2 );
+                }
+                $this->logger->debug( "Calculated relative path to be '{$stylesheetPath}'." );
+            }
+            else
+            {
+                $this->logger->debug(
+                    "Determined {$stylesheetPath} contains @remote, so not converting path to relative."
+                );
+            }
 
             $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
             if ( $basePath !== '' && substr( $stylesheetPath, 0, strlen($basePath) ) === $basePath )
             {
                 // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
-                // As if we are shared then we may want something in between baseUrl and the real src.
+                // As if we are shared/remote then we may want something in between baseUrl and the real src.
                 $pos = strpos($stylesheetPath,$basePath);
                 if ($pos !== false) {
                     $this->logger->debug( "baseUrl needs to be removed from '{$stylesheetPath}'." );
@@ -382,7 +427,6 @@ class Compiler
         foreach ($packagePaths as $packagePath)
         {
 
-            $filePath = '';
             $this->logger->debug( "Determining if should compile file or not..." );
 
             if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
@@ -394,9 +438,27 @@ class Compiler
             }
 
 
-            $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
-            $packagePath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
-            $this->logger->debug( "Calculated relative path to be '{$packagePath}'." );
+
+            $pathUsesRemote = $this->stringContainsRemoteAnnotation( $packagePath );
+
+            if ( !$pathUsesRemote )
+            {
+                $this->logger->debug( "{$packagePath} is local." );
+
+                $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
+                $packagePath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
+                // If we start with ./ then trim that out, we aint got time for that business
+                if ( strpos($packagePath, './') === 0 ) {
+                    $packagePath = substr( $packagePath, 2 );
+                }
+                $this->logger->debug( "Calculated relative path to be '{$packagePath}'." );
+            }
+            else
+            {
+                $this->logger->debug(
+                    "Determined {$packagePath} contains @remote, so not converting path to relative."
+                );
+            }
 
 
             $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
@@ -404,7 +466,7 @@ class Compiler
             {
 
                 // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
-                // As if we are shared then we may want something in between baseUrl and the real src.
+                // As if we are shared/remote then we may want something in between baseUrl and the real src.
                 $pos = strpos($packagePath,$basePath);
                 if ($pos !== false) {
                     $this->logger->debug( "baseUrl needs to be removed from '{$packagePath}'." );
@@ -467,9 +529,32 @@ class Compiler
      * @param string $filename
      * @return string
      */
+    public function getSourceFilenameFromCompiledFilename($filename)
+    {
+        return preg_replace('/.' . self::COMPILED_SUFFIX . '.js$/', '.js', $filename);
+    }
+
+    /**
+     * Convert a given filename to its compiled equivalent
+     *
+     * @param string $filename
+     * @return string
+     */
     public function getCompiledFilename($filename)
     {
         return preg_replace('/.js$/', '.' . self::COMPILED_SUFFIX . '.js', $filename);
+    }
+
+
+    /**
+     * Convert a given filename to its manifest equivalent
+     *
+     * @param string $filename
+     * @return string
+     */
+    public function getSourceFilenameFromManifestFilename($filename)
+    {
+        return preg_replace('/.js.' . self::MANIFEST_SUFFIX . '$/', '.js', $filename);
     }
 
     /**
@@ -494,7 +579,7 @@ class Compiler
     public function compileAndWriteFilesAndManifests($inputFilename, $statusCallback = false)
     {
         $compiledFiles = array();
-        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger );
+        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger, $this->remoteFolderPath );
         $dependencyTree->logger = $this->logger;
         $dependencySets = $dependencyTree->getDependencySets();
 
