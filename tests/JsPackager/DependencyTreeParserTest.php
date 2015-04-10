@@ -398,6 +398,95 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
     }
 
+
+
+    /**
+     * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
+     * @runInSeparateProcess
+     */
+    public function testGetAnnotationsFromFileGetsNoCompileWithNormalScriptAnnotation()
+    {
+        $lineA = "window.wpt = window.wpt || {};";
+        $lineB = "@nocompile";
+        $lineC = "// Some comment";
+        $treeParser = new DependencyTreeParser();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls($lineA, $lineB, $lineC, false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        $treeParser->setFileHandler( $mockedFileHandler );
+
+        $annotationResponse = ReflectionHelper::invoke( $treeParser, 'getAnnotationsFromFile', array( 'mocked' ) );
+        $annotations = $annotationResponse['annotations'];
+
+        $this->assertEmpty( $annotations['require'] );
+        $this->assertEmpty( $annotations['requireRemote'] );
+        $this->assertEmpty( $annotations['requireStyle'] );
+        $this->assertEmpty( $annotations['root'] );
+        $this->assertTrue( $annotations['nocompile'] );
+
+        $annotationOrderingMap = $annotationResponse['orderingMap'];
+
+        $this->assertEquals( 'nocompile', $annotationOrderingMap[0]['action'], "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
+
+    }
+
+    /**
+     * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
+     * @runInSeparateProcess
+     */
+    public function testGetAnnotationsFromFileParsesNoCompileWithRootAnnotation()
+    {
+        $lineA = "window.wpt = window.wpt || {};";
+        $lineB = "@root";
+        $lineC = "@nocompile";
+        $lineD = "// Some comment";
+        $treeParser = new DependencyTreeParser();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls($lineA, $lineB, $lineC, $lineD, false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        $treeParser->setFileHandler( $mockedFileHandler );
+
+        $annotationResponse = ReflectionHelper::invoke( $treeParser, 'getAnnotationsFromFile', array( 'mocked' ) );
+        $annotations = $annotationResponse['annotations'];
+
+        $this->assertTrue( $annotations['nocompile'] );
+
+        $annotationOrderingMap = $annotationResponse['orderingMap'];
+
+        $this->assertEquals( 'root', $annotationOrderingMap[0]['action'], "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $annotationOrderingMap[0]['annotationIndex'], "Should reflect appropriate order" );
+
+        $this->assertEquals( 'nocompile', $annotationOrderingMap[1]['action'], "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $annotationOrderingMap[1]['annotationIndex'], "order is meaningless for boolean flag annotations" );
+    }
+
+
+
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
      * @runInSeparateProcess
@@ -808,6 +897,118 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
                 'Exception should contain proper error code'
             );
         }
+
+    }
+
+
+    public function testParseFileThrowsParsingExceptionOnMissingFileDuringRecursionIntoRemoteFile()
+    {
+        // Test JavaScript files
+
+        $basePath = self::fixturesBasePath . '1_broken_js_reference_remote';
+        $filePath = $basePath . '/main.js';
+
+        $treeParser = new DependencyTreeParser();
+        $treeParser->remoteFolderPath = self::fixturesBasePath . '1_broken_js_reference_remote-remote';
+
+        try {
+            $dependencyTree = $treeParser->parseFile( $filePath );
+            $this->fail('Set should throw a missing file exception');
+        } catch (ParsingException $e) {
+            $this->assertEquals(
+                'Failed to include missing file ' .
+                '"tests/JsPackager/fixtures/1_broken_js_reference_remote-remote/heeper.js"'.
+                ' while trying to parse ' .
+                '"tests/JsPackager/fixtures/1_broken_js_reference_remote-remote/main.js"',
+                $e->getMessage(),
+                'Exception should contain failed file\'s path information'
+            );
+
+            $this->assertEquals(
+                'tests/JsPackager/fixtures/1_broken_js_reference_remote-remote/heeper.js',
+                $e->getErrors(),
+                'Exception should contain failed file\'s path information'
+            );
+
+            $this->assertEquals(
+                ParsingException::ERROR_CODE,
+                $e->getCode(),
+                'Exception should contain proper error code'
+            );
+        }
+
+    }
+
+    public function testParseFileMarksIsRemote()
+    {
+        // Test JavaScript files
+
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $filePath = $basePath . '/main.js';
+
+        $treeParser = new DependencyTreeParser();
+        $treeParser->remoteFolderPath = self::fixturesBasePath . 'remote_annotation-remote';
+
+        $dependencyTree = $treeParser->parseFile( $filePath );
+
+        $this->assertFalse(
+            $dependencyTree->isRemote,
+            'Main file should not be marked remote'
+        );
+
+        $this->assertFalse(
+            $dependencyTree->scripts[0]->isRemote,
+            'Local file before remotes in main file should not be marked remote'
+        );
+        $this->assertFalse(
+            $dependencyTree->scripts[1]->isRemote,
+            'Local file in subfolder before remotes in main file should not be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[2]->isRemote,
+            'Remote script file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[2]->scripts[0]->isRemote,
+            'Remote script\'s locally required file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[2]->scripts[1]->isRemote,
+            'Remote script\'s remotely required file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->isRemote,
+            'Remote package file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->isRemote,
+            'Remote package file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->scripts[0]->isRemote,
+            'Remote script\'s locally required file should be marked remote'
+        );
+
+        $this->assertTrue(
+            $dependencyTree->scripts[3]->scripts[1]->isRemote,
+            'Remote script\'s remotely required file should be marked remote'
+        );
+
+        $this->assertFalse(
+            $dependencyTree->scripts[4]->isRemote,
+            'Local file  in subfolder after remotes in main file should not be marked remote'
+        );
+
+        $this->assertFalse(
+            $dependencyTree->scripts[5]->isRemote,
+            'Local file after remotes in main file should not be marked remote'
+        );
 
     }
 
@@ -1225,6 +1426,62 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
         // #5 depends on #4
         $this->assertEquals( 'dep_4', $dep5->scripts[0]->filename, "Dep #5 should depend on Dep #4" );
+    }
+
+
+
+    /******************************************************************
+     * parseFile > annotation_nocompile
+     * Fixture folder: 3annotation_nocompile
+     *****************************************************************/
+
+    public function testParseFile_annotation_nocompile()
+    {
+        $basePath = self::fixturesBasePath . 'annotation_nocompile';
+        $filePath = $basePath . '/main.js';
+
+        $treeParser = new DependencyTreeParser();
+        $dependencyTree = $treeParser->parseFile( $filePath );
+
+        // Ensure root file was scanned properly
+        $this->assertEquals( 'main', $dependencyTree->filename, "Root file should be named main" );
+        $this->assertEquals( 'js', $dependencyTree->filetype, "Root file should be of js filetype" );
+        $this->assertEquals( $basePath, $dependencyTree->path, "Root file should be in the base path" );
+
+        $this->assertCount( 4, $dependencyTree->scripts, "main.js should contain 4 scripts" );
+        $this->assertCount( 2, $dependencyTree->packages, "main.js should contain 2 packages" );
+        $this->assertCount( 0, $dependencyTree->stylesheets, "main.js should contain no stylesheets" );
+
+        $this->assertFalse( $dependencyTree->isMarkedNoCompile, "main.js should not be marked no compile" );
+
+        // Shortcut for easier access and readability
+        $nocompilePackage = $dependencyTree->scripts[0];
+        $nocompileScript = $dependencyTree->scripts[1];
+        $normalPackage = $dependencyTree->scripts[2];
+        $normalScript = $dependencyTree->scripts[3];
+
+        // Ensure dependencies `root` annotations were handled
+        $this->assertTrue( $nocompilePackage->isRoot, 'Dep #1 should be marked isRoot' );
+        $this->assertFalse( $nocompileScript->isRoot, 'Dep #2 should not be marked isRoot' );
+        $this->assertTrue( $normalPackage->isRoot, 'Dep #3 should be marked isRoot' );
+        $this->assertFalse( $normalScript->isRoot, 'Dep #4 should not be marked isRoot' );
+
+        // Ensure dependencies `nocompile` annotations were handled
+        $this->assertTrue( $nocompilePackage->isMarkedNoCompile, 'Dep #1 should be marked no compile' );
+        $this->assertTrue( $nocompileScript->isMarkedNoCompile, 'Dep #2 should be be marked no compile' );
+        $this->assertFalse( $normalPackage->isMarkedNoCompile, 'Dep #3 should not be marked no compile' );
+        $this->assertFalse( $normalScript->isMarkedNoCompile, 'Dep #4 should not be marked no compile' );
+
+        // Ensure the packages were detected properly
+        $this->assertEquals(
+            "tests/JsPackager/fixtures/annotation_nocompile/some/nocompile/package.js",
+            $dependencyTree->packages[0]
+        );
+
+        $this->assertEquals(
+            "tests/JsPackager/fixtures/annotation_nocompile/some/normal/package.js",
+            $dependencyTree->packages[1]
+        );
     }
 
     /******************************************************************

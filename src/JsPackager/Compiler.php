@@ -36,13 +36,36 @@ class Compiler
     public function __construct()
     {
         $this->logger = new NullLogger();
+        $this->rollingPathsMarkedNoCompile = array();
     }
 
+    /**
+     * An aggregated array of paths used to skip compilation.
+     * 
+     * @var array
+     */
+    private $rollingPathsMarkedNoCompile;
+
+    /**
+     * Path to replace `@remote` symbols with.
+     *
+     * @var string
+     */
+    public $remoteFolderPath = 'shared';
+
+
+    public function expandOutRemoteAnnotation($string) {
+        return str_replace( '@remote', $this->remoteFolderPath, $string );
+    }
+
+    public function stringContainsRemoteAnnotation($string) {
+        return ( strpos($string, '@remote') !== FALSE );
+    }
 
     /**
      * Take an array of files in dependency order and compile them, generating a manifest.
      *
-     * @param DependencySet $dependencySet Array containing keys 'stylesheets', 'packages', and 'dependencies'
+     * @param DependencySet $dependencySet Array containing keys 'stylesheets', 'packages', 'dependencies', and 'pathsMarkedNoCompile'
      * @return CompiledFile containing the contents of the resulting compiled file and its manifest.
      */
     public function compileDependencySet($dependencySet)
@@ -54,6 +77,16 @@ class Compiler
 
         $totalDependencies = count( $dependencySet->dependencies );
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
+        $lastDependencyIsRemote = $this->stringContainsRemoteAnnotation( $lastDependency );
+
+        // Expand out any @remote annotations
+        foreach( $dependencySet->dependencies as $idx => $dependency ) {
+            $dependencySet->dependencies[$idx] = $this->expandOutRemoteAnnotation( $dependency );
+        }
+
+        $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
+
+
         $rootFile = new File($lastDependency);
 
         $rootFilePath = $rootFile->path;
@@ -62,20 +95,51 @@ class Compiler
         $manifestFilename = $this->getManifestFilename( $rootFilename );
 
 
-        $this->logger->debug("Assembling manifest...");
-
-        // Build manifest first
-        $compiledFileManifest = $this->generateManifestFileContents(
-            $dependencySet->packages,
-            $dependencySet->stylesheets
+        $this->rollingPathsMarkedNoCompile = array_merge(
+            $this->rollingPathsMarkedNoCompile,
+            $dependencySet->pathsMarkedNoCompile
         );
 
-        $this->logger->debug("Built manifest. Compiling with Google Closure Compiler .jar...");
+        $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
 
-        // Compile & Concatenate via Google closure Compiler Jar
-        $compilationResults = $this->compileFileListUsingClosureCompilerJar( $dependencySet->dependencies );
 
-        $this->logger->debug("Compiled with Google Closure Compiler .jar.");
+        if ( count( $dependencySet->stylesheets ) > 0 || $totalDependencies > 1 ) {
+            // Build manifest first
+            $compiledFileManifest = $this->generateManifestFileContents(
+                $rootFilePath . '/',
+                $dependencySet->packages,
+                $dependencySet->stylesheets,
+                $this->rollingPathsMarkedNoCompile
+            );
+        } else {
+            $this->logger->debug("Skipping building manifest '{$manifestFilename}' for because file has no other dependencies than itself.");
+            $compiledFileManifest = null;
+        }
+
+        $this->logger->debug("Built manifest.");
+
+
+        if ( in_array( $rootFilePath .'/'. $rootFilename, $dependencySet->pathsMarkedNoCompile ) ) {
+            $this->logger->debug("File marked as do not compile. Skipping compiling with Google Closure Compiler .jar by pretending it succeeded with no output...");
+            $compilationResults = array(
+                'returnCode' => 0,
+                'err' => null,
+                'output' => null
+            );
+
+        } else {
+
+            $this->logger->debug("Compiling with Google Closure Compiler .jar...");
+
+            // Compile & Concatenate via Google closure Compiler Jar
+            $compilationResults = $this->compileFileListUsingClosureCompilerJar( $dependencySet->dependencies );
+
+            $this->logger->debug("Compiled with Google Closure Compiler .jar.");
+        }
+
+
+
+        $compiledFileContents = $compilationResults['output'];
 
 
         $numberOfErrors = $compilationResults['returnCode'];
@@ -88,12 +152,12 @@ class Compiler
             $compilationResults['err'] = null;
         }
 
-        $this->logger->notice("Compiled dependency set for '" . $rootFilePath . "' consisting of " . $totalDependencies . " dependencies.");
+        $this->logger->notice("Compiled dependency set for '" . $rootFilename . "' consisting of " . $totalDependencies . " dependencies.");
 
         return new CompiledFile(
             $rootFilePath,
             $compiledFilename,
-            $compilationResults['output'],
+            $compiledFileContents,
             $manifestFilename,
             $compiledFileManifest,
             $compilationResults['err']
@@ -271,7 +335,6 @@ class Compiler
         curl_close($post);
 
         // @TODO Make exceptions for these cases
-        // @TODO Handle the output results
 
         if ( property_exists($response, 'serverErrors') ) {
             $errorMessage = '';
@@ -302,28 +365,120 @@ class Compiler
     }
 
 
-
     /**
      * Take an array of stylesheet file paths and package file paths and generate a manifest file from them.
      *
+     * @param string $basePath The base path of the file this manifest belongs to for making paths relative
      * @param array $packagePaths Array of file paths
      * @param array $stylesheetPaths Array of file paths
+     * @param boolean $pathsMarkedNoCompile Array of file paths that are marked `do not compile`
      * @return string Manifest file's contents
      */
-    protected function generateManifestFileContents( $packagePaths, $stylesheetPaths )
+    protected function generateManifestFileContents( $basePath, $packagePaths, $stylesheetPaths, $pathsMarkedNoCompile = array() )
     {
+        $pathFinder = new PathFinder();
         $manifestFileContents = '';
 
         $this->logger->debug("Generating manifest file contents...");
 
         foreach ($stylesheetPaths as $stylesheetPath)
         {
+
+            $pathUsesRemote = $this->stringContainsRemoteAnnotation( $stylesheetPath );
+
+            if ( !$pathUsesRemote )
+            {
+                $this->logger->debug( "{$stylesheetPath} is local." );
+
+                $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$stylesheetPath}'..." );
+                $stylesheetPath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $stylesheetPath );
+                // If we start with ./ then trim that out, we aint got time for that business
+                if ( strpos($stylesheetPath, './') === 0 ) {
+                    $stylesheetPath = substr( $stylesheetPath, 2 );
+                }
+                $this->logger->debug( "Calculated relative path to be '{$stylesheetPath}'." );
+            }
+            else
+            {
+                $this->logger->debug(
+                    "Determined {$stylesheetPath} contains @remote, so not converting path to relative."
+                );
+            }
+
+            $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
+            if ( $basePath !== '' && substr( $stylesheetPath, 0, strlen($basePath) ) === $basePath )
+            {
+                // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
+                // As if we are shared/remote then we may want something in between baseUrl and the real src.
+                $pos = strpos($stylesheetPath,$basePath);
+                if ($pos !== false) {
+                    $this->logger->debug( "baseUrl needs to be removed from '{$stylesheetPath}'." );
+                    $stylesheetPath = substr_replace($stylesheetPath, '', $pos, strlen($basePath));
+                    $this->logger->debug( "baseUrl removed, new path is '{$stylesheetPath}'." );
+                }
+            }
+
+            $this->logger->debug( "Final path for stylesheet in manifest is '{$stylesheetPath}." );
+
             $manifestFileContents .= $stylesheetPath . PHP_EOL;
+
         }
 
         foreach ($packagePaths as $packagePath)
         {
-            $manifestFileContents .= $this->getCompiledFilename( $packagePath ) . PHP_EOL;
+
+            $this->logger->debug( "Determining if should compile file or not..." );
+
+            if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
+                $this->logger->debug( "Did not compile, leaving as uncompiled filename..." );
+                $packagePath = $packagePath;
+            } else {
+                $this->logger->debug( "Converted to compiled filename..." );
+                $packagePath = $this->getCompiledFilename($packagePath);
+            }
+
+
+
+            $pathUsesRemote = $this->stringContainsRemoteAnnotation( $packagePath );
+
+            if ( !$pathUsesRemote )
+            {
+                $this->logger->debug( "{$packagePath} is local." );
+
+                $this->logger->debug( "Calculating relative path between '{$basePath}' and '{$packagePath}'..." );
+                $packagePath = $pathFinder->getRelativePathFromAbsoluteFiles( $basePath, $packagePath );
+                // If we start with ./ then trim that out, we aint got time for that business
+                if ( strpos($packagePath, './') === 0 ) {
+                    $packagePath = substr( $packagePath, 2 );
+                }
+                $this->logger->debug( "Calculated relative path to be '{$packagePath}'." );
+            }
+            else
+            {
+                $this->logger->debug(
+                    "Determined {$packagePath} contains @remote, so not converting path to relative."
+                );
+            }
+
+
+            $this->logger->debug( "Checking to see if baseUrl ('{$basePath}') needs to be removed..." );
+            if ( $basePath !== '' && substr( $packagePath, 0, strlen($basePath) ) === $basePath )
+            {
+
+                // If $src already starts with $baseUrl then we want to remove $baseUrl from it.
+                // As if we are shared/remote then we may want something in between baseUrl and the real src.
+                $pos = strpos($packagePath,$basePath);
+                if ($pos !== false) {
+                    $this->logger->debug( "baseUrl needs to be removed from '{$packagePath}'." );
+                    $packagePath = substr_replace($packagePath, '', $pos, strlen($basePath));
+                    $this->logger->debug( "baseUrl removed, new path is '{$packagePath}'." );
+
+                }
+            }
+
+            $this->logger->debug( "Final path for package in manifest is '{$packagePath}." );
+
+            $manifestFileContents .= $packagePath . PHP_EOL;
         }
 
         $this->logger->debug("Generated manifest file contents.");
@@ -374,9 +529,32 @@ class Compiler
      * @param string $filename
      * @return string
      */
+    public function getSourceFilenameFromCompiledFilename($filename)
+    {
+        return preg_replace('/.' . self::COMPILED_SUFFIX . '.js$/', '.js', $filename);
+    }
+
+    /**
+     * Convert a given filename to its compiled equivalent
+     *
+     * @param string $filename
+     * @return string
+     */
     public function getCompiledFilename($filename)
     {
         return preg_replace('/.js$/', '.' . self::COMPILED_SUFFIX . '.js', $filename);
+    }
+
+
+    /**
+     * Convert a given filename to its manifest equivalent
+     *
+     * @param string $filename
+     * @return string
+     */
+    public function getSourceFilenameFromManifestFilename($filename)
+    {
+        return preg_replace('/.js.' . self::MANIFEST_SUFFIX . '$/', '.js', $filename);
     }
 
     /**
@@ -401,10 +579,11 @@ class Compiler
     public function compileAndWriteFilesAndManifests($inputFilename, $statusCallback = false)
     {
         $compiledFiles = array();
-        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger );
+        $dependencyTree = new DependencyTree( $inputFilename, null, false, $this->logger, $this->remoteFolderPath );
         $dependencyTree->logger = $this->logger;
         $dependencySets = $dependencyTree->getDependencySets();
 
+        $this->rollingPathsMarkedNoCompile = array();
 
         foreach( $dependencySets as $dependencySet )
         {
@@ -424,27 +603,49 @@ class Compiler
 
                 $fileCompilationResult = new FileCompilationResult();
 
-                // Write compiled file
-                $outputFilename = $result->path . '/' . $result->filename;
-                $this->logger->info("Writing compiled file to '" . $result->filename . "'.");
-                $outputFile = file_put_contents( $outputFilename, $result->contents );
-                if ( $outputFile === FALSE )
-                {
-                    $this->logger->emergency("Cannot write compiled file to {$outputFilename}");
-                    throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
-                }
-                $fileCompilationResult->setCompiledPath( $result->filename );
+                if ( is_null( $result->contents ) ) {
 
-                // Write manifest
-                $outputFilename = $result->path . '/' .$result->manifestFilename;
-                $this->logger->info("Writing compiled file manifest to '" . $result->manifestFilename . "'.");
-                $outputFile = file_put_contents( $outputFilename, $result->manifestContents );
-                if ( $outputFile === FALSE )
-                {
-                    $this->logger->critical("Cannot write manifest to {$outputFilename}");
-                    throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
+                    $this->logger->info("No compiled file contents, so not writing compiled file to '" . $result->filename . "'.");
+                    $fileCompilationResult->setCompiledPath( 'not_compiled' );
+
+                } else {
+
+                    // Write compiled file
+                    $outputFilename = $result->path . '/' . $result->filename;
+                    $this->logger->info("Writing compiled file to '" . $result->filename . "'.");
+                    $outputFile = file_put_contents( $outputFilename, $result->contents );
+                    if ( $outputFile === FALSE )
+                    {
+                        $this->logger->emergency("Cannot write compiled file to {$outputFilename}");
+                        throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
+                    }
+                    $this->logger->info("Wrote compiled file to '" . $result->filename . "'.");
+                    $fileCompilationResult->setCompiledPath( $result->filename );
+
                 }
-                $fileCompilationResult->setManifestPath( $result->manifestFilename );
+
+
+                if ( is_null( $result->manifestContents ) ) {
+
+                    $this->logger->info("No manifest file contents, so not writing manifest file to '" . $result->manifestFilename . "'.");
+                    $fileCompilationResult->setManifestPath( 'not_compiled' );
+
+                } else {
+
+                    // Write manifest
+                    $outputFilename = $result->path . '/' .$result->manifestFilename;
+                    $this->logger->info("Writing compiled file manifest to '" . $result->manifestFilename . "'.");
+                    $outputFile = file_put_contents( $outputFilename, $result->manifestContents );
+                    if ( $outputFile === FALSE )
+                    {
+                        $this->logger->critical("Cannot write manifest to {$outputFilename}");
+                        throw new CannotWriteException("Cannot write to {$outputFilename}", null, $outputFilename);
+                    }
+                    $this->logger->info("Wrote compiled file manifest to '" . $result->manifestFilename . "'.");
+
+                    $fileCompilationResult->setManifestPath( $result->manifestFilename );
+
+                }
 
                 $fileCompilationResult->setSourcePath( $result->path );
 

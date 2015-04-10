@@ -2,6 +2,7 @@
 
 namespace JsPackager;
 
+use JsPackager\Compiler\DependencySet;
 use JsPackager\File;
 use JsPackager\DependencyTree;
 use JsPackager\Compiler;
@@ -112,7 +113,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $stylesheets = array();
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $this->assertEquals('', $manifestFileContents, "Manifest should be empty" );
 
@@ -133,7 +134,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
             'another/package.compiled.js'
         )) . PHP_EOL;
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $this->assertEquals($expectedOutput, $manifestFileContents, "Manifest should have packages" );
     }
@@ -148,7 +149,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         );
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
     }
 
@@ -165,13 +166,72 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
             'another/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( $packages, $stylesheets ) );
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
 
         $expectedContents = <<<BLOCK
 some/stylesheet.css
 some/modifiers.css
 some/package.compiled.js
 another/package.compiled.js
+
+BLOCK;
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
+
+    public function testGenerateManifestContainingNoCompileFile()
+    {
+        $compiler = new Compiler();
+
+        $stylesheets = array(
+            'css/my_stylesheet.css'
+        );
+        $packages = array(
+            'some/nocompile/package.js',
+            'some/normal/package.js'
+        );
+        $filesMarkedNoCompile = array(
+            'some/nocompile/package.js'
+        );
+
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets, $filesMarkedNoCompile ) );
+
+        $expectedContents = <<<BLOCK
+css/my_stylesheet.css
+some/nocompile/package.js
+some/normal/package.compiled.js
+
+BLOCK;
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
+
+    public function testGenerateManifestHandlesBasePath()
+    {
+        $compiler = new Compiler();
+
+        $stylesheets = array(
+            '/some/absolute/path/to/websites/website_1/css/my_stylesheet.css'
+        );
+        $packages = array(
+            '/some/absolute/path/to/websites/website_1/some/nocompile/package.js',
+            '/some/absolute/path/to/websites/website_1/some/normal/package.js'
+        );
+        $filesMarkedNoCompile = array(
+            '/some/absolute/path/to/websites/website_1/some/nocompile/package.js'
+        );
+
+        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array(
+            '/some/absolute/path/to/websites/website_1/',
+            $packages,
+            $stylesheets,
+            $filesMarkedNoCompile
+        ) );
+
+        $expectedContents = <<<BLOCK
+css/my_stylesheet.css
+some/nocompile/package.js
+some/normal/package.compiled.js
 
 BLOCK;
 
@@ -428,7 +488,7 @@ BLOCK;
 
         $compiledFilesContents = "window.dep_5=!0;window.dep_4=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/subpackage/dep_4_style.css
+dep_4_style.css
 
 MANIFEST;
 
@@ -453,8 +513,8 @@ MANIFEST;
 
         $compiledFilesContents = "window.dep_3=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/dep_3_style.css
-tests/JsPackager/fixtures/2_deps_2_package_2_deep/package/subpackage/dep_4.compiled.js
+dep_3_style.css
+subpackage/dep_4.compiled.js
 
 MANIFEST;
 
@@ -478,7 +538,7 @@ MANIFEST;
         $result = $compiler->compileDependencySet( $dependencySet );
 
         $compiledFilesContents = "window.dep_1=!0;window.dep_2=!0;window.main=!0;" . PHP_EOL;
-        $manifestContents = $basePath . '/package/dep_3.compiled.js' . PHP_EOL;
+        $manifestContents = 'package/dep_3.compiled.js' . PHP_EOL;
 
         $this->assertEquals( $basePath, $result->path, "Compiled path should be main.js's path" );
         $this->assertEquals(
@@ -493,6 +553,183 @@ MANIFEST;
         );
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
         $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+    }
+
+
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testCompileDependencySetHandlesDependenciesWithPackagesMarkedNoCompile()
+    {
+        $basePath = self::fixturesBasePath . 'annotation_nocompile';
+        $mainJsPath = $basePath . '/main.js';
+
+        $dependencyTree = new DependencyTree( $mainJsPath );
+
+        $roots = $dependencyTree->getDependencySets();
+
+        $compiler = new Compiler();
+
+        // Grab first dependency set
+        $dependencySet = $roots[0];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = "window.normal_package=!0;" . PHP_EOL;
+        $manifestContents = <<<MANIFEST
+
+MANIFEST;
+
+        $this->assertEquals( $basePath . '/some/normal', $result->path, "Compiled path should be dep_4's path" );
+        $this->assertEquals(
+            'package.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_4.js"
+        );
+        // todo when manifests arent needed they should not be generated for optimization!
+        $this->assertEquals(
+            'package.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_4"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
+        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+
+
+        // Grab second dependency set
+        $dependencySet = $roots[1];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = "window.nocompile_package=!0;" . PHP_EOL;
+        $manifestContents = <<<MANIFEST
+
+MANIFEST;
+
+        $this->assertEquals( $basePath . '/some/nocompile', $result->path, "Compiled path should be dep_3's path" );
+        $this->assertEquals(
+            'package.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_3.js"
+        );
+        $this->assertEquals(
+            'package.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_3"
+        );
+        $this->assertEquals( null, $result->contents, "Compiled file should be null so compilers can safely skip it" );
+        $this->assertEquals( null, $result->manifestContents, "Manifest file should be null so compilers can safely skip it" );
+
+
+        // Grab third (and last) dependency set
+        $dependencySet = $roots[2];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = "window.nocompile_script=!0;window.normal_script=!0;window.main=!0;" . PHP_EOL;
+        $manifestContents = <<<MANIFEST
+some/nocompile/package.js
+some/normal/package.compiled.js
+
+MANIFEST;
+
+
+        $this->assertEquals( $basePath, $result->path, "Compiled path should be main.js's path" );
+        $this->assertEquals(
+            'main.compiled.js',
+            $result->filename,
+            "Compiled file should be from main.js"
+        );
+        $this->assertEquals(
+            'main.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from main"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
+        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+    }
+
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testCompileDependencySetExpandsRemoteAnnotations()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $sharedPath = $basePath . '-remote';
+
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
+
+        $roots = $dependencyTree->getDependencySets();
+
+        $compiler = new Compiler();
+        $compiler->remoteFolderPath = $sharedPath;
+
+        // Grab first dependency set
+        $dependencySet = $roots[0];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = <<< 'COMPILEFILE'
+window.remotepackage_local_on_remote=!0;window.remotepackage_remote_on_remote=!0;window.remotepackage_script=!0;
+
+COMPILEFILE;
+
+        $manifestContents = <<< 'MANIFEST'
+@remote/remotepackage/package_subfolder/local_on_remote.css
+@remote/remotepackage/package_subfolder/remote_on_remote.css
+
+MANIFEST;
+
+        $this->assertEquals( $sharedPath . '/remotepackage', $result->path, "Path should point to remote folder" );
+        $this->assertEquals(
+            'script.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_4.js"
+        );
+        // todo when manifests arent needed they should not be generated for optimization!
+        $this->assertEquals(
+            'script.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_4"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
+        $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
+
+
+        // Grab second dependency set
+        $dependencySet = $roots[1];
+        $result = $compiler->compileDependencySet( $dependencySet );
+
+        $compiledFilesContents = <<<COMPILEFILE
+window.main_local_file_before=!0;window.main_local_subfolder_script_before=!0;window.remotescript_local_on_remote=!0;window.remotescript_remote_on_remote=!0;window.remotescript_script=!0;window.main_local_subfolder_script_after=!0;window.main_local_file_after=!0;window.main_js=!0;
+
+COMPILEFILE;
+
+        $manifestContents = <<<'MANIFEST'
+stylesheet_before.css
+local_subfolder/local_subfolder_before.css
+@remote/remotescript/script_subfolder/local_on_remote.css
+@remote/remotescript/script_subfolder/remote_on_remote.css
+local_subfolder/local_subfolder_after.css
+stylesheet_after.css
+@remote/remotepackage/script.compiled.js
+
+MANIFEST;
+
+        $this->assertEquals( $basePath, $result->path, "Compiled path should be local path" );
+        $this->assertEquals(
+            'main.compiled.js',
+            $result->filename,
+            "Compiled file should be from dep_3.js"
+        );
+        $this->assertEquals(
+            'main.js.manifest',
+            $result->manifestFilename,
+            "Manifest filename should be from dep_3"
+        );
+        $this->assertEquals( $compiledFilesContents, $result->contents );
+        $this->assertEquals( $manifestContents, $result->manifestContents );
+
     }
 
 
@@ -552,6 +789,116 @@ MANIFEST;
         $this->assertEquals( $basePath . '/dep_1.js', $roots[2]->dependencies[0], "Should include dep_1.js" );
         $this->assertEquals( $basePath . '/main.js', $roots[2]->dependencies[1], "Should include main.js" );
     }
+
+
+    /**
+     * @throws Exception\Parsing
+     */
+    public function testGetDependencySetsHandlesRemoteAnnotations()
+    {
+        /**
+         * @var DependencySet $remoteDependencySet
+         * @var DependencySet $localDependencySet
+         */
+
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $sharedPath = $basePath . '-remote';
+
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
+
+        $dependencySets = $dependencyTree->getDependencySets();
+
+        $this->assertEquals(
+            $sharedPath,
+            $dependencyTree->remoteFolderPath,
+            'Should provide a default value to use in place of @remote'
+        );
+
+        $this->assertEquals(
+            2,
+            count( $dependencySets ),
+            "Expect 2 packages -- 1 for the file, 1 for the remote package"
+        );
+
+        $remoteDependencySet = $dependencySets[0];
+        $localDependencySet  = $dependencySets[1];
+
+        $this->assertEquals(
+            3,
+            count( $remoteDependencySet->dependencies ),
+            "Remote package has 3 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            '@remote/remotepackage/package_subfolder/local_on_remote.js',
+            $remoteDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            '@remote/remotepackage/package_subfolder/remote_on_remote.js',
+            $remoteDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            '@remote/remotepackage/script.js',
+            $remoteDependencySet->dependencies[2]
+        );
+
+
+
+        $this->assertEquals(
+            8,
+            count( $localDependencySet->dependencies ),
+            "Local package has 6 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            1,
+            count( $localDependencySet->packages ),
+            "Local dependency set has 1 package."
+        );
+        $this->assertEquals(
+            '@remote/remotepackage/script.js',
+            $localDependencySet->packages[0],
+            "Local dependency set's package is the remote package."
+        );
+
+
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_file_before.js',
+            $localDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.js',
+            $localDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            '@remote/remotescript/script_subfolder/local_on_remote.js',
+            $localDependencySet->dependencies[2]
+        );
+        $this->assertEquals(
+            '@remote/remotescript/script_subfolder/remote_on_remote.js',
+            $localDependencySet->dependencies[3]
+        );
+        $this->assertEquals(
+            '@remote/remotescript/script.js',
+            $localDependencySet->dependencies[4]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.js',
+            $localDependencySet->dependencies[5]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_file_after.js',
+            $localDependencySet->dependencies[6]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/main.js',
+            $localDependencySet->dependencies[7]
+        );
+
+    }
+
 
     /******************************************************************
      * compileAndWriteFilesAndManifests

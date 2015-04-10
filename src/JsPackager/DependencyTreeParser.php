@@ -60,10 +60,12 @@ class DependencyTreeParser
         'requireStyle',
         'requireRemoteStyle',
         'root',
-        'tests'
+        'nocompile',
+        'tests',
+        'testsRemote'
     );
 
-    public $sharedFolderPath = 'shared';
+    public $remoteFolderPath = 'shared';
 
     /**
      * Definition list of file types that are scanned for annotation tokens
@@ -128,6 +130,67 @@ class DependencyTreeParser
 
 
     /**
+     * Get the base path to a file.
+     *
+     * Give it something like '/my/cool/file.jpg' and get '/my/cool/' back.
+     * @param $sourceFilePath
+     * @return string
+     */
+    protected function getBasePathFromSourceFileWithoutTrailingSlash($sourceFilePath) {
+        return ltrim( ( substr( $sourceFilePath, 0, strrpos($sourceFilePath, '/' ) ) ), '/' );
+    }
+    /**
+     * Get the base path to a file.
+     *
+     * Give it something like '/my/cool/file.jpg' and get '/my/cool/' back.
+     * @param $sourceFilePath
+     * @return string
+     */
+    protected function getBasePathFromSourceFileWithTrailingSlash($sourceFilePath) {
+        return ltrim( ( substr( $sourceFilePath, 0, strrpos($sourceFilePath, '/' )+1 ) ), '/' );
+    }
+
+
+    /**
+     * Flag used to indicate when we are recursing into a remote file so that we can catch "locally" required files
+     * inside the remotely required files which are in effect remote.
+     *
+     * @var bool
+     */
+    public $currentlyRecursingInRemoteFile = false;
+
+    /**
+     * Temporary store of paths used when recursing into remote files for rebuilding the relative path from
+     * any "locally" required files that are in actuality relative to the remote file.
+     *
+     * @var array
+     */
+    public $recursedPath = array();
+
+    /**
+     * Counter for tracking recursion depth.
+     *
+     * @var int
+     */
+    public $recursionDepth = 0;
+
+    /**
+     * Grab the last item in an array.
+     * 
+     * Thanks, http://stackoverflow.com/a/8205332/1347604
+     *
+     * @param $array
+     * @return null
+     */
+    protected function array_last($array) {
+        if (count($array) < 1)
+            return null;
+
+        $keys = array_keys($array);
+        return $array[$keys[sizeof($keys) - 1]];
+    }
+
+    /**
      * Converts a file via path into a JsPackager\File object and
      * parses it for dependencies, caching it for re-use if called again
      * with same file.
@@ -151,6 +214,8 @@ class DependencyTreeParser
 
             $this->parsedFiles = array();
             $this->seenFiles = array();
+            $this->currentlyRecursingInRemoteFile = false;
+            $this->recursedPath = array(); // Reset path
         } else {
             $this->logger->debug("Recursing.");
         }
@@ -176,7 +241,7 @@ class DependencyTreeParser
         }
 
         // Build identifier
-        $fileHtmlPath = $this->normalizeRelativePath( $file->path . '/' . $file->filename );
+        $fileHtmlPath = $this->normalizeRelativePath( $file->getFullPath() );
 
         $this->logger->debug("Built identifier: '" . $fileHtmlPath . "'.");
 
@@ -215,6 +280,13 @@ class DependencyTreeParser
                 $file->isRoot = true;
             }
 
+            // Mark isMarkedNoCompile
+            if ( $annotations['nocompile'] === true )
+            {
+                $this->logger->debug("Marking {$filePath} as nocompile.");
+                $file->isMarkedNoCompile = true;
+            }
+
 
             // Go through each required file and see if it has requirements and if so
             // Populate scripts/stylesheets w/ File objects
@@ -228,24 +300,46 @@ class DependencyTreeParser
                 {
                     $this->logger->debug("Found requireRemote entry.");
 
-                    // Use convention to alter path to shared files' root
-                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/' . $this->sharedFolderPath, $file->path );
+                    // need to load actual file
+                    // but store @remote/
+
+                    // Alter path to remote files' root
+                    $remotePath = $this->remoteFolderPath;
 
                     // Build dependency's identifier
-                    $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
+                    $htmlPath = $this->normalizeRelativePath( $remotePath . '/' . $path );
 
-                    $this->logger->debug("Calculated {$htmlPath} as shared files' path.");
+                    $this->logger->debug("Calculated {$htmlPath} as remote files' path.");
 
                     // Call parseFile on it recursively
                     try
                     {
                         $this->logger->debug("Checking it for dependencies...");
+
+                        $recursedThisPass = true;
+                        $this->currentlyRecursingInRemoteFile = true;
+
+                        $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+                        $this->recursedPath[] = $basePathFromSourceFileWithoutTrailingSlash;
+                        $this->recursionDepth++;
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
+                        $this->recursionDepth--;
+                        array_pop( $this->recursedPath );
+                        $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
+                        if ( $dependencyFile->isRemote ) {
+                            // Reset path from actual to using @remote symbol
+                            $dependencyFile->path = '@remote' . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+                        }
+                        if ( $this->recursionDepth === 0 && $this->currentlyRecursingInRemoteFile ) {
+                            $this->currentlyRecursingInRemoteFile = false;
+                        }
+
                     }
                     catch (MissingFileException $e)
                     {
                         throw new ParsingException("Failed to include missing file \"{$e->getMissingFilePath()}\" while trying to parse \"{$filePath}\"", null, $e->getMissingFilePath());
                     }
+
 
 
                     if ( $dependencyFile->isRoot )
@@ -254,13 +348,14 @@ class DependencyTreeParser
                         $file->packages[] = $htmlPath;
                     }
 
+
                     // It has root set from parseFile so callee can handle that
                     $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
-                    // Switch order map to use require, since we normalized the shared files so they fit in
+                    // Switch order map to use require, since we normalized the remote files so they fit in
                     // same bucket as normal files.
-                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation instead of requireRemote since we have normalized the shared file's path.");
+                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation instead of requireRemote since we have normalized the remote file's path.");
                     $file->annotationOrderMap[] = array(
                         'action' => 'require',
                         'annotationIndex' => count( $file->scripts ) - 1,
@@ -280,7 +375,37 @@ class DependencyTreeParser
                     try
                     {
                         $this->logger->debug("Checking it for dependencies...");
+
+                        $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+
+                        if ( $this->currentlyRecursingInRemoteFile ) {
+
+                            if ( $basePathFromSourceFileWithoutTrailingSlash !== '' ) {
+                                $this->recursedPath[] = $this->array_last( $this->recursedPath ) . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+                                $this->recursionDepth++;
+                            }
+
+                        }
+
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
+                        $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
+
+                        if ( $this->currentlyRecursingInRemoteFile ) {
+                            if ( $basePathFromSourceFileWithoutTrailingSlash !== '' ) {
+                                array_pop($this->recursedPath);
+                                $this->recursionDepth--;
+                            }
+                        }
+
+                        if ( $dependencyFile->isRemote ) {
+                            // Reset path from actual to using @remote symbol
+                            $basePathFromDependents = $this->array_last( $this->recursedPath );
+                            $basePathFromSourceFile = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+                            // don't prepend recursedPath if it already is the beginning
+
+                                $dependencyFile->path = rtrim('@remote' . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/');
+
+                        }
                     }
                     catch (MissingFileException $e)
                     {
@@ -297,6 +422,9 @@ class DependencyTreeParser
                     $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
+
+
+
                     // Populate ordering map on File object
                     $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
                     $file->annotationOrderMap[] = array(
@@ -312,29 +440,36 @@ class DependencyTreeParser
 
                     $fileHandler = $this->getFileHandler();
 
-                    // Use convention to alter path to shared files' root
-                    $sharedPath = preg_replace( '/\/public\/.*$/', '/public/' . $this->sharedFolderPath, $file->path );
+                    // need to load actual file
+                    // but store @remote/
+
+                    // Alter path to remote files' root
+                    $remotePath = $this->remoteFolderPath;
 
                     // Build dependency's identifier
-                    $htmlPath = $this->normalizeRelativePath( $sharedPath . '/' . $path );
+                    $htmlPath = $this->normalizeRelativePath( $remotePath . '/' . $path );
 
-                    $this->logger->debug("Calculated {$htmlPath} as required files' path.");
+                    $this->logger->debug("Calculated {$htmlPath} as remote files' path.");
 
                     // When parsing CSS files is desired, it will go through parseFile so non file exceptions will
                     // be caught and thrown there before parsing. Until that is desired, we will just manually
                     // do it without parsing the file.
-                    if ( $fileHandler->is_file( $sharedPath . '/' . $path ) === false && $this->mutingMissingFileExceptions === false )
+                    if ( $fileHandler->is_file( $remotePath . '/' . $path ) === false && $this->mutingMissingFileExceptions === false )
                     {
-                        throw new Exception\MissingFile($sharedPath . '/' . $path . ' is not a valid file!', 0, null, $sharedPath . '/' . $path);
+                        throw new Exception\MissingFile($remotePath . '/' . $path . ' is not a valid file!', 0, null, $remotePath . '/' . $path);
                     }
+
+                    // Reset path from actual to using @remote symbol
+                    $htmlPath = '@remote' . '/' . $path;
+
 
                     // Add to stylesheets list
                     $this->logger->debug("Adding {$htmlPath} to stylesheets array.");
                     $file->stylesheets[] = $htmlPath;
 
-                    // Switch order map to use requireStyle, since we normalized the shared files so they fit in
+                    // Switch order map to use requireStyle, since we normalized the remote files so they fit in
                     // same bucket as normal files.
-                    $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation instead of requireRemoteStyle since we have normalized the shared file's path.");
+                    $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation instead of requireRemoteStyle since we have normalized the remote file's path.");
                     $file->annotationOrderMap[] = array(
                         'action' => 'requireStyle',
                         'annotationIndex' => count( $file->stylesheets ) - 1,
@@ -359,6 +494,13 @@ class DependencyTreeParser
                     if ( $fileHandler->is_file( $file->path . '/' . $path ) === false && $this->mutingMissingFileExceptions === false )
                     {
                         throw new Exception\MissingFile($file->path . '/' . $path . ' is not a valid file!', 0, null, $file->path . '/' . $path);
+                    }
+
+                    if ( $this->currentlyRecursingInRemoteFile ) {
+                        // Reset path from actual to using @remote symbol
+                        // Reset path from actual to using @remote symbol
+                        $basePathFromDependents = $this->array_last( $this->recursedPath );
+                        $htmlPath = '@remote' . '/' . $basePathFromDependents .'/' . $path;
                     }
 
                     // Add to stylesheets list
@@ -386,7 +528,36 @@ class DependencyTreeParser
                     try
                     {
                         $this->logger->debug("Checking it for dependencies...");
+
+                        $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+
+                        if ( $this->currentlyRecursingInRemoteFile ) {
+
+                            if ( $basePathFromSourceFileWithoutTrailingSlash !== '' ) {
+                                $this->recursedPath[] = $this->array_last( $this->recursedPath ) . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+                                $this->recursionDepth++;
+                            }
+
+                        }
                         $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
+                        $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
+
+                        if ( $this->currentlyRecursingInRemoteFile ) {
+                            if ( $basePathFromSourceFileWithoutTrailingSlash !== '' ) {
+                                array_pop($this->recursedPath);
+                                $this->recursionDepth--;
+                            }
+                        }
+
+                        if ( $dependencyFile->isRemote ) {
+                            // Reset path from actual to using @remote symbol
+                            $basePathFromDependents = $this->array_last( $this->recursedPath );
+                            $basePathFromSourceFile = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+                            // don't prepend recursedPath if it already is the beginning
+
+                            $dependencyFile->path = rtrim('@remote' . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/');
+
+                        }
                     }
                     catch (MissingFileException $e)
                     {
@@ -400,7 +571,64 @@ class DependencyTreeParser
                     }
 
                     // It has root set from parseFile so callee can handle that
-                    $this->logger->debug("Adding {$dependencyFile} to scripts array.");
+                    $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
+                    $file->scripts[] = $dependencyFile;
+
+                    // Populate ordering map on File object
+                    $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
+                    $file->annotationOrderMap[] = array(
+                        'action' => 'require',
+                        'annotationIndex' => count( $file->scripts ) - 1,
+                    );
+                }
+                else if ( $action === 'testsRemote' )
+                {
+                    $this->logger->debug("Found testsRemote entry.");
+
+                    // Alter path to remote files' root
+                    $remotePath = $this->remoteFolderPath;
+
+                    // Build dependency's identifier
+                    $htmlPath = $this->normalizeRelativePath( $remotePath . '/' . $path );
+
+                    $this->logger->debug("Calculated {$htmlPath} as required remote files' path.");
+
+                    // Call parseFile on it recursively
+                    try
+                    {
+                        $this->logger->debug("Checking it for dependencies...");
+
+                        $recursedThisPass = true;
+                        $this->currentlyRecursingInRemoteFile = true;
+
+                        $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromSourceFileWithoutTrailingSlash($path);
+                        $this->recursedPath[] = $basePathFromSourceFileWithoutTrailingSlash;
+                        $this->recursionDepth++;
+                        $dependencyFile = $this->parseFile( $htmlPath, $testsSourcePath, true );
+                        $this->recursionDepth--;
+                        array_pop( $this->recursedPath );
+                        $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
+                        if ( $dependencyFile->isRemote ) {
+                            // Reset path from actual to using @remote symbol
+                            $dependencyFile->path = '@remote' . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+                        }
+                        if ( $this->recursionDepth === 0 && $this->currentlyRecursingInRemoteFile ) {
+                            $this->currentlyRecursingInRemoteFile = false;
+                        }
+                    }
+                    catch (MissingFileException $e)
+                    {
+                        throw new ParsingException("Failed to include missing file \"{$e->getMissingFilePath()}\" while trying to parse \"{$filePath}\"", null, $e->getMissingFilePath());
+                    }
+
+                    if ( $dependencyFile->isRoot )
+                    {
+                        $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
+                        $file->packages[] = $htmlPath;
+                    }
+
+                    // It has root set from parseFile so callee can handle that
+                    $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
                     $file->scripts[] = $dependencyFile;
 
                     // Populate ordering map on File object
@@ -438,6 +666,10 @@ class DependencyTreeParser
         $pattern = '/[\w\-]+\/\.\.\//';
         while ( preg_match( $pattern, $relativePath ) ) {
             $relativePath = preg_replace( $pattern, '', $relativePath );
+        }
+        $pattern = '/\/\.\//';
+        while ( preg_match( $pattern, $relativePath ) ) {
+            $relativePath = preg_replace( $pattern, '/', $relativePath );
         }
         return $relativePath;
     }
