@@ -284,15 +284,11 @@ class ManifestResolver
                 foreach( $filesFromManifest['stylesheets'] as $idx => $file ) {
                     $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
                     $this->logger->info('Parsing stylesheet from manifest: ' . $filesFromManifest['stylesheets'][$idx]);
-
                 }
+
                 foreach( $filesFromManifest['packages'] as $idx => $file ) {
                     $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
                     $this->logger->info('Parsing package from manifest: ' . $filesFromManifest['packages'][$idx]);
-                }
-                if ( $filesFromManifest ) {
-                    $files = array_merge( $files, $filesFromManifest['stylesheets'] );
-                    $files = array_merge( $files, $filesFromManifest['packages'] );
                 }
 
                 $numberOfPackages = count( $filesFromManifest['packages'] );
@@ -318,6 +314,12 @@ class ManifestResolver
                     $this->logger->info("Finished looking for further potential dependencies for {$sourceFilePath}...");
 
                 }
+
+                if ( $filesFromManifest ) {
+                    $files = array_merge( $files, $filesFromManifest['stylesheets'] );
+                    $files = array_merge( $files, $filesFromManifest['packages'] );
+                }
+
 
             } else {
 
