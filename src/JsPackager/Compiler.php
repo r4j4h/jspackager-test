@@ -51,13 +51,14 @@ class Compiler
      */
     public $remoteFolderPath = 'shared';
 
+    public $remoteSymbol = '@remote';
 
     public function expandOutRemoteAnnotation($string) {
-        return str_replace( '@remote', $this->remoteFolderPath, $string );
+        return str_replace( $this->remoteSymbol, $this->remoteFolderPath, $string );
     }
 
     public function stringContainsRemoteAnnotation($string) {
-        return ( strpos($string, '@remote') !== FALSE );
+        return ( strpos($string, $this->remoteSymbol) !== FALSE );
     }
 
     /**
