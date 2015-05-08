@@ -25,8 +25,6 @@ use SplFileObject;
 
 class Compiler
 {
-    const COMPILED_SUFFIX = 'compiled';
-    const MANIFEST_SUFFIX = 'manifest';
 
     /**
      * @var LoggerInterface
@@ -531,7 +529,7 @@ class Compiler
      */
     public function getSourceFilenameFromCompiledFilename($filename)
     {
-        return preg_replace('/.' . self::COMPILED_SUFFIX . '.js$/', '.js', $filename);
+        return preg_replace('/.' . Constants::COMPILED_SUFFIX . '.js$/', '.js', $filename);
     }
 
     /**
@@ -542,7 +540,7 @@ class Compiler
      */
     public function getCompiledFilename($filename)
     {
-        return preg_replace('/.js$/', '.' . self::COMPILED_SUFFIX . '.js', $filename);
+        return preg_replace('/.js$/', '.' . Constants::COMPILED_SUFFIX . '.js', $filename);
     }
 
 
@@ -554,7 +552,7 @@ class Compiler
      */
     public function getSourceFilenameFromManifestFilename($filename)
     {
-        return preg_replace('/.js.' . self::MANIFEST_SUFFIX . '$/', '.js', $filename);
+        return preg_replace('/.js.' . Constants::MANIFEST_SUFFIX . '$/', '.js', $filename);
     }
 
     /**
@@ -565,7 +563,7 @@ class Compiler
      */
     public function getManifestFilename($filename)
     {
-        return preg_replace('/.js$/', '.js.' . self::MANIFEST_SUFFIX, $filename);
+        return preg_replace('/.js$/', '.js.' . Constants::MANIFEST_SUFFIX, $filename);
     }
 
     /**
