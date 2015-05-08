@@ -68,6 +68,8 @@ class ManifestContentsGenerator
 
         $this->logger->debug("Generating manifest file contents...");
 
+        $temp = array();
+
         foreach ($stylesheetPaths as $stylesheetPath)
         {
 
@@ -107,6 +109,14 @@ class ManifestContentsGenerator
 
             $this->logger->debug( "Final path for stylesheet in manifest is '{$stylesheetPath}." );
 
+            array_push( $temp, $stylesheetPath );
+
+        }
+
+        $temp = array_unique( $temp );
+
+        foreach ($temp as $stylesheetPath)
+        {
             $manifestFileContents .= $stylesheetPath . PHP_EOL;
 
         }
