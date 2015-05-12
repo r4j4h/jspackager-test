@@ -229,7 +229,7 @@ class ManifestResolver
         $this->remoteFolderPath = $this->removeCurrentWorkingDirectoryFromPath( $this->remoteFolderPath );
 
         if ( $this->baseFolderPath !== '' ) {
-            $baseUrl = $this->baseFolderPath . '/';
+            $baseUrl = rtrim( $this->baseFolderPath, '/' ) . '/';
         } else {
             $baseUrl = '';
         }
