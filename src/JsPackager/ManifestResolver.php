@@ -29,6 +29,7 @@
 namespace JsPackager;
 
 use JsPackager\Exception;
+use JsPackager\Exception\MissingFile;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
@@ -118,14 +119,14 @@ class ManifestResolver
      */
     public function getFileHandler()
     {
-//        return $this->serviceLocator->get('EMRCore\JsPackager\FileHandler');
+//        return $this->serviceLocator->get('JsPackager\FileHandler');
         return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
     }
 
 
     public function getCompiler()
     {
-//        return $this->serviceLocator->get('EMRCore\JsPackager\Compiler');
+//        return $this->serviceLocator->get('JsPackager\Compiler');
         return ( $this->compiler ? $this->compiler : new Compiler() );
     }
 
@@ -218,7 +219,7 @@ class ManifestResolver
      *
      * @param $sourceFilePath
      * @return array
-     * @throws \EMRCore\JsPackager\Exception\MissingFile
+     * @throws MissingFile
      */
     protected function reverseResolveFromCompiledFile($sourceFilePath, $deeper = false)
     {
