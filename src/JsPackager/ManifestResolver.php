@@ -29,6 +29,7 @@
 namespace JsPackager;
 
 use JsPackager\Exception;
+use JsPackager\Exception\MissingFile;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
@@ -118,14 +119,14 @@ class ManifestResolver
      */
     public function getFileHandler()
     {
-//        return $this->serviceLocator->get('EMRCore\JsPackager\FileHandler');
+//        return $this->serviceLocator->get('JsPackager\FileHandler');
         return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
     }
 
 
     public function getCompiler()
     {
-//        return $this->serviceLocator->get('EMRCore\JsPackager\Compiler');
+//        return $this->serviceLocator->get('JsPackager\Compiler');
         return ( $this->compiler ? $this->compiler : new Compiler() );
     }
 
@@ -218,7 +219,7 @@ class ManifestResolver
      *
      * @param $sourceFilePath
      * @return array
-     * @throws \EMRCore\JsPackager\Exception\MissingFile
+     * @throws MissingFile
      */
     protected function reverseResolveFromCompiledFile($sourceFilePath, $deeper = false)
     {
@@ -229,7 +230,7 @@ class ManifestResolver
         $this->remoteFolderPath = $this->removeCurrentWorkingDirectoryFromPath( $this->remoteFolderPath );
 
         if ( $this->baseFolderPath !== '' ) {
-            $baseUrl = $this->baseFolderPath . '/';
+            $baseUrl = rtrim( $this->baseFolderPath, '/' ) . '/';
         } else {
             $baseUrl = '';
         }
@@ -284,15 +285,11 @@ class ManifestResolver
                 foreach( $filesFromManifest['stylesheets'] as $idx => $file ) {
                     $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
                     $this->logger->info('Parsing stylesheet from manifest: ' . $filesFromManifest['stylesheets'][$idx]);
-
                 }
+
                 foreach( $filesFromManifest['packages'] as $idx => $file ) {
                     $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
                     $this->logger->info('Parsing package from manifest: ' . $filesFromManifest['packages'][$idx]);
-                }
-                if ( $filesFromManifest ) {
-                    $files = array_merge( $files, $filesFromManifest['stylesheets'] );
-                    $files = array_merge( $files, $filesFromManifest['packages'] );
                 }
 
                 $numberOfPackages = count( $filesFromManifest['packages'] );
@@ -318,6 +315,12 @@ class ManifestResolver
                     $this->logger->info("Finished looking for further potential dependencies for {$sourceFilePath}...");
 
                 }
+
+                if ( $filesFromManifest ) {
+                    $files = array_merge( $files, $filesFromManifest['stylesheets'] );
+                    $files = array_merge( $files, $filesFromManifest['packages'] );
+                }
+
 
             } else {
 
