@@ -64,6 +64,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $i = 0;
         $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -92,14 +100,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
             $paths[$i++]
         );
         $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
             $paths[$i++]
         );
@@ -109,6 +109,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $paths = $manifestResolver->resolveFile( $filePath );
 
         $i = 0;
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
         $this->assertEquals(
             'dorf/tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
@@ -138,6 +146,30 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
             $paths[$i++]
         );
         $this->assertEquals(
+            'dorf/tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
+            $paths[$i++]
+        );
+
+    }
+
+
+
+    public function testHandlesEmptyBaseFolderPath()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = $basePath . '-remote';
+        $filePath = $basePath . '/main.js';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = $basePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
+
+        $manifestResolver->baseFolderPath = '';
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+        $i = 0;
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
             $paths[$i++]
         );
@@ -146,7 +178,209 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
             $paths[$i++]
         );
         $this->assertEquals(
-            'dorf/tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
+            'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
+            $paths[$i++]
+        );
+
+    }
+
+    public function testHandlesDotBaseFolderPath()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = $basePath . '-remote';
+        $filePath = $basePath . '/main.js';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = $basePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
+
+        $manifestResolver->baseFolderPath = '.';
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+        $i = 0;
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
+            $paths[$i++]
+        );
+
+    }
+
+    public function testHandlesDotSlashBaseFolderPath()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = $basePath . '-remote';
+        $filePath = $basePath . '/main.js';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = $basePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
+
+        $manifestResolver->baseFolderPath = './';
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+        $i = 0;
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            './tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
+            $paths[$i++]
+        );
+
+    }
+
+    public function testHandlesRootBaseFolderPath()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = $basePath . '-remote';
+        $filePath = $basePath . '/main.js';
+
+        $manifestResolver = new ManifestResolver();
+        $manifestResolver->baseFolderPath = $basePath;
+        $manifestResolver->remoteFolderPath = $remotePath;
+
+        $manifestResolver->baseFolderPath = '/';
+
+        $paths = $manifestResolver->resolveFile( $filePath );
+
+        $i = 0;
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            '/tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            '/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotescript/script_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            '/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            '/tests/JsPackager/fixtures/remote_annotation/stylesheet_after.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            '/tests/JsPackager/fixtures/remote_annotation/main.compiled.js',
             $paths[$i++]
         );
 
@@ -232,6 +466,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
         $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -257,14 +499,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -331,6 +565,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
         $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -356,14 +598,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -391,6 +625,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
         $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -416,14 +658,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -450,6 +684,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
         $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -475,14 +717,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -509,6 +743,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
         $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -534,14 +776,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -627,6 +861,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
         $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -652,14 +894,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'tests/JsPackager/fixtures/remote_annotation-remote/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
