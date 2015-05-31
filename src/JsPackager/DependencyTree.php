@@ -38,6 +38,26 @@ class DependencyTree
     public $logger;
 
     /**
+     * @var null|DependencyTreeParser
+     */
+    private $treeParser;
+
+    /**
+     * @var bool
+     */
+    public $mutingMissingFileExceptions = false;
+
+    /**
+     * @var string
+     */
+    public $filePath;
+
+    /**
+     * @var null|string
+     */
+    public $testsSourcePath = null;
+
+    /**
      * Constructor for DependencyTree
      * @param string $filePath
      * @param string $testsSourcePath Optional. For @tests annotations, the source scripts root path with no trailing
@@ -50,22 +70,20 @@ class DependencyTree
      * @throws Exception\MissingFile Through internal File object if $filePath does not point to a valid file
      */
     public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false, LoggerInterface $logger = null, $sharedPath = 'shared' ) {
+
+        $this->filePath = $filePath;
+        $this->testsSourcePath = $testsSourcePath;
+        $this->mutingMissingFileExceptions = $muteMissingFileExceptions;
         if ( $logger === null ) {
             $this->logger = new NullLogger();
         } else {
             $this->logger = $logger;
         }
-
         $this->remoteFolderPath = $sharedPath;
 
-        $treeParser = $this->getDependencyTreeParser();
+        $this->treeParser = $this->getDependencyTreeParser();
+        $this->configureTreeParser( $this->treeParser );
 
-        if ( $muteMissingFileExceptions )
-        {
-            $treeParser->muteMissingFileExceptions();
-        }
-
-        $this->dependencyTreeRootFile = $treeParser->parseFile( $filePath, $testsSourcePath, false );
     }
 
     /**
@@ -76,9 +94,20 @@ class DependencyTree
     protected function getDependencyTreeParser()
     {
         $treeParser = new DependencyTreeParser();
+        return $treeParser;
+    }
+
+    /**
+     * @param DependencyTreeParser $treeParser
+     */
+    protected function configureTreeParser($treeParser)
+    {
         $treeParser->logger = $this->logger;
         $treeParser->remoteFolderPath = $this->remoteFolderPath;
-        return $treeParser;
+        if ( $this->mutingMissingFileExceptions )
+        {
+            $treeParser->muteMissingFileExceptions();
+        }
     }
 
     /**
@@ -88,8 +117,13 @@ class DependencyTree
      * @throws \Exception
      */
     public function getTree() {
-        if ( !$this->dependencyTreeRootFile )
-            throw new \Exception('No file tree parsed');
+        if ( !$this->dependencyTreeRootFile ) {
+            $this->dependencyTreeRootFile = $this->treeParser->parseFile( $this->filePath, $this->testsSourcePath, false );
+
+            if ( !$this->dependencyTreeRootFile ) {
+                throw new \Exception('No file tree parsed');
+            }
+        }
 
         return $this->dependencyTreeRootFile;
     }
