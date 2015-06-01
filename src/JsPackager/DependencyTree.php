@@ -38,11 +38,6 @@ class DependencyTree
     public $logger;
 
     /**
-     * @var null|DependencyTreeParser
-     */
-    private $treeParser;
-
-    /**
      * @var bool
      */
     public $mutingMissingFileExceptions = false;
@@ -81,9 +76,6 @@ class DependencyTree
         }
         $this->remoteFolderPath = $sharedPath;
 
-        $this->treeParser = $this->getDependencyTreeParser();
-        $this->configureTreeParser( $this->treeParser );
-
     }
 
     /**
@@ -94,6 +86,7 @@ class DependencyTree
     protected function getDependencyTreeParser()
     {
         $treeParser = new DependencyTreeParser();
+        $this->configureTreeParser( $treeParser );
         return $treeParser;
     }
 
@@ -118,7 +111,8 @@ class DependencyTree
      */
     public function getTree() {
         if ( !$this->dependencyTreeRootFile ) {
-            $this->dependencyTreeRootFile = $this->treeParser->parseFile( $this->filePath, $this->testsSourcePath, false );
+            $treeParser = $this->getDependencyTreeParser();
+            $this->dependencyTreeRootFile = $treeParser->parseFile( $this->filePath, $this->testsSourcePath, false );
 
             if ( !$this->dependencyTreeRootFile ) {
                 throw new \Exception('No file tree parsed');
