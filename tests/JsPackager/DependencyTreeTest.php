@@ -575,4 +575,38 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         } catch (RecursionException $e) { }
     }
 
+
+    public function testCanBeReUsed()
+    {
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $remotePath = self::fixturesBasePath . 'remote_annotation-remote';
+        $filePath = $basePath . '/main.js';
+
+        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath );
+
+        $fileHierarchy = $dependencyTree->flattenDependencyTree();
+
+        $this->assertCount( 19, $fileHierarchy );
+
+        $i = 0;
+        $this->assertEquals( $basePath . '/stylesheet_before.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+
+        $basePath = self::fixturesBasePath . '3_deps_1_feedback';
+        $remotePath = self::fixturesBasePath . 'remote_annotation-remote';
+        $filePath = $basePath . '/main.js';
+
+        $dependencyTree->setFilePath( $filePath );
+
+        $fileHierarchy = $dependencyTree->flattenDependencyTree();
+
+        $this->assertCount( 4, $fileHierarchy );
+
+        $i = 0;
+        $this->assertEquals( $basePath . '/dep_1.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/dep_2.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $basePath . '/dep_3.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $filePath, $fileHierarchy[ $i ], "Given file is last" );
+    }
+
 }
