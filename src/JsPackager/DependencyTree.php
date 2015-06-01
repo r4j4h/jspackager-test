@@ -38,11 +38,6 @@ class DependencyTree
     public $logger;
 
     /**
-     * @var null|DependencyTreeParser
-     */
-    private $treeParser;
-
-    /**
      * @var bool
      */
     public $mutingMissingFileExceptions = false;
@@ -50,12 +45,12 @@ class DependencyTree
     /**
      * @var string
      */
-    public $filePath;
+    private $filePath;
 
     /**
      * @var null|string
      */
-    public $testsSourcePath = null;
+    private $testsSourcePath = null;
 
     /**
      * Constructor for DependencyTree
@@ -81,9 +76,6 @@ class DependencyTree
         }
         $this->remoteFolderPath = $sharedPath;
 
-        $this->treeParser = $this->getDependencyTreeParser();
-        $this->configureTreeParser( $this->treeParser );
-
     }
 
     /**
@@ -94,6 +86,7 @@ class DependencyTree
     protected function getDependencyTreeParser()
     {
         $treeParser = new DependencyTreeParser();
+        $this->configureTreeParser( $treeParser );
         return $treeParser;
     }
 
@@ -118,11 +111,15 @@ class DependencyTree
      */
     public function getTree() {
         if ( !$this->dependencyTreeRootFile ) {
-            $this->dependencyTreeRootFile = $this->treeParser->parseFile( $this->filePath, $this->testsSourcePath, false );
+
+            $treeParser = $this->getDependencyTreeParser();
+
+            $this->dependencyTreeRootFile = $treeParser->parseFile( $this->getFilePath(), $this->getTestsSourcePath(), false );
 
             if ( !$this->dependencyTreeRootFile ) {
                 throw new \Exception('No file tree parsed');
             }
+
         }
 
         return $this->dependencyTreeRootFile;
@@ -432,8 +429,39 @@ class DependencyTree
         );
     }
 
+    /**
+     * @return string
+     */
+    public function getFilePath()
+    {
+        return $this->filePath;
+    }
 
+    /**
+     * @param string $filePath
+     */
+    public function setFilePath($filePath)
+    {
+        $this->filePath = $filePath;
+        $this->invalidateDependencyTree();
+    }
 
+    /**
+     * @return null|string
+     */
+    public function getTestsSourcePath()
+    {
+        return $this->testsSourcePath;
+    }
+
+    /**
+     * @param null|string $testsSourcePath
+     */
+    public function setTestsSourcePath($testsSourcePath)
+    {
+        $this->testsSourcePath = $testsSourcePath;
+        $this->invalidateDependencyTree();
+    }
 
 
     /**
@@ -452,6 +480,14 @@ class DependencyTree
      */
     private function isStylesheetFile($file) {
         return preg_match( self::STYLESHEET_EXTENSION_PATTERN, $file );
+    }
+
+    /**
+     * Reset the cached dependencyTreeRootFile, if there is one, causing it to be recalculated on next use.
+     */
+    private function invalidateDependencyTree()
+    {
+        $this->dependencyTreeRootFile = null;
     }
 
 }
