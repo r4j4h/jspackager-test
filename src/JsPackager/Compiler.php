@@ -65,9 +65,12 @@ class Compiler
      * Take an array of files in dependency order and compile them, generating a manifest.
      *
      * @param DependencySet $dependencySet Array containing keys 'stylesheets', 'packages', 'dependencies', and 'pathsMarkedNoCompile'
+     * @param null|DependencyTree $dependencyTree
      * @return CompiledFile containing the contents of the resulting compiled file and its manifest.
+     * @throws ParsingException
+     * @throws \Exception
      */
-    public function compileDependencySet($dependencySet)
+    public function compileDependencySet($dependencySet, $dependencySetIndex = false, $dependencySets = array())
     {
         $compiledFileContents = '';
         $compiledFileManifest = '';
@@ -104,16 +107,35 @@ class Compiler
         $manifestContentsGenerator = new ManifestContentsGenerator();
         $manifestContentsGenerator->logger = $this->logger;
 
+        if ( $dependencySetIndex && $dependencySetIndex > 0 ) {
+            $dependencySetIndexIterator = $dependencySetIndex;
+            while ( $dependencySetIndexIterator > 0 ) {
+                // Roll in dependent package's stylesheets so we only need to read this manifest
+                $this->logger->debug(
+                    "Using dependency set and it's dependency set's stylesheets so that manifests are all-inclusive"
+                );
+                $lastDependencySet = $dependencySets[ $dependencySetIndexIterator - 1 ];
+                $stylesheets = array_merge( $lastDependencySet->stylesheets, $dependencySet->stylesheets );
+                $stylesheets = array_unique( $stylesheets );
+                $dependencySetIndexIterator--;
+            }
+        } else {
+            $this->logger->debug("Using dependency set's stylesheets");
+            $stylesheets = $dependencySet->stylesheets;
+        }
+
         if ( count( $dependencySet->stylesheets ) > 0 || $totalDependencies > 1 ) {
             // Build manifest first
             $compiledFileManifest = $manifestContentsGenerator->generateManifestFileContents(
                 $rootFilePath . '/',
                 $dependencySet->packages,
-                $dependencySet->stylesheets,
+                $stylesheets,
                 $this->rollingPathsMarkedNoCompile
             );
         } else {
-            $this->logger->debug("Skipping building manifest '{$manifestFilename}' for because file has no other dependencies than itself.");
+            $this->logger->debug(
+                "Skipping building manifest '{$manifestFilename}' for because file has no other dependencies than itself."
+            );
             $compiledFileManifest = null;
         }
 
@@ -135,7 +157,7 @@ class Compiler
             // Compile & Concatenate via Google closure Compiler Jar
             $compilationResults = $this->compileFileListUsingClosureCompilerJar( $dependencySet->dependencies );
 
-            $this->logger->debug("Compiled with Google Closure Compiler .jar.");
+            $this->logger->debug("Finished compiling with Google Closure Compiler .jar.");
         }
 
 
@@ -464,10 +486,10 @@ class Compiler
 
         $this->rollingPathsMarkedNoCompile = array();
 
-        foreach( $dependencySets as $dependencySet )
+        foreach( $dependencySets as $dependencySetIndex => $dependencySet )
         {
             try {
-                $result = $this->compileDependencySet( $dependencySet );
+                $result = $this->compileDependencySet( $dependencySet, $dependencySetIndex, $dependencySets );
                 $this->logger->notice('Successfully compiled Dependency Set: ' . $result->filename);
                 if ( is_callable( $statusCallback ) ) {
                     call_user_func( $statusCallback, 'Successfully compiled Dependency Set: ' . $result->filename, 'success' );

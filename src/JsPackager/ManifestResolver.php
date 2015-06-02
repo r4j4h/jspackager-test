@@ -292,30 +292,6 @@ class ManifestResolver
                     $this->logger->info('Parsing package from manifest: ' . $filesFromManifest['packages'][$idx]);
                 }
 
-                $numberOfPackages = count( $filesFromManifest['packages'] );
-
-                if ( $numberOfPackages > 0 ) {
-
-                    // Look at each package for further potential manifests
-                    $this->logger->info("Looking at packages for further potential dependencies for {$sourceFilePath}...");
-
-                    foreach ($filesFromManifest['packages'] as $package) {
-                        $package = $this->replaceRemoteSymbolIfPresent($package, $this->remoteFolderPath);
-
-                        $this->logger->info("Looking in package {$package}...");
-
-                        $furtherFiles = $this->reverseResolveFromCompiledFile($package, true);
-
-                        $numberOfFiles = count( $furtherFiles );
-                        $this->logger->info("Found {$numberOfFiles} dependencies while looking in package {$package}...");
-
-                        $files = array_merge($files, $furtherFiles);
-                    }
-
-                    $this->logger->info("Finished looking for further potential dependencies for {$sourceFilePath}...");
-
-                }
-
                 if ( $filesFromManifest ) {
                     $files = array_merge( $files, $filesFromManifest['stylesheets'] );
                     $files = array_merge( $files, $filesFromManifest['packages'] );
