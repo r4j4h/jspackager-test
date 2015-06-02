@@ -21,14 +21,14 @@ class MissingFile extends \Exception
      * @param string $message
      * @param int $code
      * @param \Exception $previous
-     * @param string $cannotWriteFilePath
+     * @param string $missingFilePath
      */
-    public function __construct($message = "", $code = 0, \Exception $previous = null, $cannotWriteFilePath) {
+    public function __construct($message = "", $code = 0, \Exception $previous = null, $missingFilePath) {
         $code = self::ERROR_CODE;
 
         parent::__construct( $message, $code, $previous );
 
-        $this->missingFilePath = $cannotWriteFilePath;
+        $this->missingFilePath = $missingFilePath;
     }
 
     public function getMissingFilePath() {

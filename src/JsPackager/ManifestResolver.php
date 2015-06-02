@@ -304,6 +304,9 @@ class ManifestResolver
 
             }
 
+        } else {
+
+            throw new MissingFile("Compiled file \"{$compiledFilePath}\" is missing!", 0, null, $compiledFilePath );
         }
 
 
