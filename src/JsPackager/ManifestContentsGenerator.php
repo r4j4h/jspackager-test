@@ -124,13 +124,13 @@ class ManifestContentsGenerator
         foreach ($packagePaths as $packagePath)
         {
 
-            $this->logger->debug( "Determining if should compile file or not..." );
+            $this->logger->debug( "Determining if should use compiled file or not..." );
 
             if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
-                $this->logger->debug( "Did not compile, leaving as uncompiled filename..." );
+                $this->logger->debug( "Using uncompiled filename..." );
                 $packagePath = $packagePath;
             } else {
-                $this->logger->debug( "Converted to compiled filename..." );
+                $this->logger->debug( "Using compiled filename..." );
                 $packagePath = $this->getCompiledFilename($packagePath);
             }
 

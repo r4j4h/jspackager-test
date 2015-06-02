@@ -400,8 +400,10 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $paths = $manifestResolver->resolveFile( $filePath );
 
 
-        $this->assertEquals( 8, count( $paths ) );
+        $this->assertEquals( 10, count( $paths ) );
         $i = 0;
+        $this->assertEquals( 'remmy/remotepackage/package_subfolder/local_on_remote.css', $paths[$i++] );
+        $this->assertEquals( 'remmy/remotepackage/package_subfolder/remote_on_remote.css', $paths[$i++] );
         $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css', $paths[$i++] );
         $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotescript/script_subfolder/local_on_remote.css', $paths[$i++] );
@@ -436,9 +438,11 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
-        $this->assertEquals( 8, count( $paths ) );
+        $this->assertEquals( 10, count( $paths ) );
 
         $i = 0;
+        $this->assertEquals( 'remmy/remotepackage/package_subfolder/local_on_remote.css', $paths[$i++] );
+        $this->assertEquals( 'remmy/remotepackage/package_subfolder/remote_on_remote.css', $paths[$i++] );
         $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css', $paths[$i++] );
         $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.css', $paths[$i++] );
         $this->assertEquals( 'remmy/remotescript/script_subfolder/local_on_remote.css', $paths[$i++] );
@@ -511,8 +515,16 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $paths = $manifestResolver->resolveFile( $filePath );
 
 
-        $this->assertEquals( 8, count( $paths ) );
+        $this->assertEquals( 10, count( $paths ) );
         $i = 0;
+        $this->assertEquals(
+            'dorf/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'dorf/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
@@ -797,12 +809,20 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
-        $this->markTestIncomplete(
-            'URLs work, but in this case remotepackage/script.compiled.js\' manifest is never read!'
-        );
+//        $this->markTestIncomplete(
+//            'URLs work, but in this case remotepackage/script.compiled.js\' manifest is never read!'
+//        );
 
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
+        $this->assertEquals(
+            'http://bebopjims.com/cool-90s-stuff/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'http://bebopjims.com/cool-90s-stuff/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
@@ -829,14 +849,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'http://bebopjims.com/cool-90s-stuff/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'http://bebopjims.com/cool-90s-stuff/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'http://bebopjims.com/cool-90s-stuff/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
@@ -961,6 +973,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $i = 0;
         $this->assertEquals(
+            'hella_rela_path/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'hella_rela_path/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -1008,6 +1028,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $i = 0;
         $this->assertEquals(
+            '/abso_path/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            '/abso_path/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
         );
@@ -1054,14 +1082,19 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $manifestResolver->baseFolderPath = $basePath;
         $manifestResolver->remoteFolderPath = $remotePath;
 
-        $this->markTestIncomplete(
-            'URLs work, but in this case remotepackage/script.compiled.js\' manifest is never read!'
-        );
 
         $paths = $manifestResolver->resolveFile( $mainJsPath );
 
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
+        $this->assertEquals(
+            'http://theinternet.con/abso_path/remotepackage/package_subfolder/local_on_remote.css',
+            $paths[$i++]
+        );
+        $this->assertEquals(
+            'http://theinternet.con/abso_path/remotepackage/package_subfolder/remote_on_remote.css',
+            $paths[$i++]
+        );
         $this->assertEquals(
             'tests/JsPackager/fixtures/remote_annotation/stylesheet_before.css',
             $paths[$i++]
@@ -1088,14 +1121,6 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             'http://theinternet.con/abso_path/remotepackage/script.compiled.js',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'http://theinternet.con/abso_path/remotepackage/package_subfolder/local_on_remote.css',
-            $paths[$i++]
-        );
-        $this->assertEquals(
-            'http://theinternet.con/abso_path/remotepackage/package_subfolder/remote_on_remote.css',
             $paths[$i++]
         );
         $this->assertEquals(
