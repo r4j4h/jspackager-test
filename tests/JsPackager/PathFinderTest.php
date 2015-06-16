@@ -121,5 +121,98 @@ class PathFinderTest extends \PHPUnit_Framework_TestCase
     }
 
 
+    /******************************************************************
+     * normalizeRelativePath
+     *****************************************************************/
+
+
+    public function testNormalizeRelativePathDoesNotHarmBasicPaths()
+    {
+        $path = '/chocolate/and/strawberries/is/yummy';
+        $expectedPath = '/chocolate/and/strawberries/is/yummy';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
+    public function testNormalizeRelativePathDoesNotTrailingSlash()
+    {
+        $path = '/chocolate/and/strawberries/is/yummy/';
+        $expectedPath = '/chocolate/and/strawberries/is/yummy/';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
+    public function testNormalizeRelativePathHandlesSingleUpDirectory()
+    {
+        $path = '/chocolate/and/../strawberries';
+        $expectedPath = '/chocolate/strawberries';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
+    public function testNormalizeRelativePathHandlesManyUpDirectories()
+    {
+        $path = '/somewhere/in/a/place/../../heaven';
+        $expectedPath = '/somewhere/in/heaven';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
+    public function testNormalizeRelativePathEvenSeparated()
+    {
+        $path = '/somewhere/somehow/../in/a/place/../../heaven';
+        $expectedPath = '/somewhere/in/heaven';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
+    public function testNormalizeRelativePathDoesNotExceedRoot()
+    {
+        $path = '/somewhere/../../home/';
+        $expectedPath = '/../home/';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
+    public function testNormalizeRelativePathDoesNotExceedRootEvenSeparated()
+    {
+        $path = '/somewhere/../../home/ward/../../bound/../../';
+        $expectedPath = '/../../';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
+    public function testNormalizeRelativePathHandlesDashes()
+    {
+        $path = '/some-where/../../home-ward/ward/../../bound/../../';
+        $expectedPath = '/../../';
+
+        $treeParser = new PathFinder();
+        $normalizedPath = $treeParser->normalizeRelativePath( $path );
+
+        $this->assertEquals($expectedPath, $normalizedPath);
+    }
+
 
 }

@@ -576,6 +576,176 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
     }
 
 
+
+
+    /******************************************************************
+     * getDependencySets
+     *****************************************************************/
+
+    public function testGetDependencySetsReturnsArrayOfDependencySets()
+    {
+        $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_packages';
+        $index = $basePath . '/main.js';
+
+        $dependencyTree = new DependencyTree( $index );
+        $roots = $dependencyTree->getDependencySets();
+
+        $this->assertInstanceOf( 'JsPackager\Compiler\DependencySet', $roots[0], "Should be a DependencySet" );
+        $this->assertInstanceOf( 'JsPackager\Compiler\DependencySet', $roots[1], "Should be a DependencySet" );
+        $this->assertInstanceOf( 'JsPackager\Compiler\DependencySet', $roots[2], "Should be a DependencySet" );
+    }
+
+    public function testGetDependencySetsDoesNotIncludeRedundantDependencySets()
+    {
+        $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_packages';
+        $index = $basePath . '/main.js';
+
+        $dependencyTree = new DependencyTree( $index );
+        $roots = $dependencyTree->getDependencySets();
+
+        $this->assertEquals(3, count($roots), "Should contain 3 dependency sets");
+        $this->assertEmpty(    $roots[0]->packages, "Should depend on nothing" );
+        $this->assertContains( $basePath . '/dep_2.js', $roots[0]->dependencies, "Should include dep_2.js" );
+        $this->assertContains( $basePath . '/dep_2.js', $roots[1]->packages, "Should depend on dep_2.js" );
+        $this->assertContains( $basePath . '/dep_3.js', $roots[1]->dependencies, "Should include dep_3.js" );
+        $this->assertContains( $basePath . '/dep_2.js', $roots[2]->packages, "Should depend on dep_2.js" );
+        $this->assertContains( $basePath . '/dep_3.js', $roots[2]->packages, "Should depend on dep_3.js" );
+        $this->assertContains( $basePath . '/dep_1.js', $roots[2]->dependencies, "Should include dep_1.js" );
+        $this->assertContains( $basePath . '/main.js', $roots[2]->dependencies, "Should include main.js" );
+    }
+
+    public function testGetDependencySetsIncludesDependencySetsInOrder()
+    {
+        $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_packages';
+        $index = $basePath . '/main.js';
+
+        $dependencyTree = new DependencyTree( $index );
+        $roots = $dependencyTree->getDependencySets();
+
+        $this->assertEquals(3, count($roots), "Should contain 3 dependency sets");
+        $this->assertEmpty(  $roots[0]->packages, "Should depend on nothing" );
+        $this->assertEquals( $basePath . '/dep_2.js', $roots[0]->dependencies[0], "Should include dep_2.js" );
+        $this->assertEquals( $basePath . '/dep_2.js', $roots[0]->dependencies[0], "Should include dep_2.js" );
+        $this->assertEquals( $basePath . '/dep_2.js', $roots[1]->packages[0], "Should depend on dep_2.js" );
+        $this->assertEquals( $basePath . '/dep_2.js', $roots[1]->packages[0], "Should depend on dep_2.js" );
+        $this->assertEquals( $basePath . '/dep_3.js', $roots[1]->dependencies[0], "Should include dep_3.js" );
+        $this->assertEquals( $basePath . '/dep_3.js', $roots[2]->packages[0], "Should depend on dep_3.js first" );
+        $this->assertEquals( $basePath . '/dep_2.js', $roots[2]->packages[1], "Should depend on dep_2.js second" );
+        $this->assertEquals( $basePath . '/dep_1.js', $roots[2]->dependencies[0], "Should include dep_1.js" );
+        $this->assertEquals( $basePath . '/main.js', $roots[2]->dependencies[1], "Should include main.js" );
+    }
+
+
+    /**
+     * @throws Exception\Parsing
+     */
+    public function testGetDependencySetsHandlesRemoteAnnotations()
+    {
+        /**
+         * @var DependencySet $remoteDependencySet
+         * @var DependencySet $localDependencySet
+         */
+
+        $basePath = self::fixturesBasePath . 'remote_annotation';
+        $mainJsPath = $basePath . '/main.js';
+
+        $sharedPath = $basePath . '-remote';
+
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
+
+        $dependencySets = $dependencyTree->getDependencySets();
+
+        $this->assertEquals(
+            $sharedPath,
+            $dependencyTree->remoteFolderPath,
+            'Should provide a default value to use in place of @remote'
+        );
+
+        $this->assertEquals(
+            2,
+            count( $dependencySets ),
+            "Expect 2 packages -- 1 for the file, 1 for the remote package"
+        );
+
+        $remoteDependencySet = $dependencySets[0];
+        $localDependencySet  = $dependencySets[1];
+
+        $this->assertEquals(
+            3,
+            count( $remoteDependencySet->dependencies ),
+            "Remote package has 3 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            '@remote/remotepackage/package_subfolder/local_on_remote.js',
+            $remoteDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            '@remote/remotepackage/package_subfolder/remote_on_remote.js',
+            $remoteDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            '@remote/remotepackage/script.js',
+            $remoteDependencySet->dependencies[2]
+        );
+
+
+
+        $this->assertEquals(
+            8,
+            count( $localDependencySet->dependencies ),
+            "Local package has 6 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            1,
+            count( $localDependencySet->packages ),
+            "Local dependency set has 1 package."
+        );
+        $this->assertEquals(
+            '@remote/remotepackage/script.js',
+            $localDependencySet->packages[0],
+            "Local dependency set's package is the remote package."
+        );
+
+
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_file_before.js',
+            $localDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_before.js',
+            $localDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            '@remote/remotescript/script_subfolder/local_on_remote.js',
+            $localDependencySet->dependencies[2]
+        );
+        $this->assertEquals(
+            '@remote/remotescript/script_subfolder/remote_on_remote.js',
+            $localDependencySet->dependencies[3]
+        );
+        $this->assertEquals(
+            '@remote/remotescript/script.js',
+            $localDependencySet->dependencies[4]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_subfolder/local_subfolder_after.js',
+            $localDependencySet->dependencies[5]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/local_file_after.js',
+            $localDependencySet->dependencies[6]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation/main.js',
+            $localDependencySet->dependencies[7]
+        );
+
+    }
+
+
+
     public function testCanBeReUsed()
     {
         $basePath = self::fixturesBasePath . 'remote_annotation';

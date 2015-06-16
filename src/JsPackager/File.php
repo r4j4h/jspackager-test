@@ -13,6 +13,9 @@
 
 namespace JsPackager;
 
+use JsPackager\Annotations\AnnotationOrderMap;
+use JsPackager\Annotations\AnnotationOrderMapping;
+
 class File
 {
     /**
@@ -73,7 +76,7 @@ class File
     /**
      * Each annotation found in order inside the file
      *
-     * @var array[] Array of tuples: [annotationTypeString, indexInThatAnnotationBucket]
+     * @var AnnotationOrderMap
      */
     public $annotationOrderMap;
 
@@ -82,11 +85,11 @@ class File
      * @param bool $silenceMissingFileException
      * @throws Exception\MissingFile If $filePath does not point to a valid file
      */
-    public function __construct( $filePath, $silenceMissingFileException = false )
+    public function __construct( $filePath, $silenceMissingFileException = false, FileHandler $fileHandler = null )
     {
-        $fileHandler = $this->getFileHandler();
+        $this->fileHandler = ( $fileHandler ? $fileHandler : new FileHandler() );
 
-        if ( $fileHandler->is_file( $filePath ) === false && $silenceMissingFileException === false )
+        if ( $this->fileHandler->is_file( $filePath ) === false && $silenceMissingFileException === false )
         {
             throw new Exception\MissingFile($filePath . ' is not a valid file!', 0, null, $filePath);
         }
@@ -103,7 +106,7 @@ class File
         $this->stylesheets = array();
         $this->scripts     = array();
         $this->packages    = array();
-        $this->annotationOrderMap = array();
+        $this->annotationOrderMap = new AnnotationOrderMap();
     }
 
     /**
@@ -119,28 +122,9 @@ class File
         return $filename;
     }
 
-
+    /**
+     * @var FileHandler
+     */
     protected $fileHandler;
 
-    /**
-     * Get the file handler.
-     *
-     * @return mixed
-     */
-    public function getFileHandler()
-    {
-        return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
-    }
-
-    /**
-     * Set the file handler.
-     *
-     * @param $fileHandler
-     * @return File
-     */
-    public function setFileHandler($fileHandler)
-    {
-        $this->fileHandler = $fileHandler;
-        return $this;
-    }
 }

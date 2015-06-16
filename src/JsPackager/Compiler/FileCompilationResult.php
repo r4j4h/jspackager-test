@@ -2,7 +2,7 @@
 /**
  * The FileCompilationResult class is used to represent a file that has been compiled.
  *
- * This is basically for a return object for Compiler's compileAndWriteFilesAndManifests function.
+ * Used as a return object for Compiler's compileAndWriteFilesAndManifests function.
  *
  * @category WebPT
  * @package JsPackager
@@ -13,20 +13,12 @@ namespace JsPackager\Compiler;
 
 class FileCompilationResult
 {
-    /**
-     * @var string Source file's path and name
-     */
-    public $sourcePath;
 
-    /**
-     * @var string Compiled file's path and name
-     */
-    public $compiledPath;
-
-    /**
-     * @var string Compiled file's manifest's path and name
-     */
-    public $manifestPath;
+    public function __construct($sourcePath, $compiledPath, $manifestPath) {
+        $this->sourcePath = $sourcePath;
+        $this->compiledPath = $compiledPath;
+        $this->manifestPath = $manifestPath;
+    }
 
     /**
      * Get the full path and name to the source file.
@@ -58,28 +50,19 @@ class FileCompilationResult
         return $this->manifestPath;
     }
 
+    /**
+     * @var string Source file's path and name
+     */
+    private $sourcePath;
 
     /**
-     * @param string $compiledPath
+     * @var string Compiled file's path and name
      */
-    public function setCompiledPath($compiledPath)
-    {
-        $this->compiledPath = $compiledPath;
-    }
+    private $compiledPath;
 
     /**
-     * @param string $manifestPath
+     * @var string Compiled file's manifest's path and name
      */
-    public function setManifestPath($manifestPath)
-    {
-        $this->manifestPath = $manifestPath;
-    }
+    private $manifestPath;
 
-    /**
-     * @param string $sourcePath
-     */
-    public function setSourcePath($sourcePath)
-    {
-        $this->sourcePath = $sourcePath;
-    }
 }

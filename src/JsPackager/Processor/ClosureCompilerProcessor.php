@@ -11,6 +11,7 @@
 namespace JsPackager\Processor;
 
 use JsPackager\Exception\Parsing;
+use JsPackager\Helpers\StreamingExecutor;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -22,9 +23,25 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
      */
     public $logger;
 
+    /**
+     * @var string Optional. Set this to any desired additional GCC .jar parameters and they will be added to the end.
+     */
+    public $extraCommandParams = '';
+
     public function __construct()
     {
         $this->logger = new NullLogger();
+    }
+
+    /**
+     * @param array $orderedFilePaths
+     * @return ProcessingResult
+     * @throws Parsing
+     * @throws \Exception
+     */
+    public function process(Array $orderedFilePaths)
+    {
+        return $this->compileFileListUsingClosureCompilerJar( $orderedFilePaths );
     }
 
 
@@ -34,6 +51,7 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
 
     const GCC_JAR_PATH = 'bin/google/closure_compiler';
     const GCC_JAR_FILENAME = 'compiler.jar';
+
 
     /**
      * Generate command line arguments for Google Closure Compiler
@@ -57,6 +75,8 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
 //        $command .= '--warning_level=VERBOSE ';
         $command .= '--summary_detail_level=3 ';
 
+        $command .= $this->extraCommandParams;
+
         $this->logger->debug('Running shell command: ' . $command);
 
         $command = escapeshellcmd( $command );
@@ -65,7 +85,11 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
     }
 
 
-
+    /**
+     * @param array $fileList
+     * @return ProcessingResult
+     * @throws \Exception
+     */
     public function compileFileListUsingClosureCompilerJar($fileList)
     {
         // Prepare command
@@ -85,83 +109,25 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
             throw new \Exception('Unable to open java to run the Closure Compiler .jar');
         }
 
-        // Grab outputs
-        $read_output = $read_error = false;
-        $buffer_len  = $prev_buffer_len = 0;
-        $ms          = 10;
-        $stdout      = '';
-        $read_output = true;
-        $stderr       = '';
-        $read_error  = true;
-        stream_set_blocking($pipes[1], 0);
-        stream_set_blocking($pipes[2], 0);
-        $buffer_len = 0;
+        // Execute process
+        list($stdout, $stderr, $returnCode, $successful) = StreamingExecutor::streaming_exec($pipes, $process);
 
-        // dual reading of STDOUT and STDERR stops one full pipe blocking the other, because the external script is waiting
-        while ($read_error != false or $read_output != false)
-        {
-            if ($read_output != false)
-            {
-                if(feof($pipes[1]))
-                {
-                    fclose($pipes[1]);
-                    $read_output = false;
-                }
-                else
-                {
-                    $str = fgets($pipes[1], 1024);
-                    $len = strlen($str);
-                    if ($len)
-                    {
-                        $stdout .= $str;
-                        $buffer_len += $len;
-                    }
-                }
-            }
+        // Handle results:
 
-            if ($read_error != false)
-            {
-                if(feof($pipes[2]))
-                {
-                    fclose($pipes[2]);
-                    $read_error = false;
-                }
-                else
-                {
-                    $str = fgets($pipes[2], 1024);
-                    $len = strlen($str);
-                    if ($len)
-                    {
-                        $stderr .= $str;
-                        $buffer_len += $len;
-                    }
-                }
-            }
-
-            if ($buffer_len > $prev_buffer_len)
-            {
-                $prev_buffer_len = $buffer_len;
-                $ms = 10;
-            }
-            else
-            {
-                usleep($ms * 1000); // sleep for $ms milliseconds
-                if ($ms < 160)
-                {
-                    $ms = $ms * 2;
-                }
-            }
+        // - With Google Closure Compiler the return code indicates the # of errors so lets grab that
+        $numberOfErrors = $returnCode;
+        if ( $numberOfErrors > 0 ) {
+            assert( $successful === false );
         }
+        // - and Restore return code to typical meaning which is 0 for ok and 1 for problem
+        $returnCode = (int)(!$successful);
 
-        // Clean up
-        $returnCode = proc_close( $process );
-        $successful = ($returnCode === 0);
-
-        return array(
-            'successful' => $successful,
-            'returnCode' => $returnCode,
-            'output' => $stdout,
-            'err' => $stderr,
+        return new ProcessingResult(
+            $successful,
+            $returnCode,
+            $stdout,
+            $stderr,
+            $numberOfErrors
         );
     }
 
@@ -227,34 +193,5 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
         }
     }
 
-    /**
-     * @param array $orderedFilePaths
-     * @return ProcessingResult
-     * @throws Parsing
-     * @throws \Exception
-     */
-    public function process(Array $orderedFilePaths)
-    {
-        $results = $this->compileFileListUsingClosureCompilerJar( $orderedFilePaths );
 
-        $compilationResults = new ProcessingResult(
-            $results['successful'],
-            0,
-            $results['output'],
-            $results['err'],
-            $results['returnCode']
-        );
-
-        $numberOfErrors = $compilationResults->returnCode;
-        if ( $numberOfErrors > 0 ) {
-            throw new Parsing( "{$numberOfErrors} errors occurred while parsing {$rootFilename}.", null, $compilationResults->err );
-        }
-
-        if ( $compilationResults->err === "0 error(s), 0 warning(s)\n" )
-        {
-            $compilationResults->err = null;
-        }
-
-        return $compilationResults;
-    }
 }

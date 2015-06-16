@@ -1,12 +1,7 @@
 <?php
 namespace JsPackagerTest;
 
-use JsPackager\Compiler\DependencySet;
-use JsPackager\File;
-use JsPackager\DependencyTree;
 use JsPackager\Compiler;
-use JsPackager\Exception\Recursion as RecursionException;
-use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Helpers\Reflection as ReflectionHelper;
 use JsPackager\Processor\ClosureCompilerProcessor;
 
@@ -16,31 +11,21 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
     // Tests are run from project root
     const fixturesBasePath = 'tests/JsPackager/fixtures/';
 
+
     /******************************************************************
      * generateClosureCompilerCommandString
      *****************************************************************/
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testGenerateClosureCompilerCommandStringRespectsCompilationLevel()
     {
-        $basePath = self::fixturesBasePath . '1_dep';
-        $mainJsPath = $basePath . '/main.js';
-
-        $dependencyTree = new DependencyTree( $mainJsPath );
-
-        $roots = $dependencyTree->getDependencySets();
+        $filesList = array( "somefilea.js", "somefileb.js" );
 
         $processor = new ClosureCompilerProcessor();
-
-        // Grab first dependency set
-        $dependencySet = $roots[0];
 
         $commandString = ReflectionHelper::invoke(
             $processor,
             'generateClosureCompilerCommandString',
-            array( $dependencySet->dependencies )
+            array( $filesList )
         );
 
         $this->assertContains(
@@ -50,30 +35,19 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testGenerateClosureCompilerCommandStringIncludesGivenFiles()
     {
-        $basePath = self::fixturesBasePath . '1_dep';
-        $mainJsPath = $basePath . '/main.js';
-
-        $dependencyTree = new DependencyTree( $mainJsPath );
-
-        $roots = $dependencyTree->getDependencySets();
+        $filesList = array( "somefilea.js", "somefileb.js" );
 
         $processor = new ClosureCompilerProcessor();
-
-        // Grab first dependency set
-        $dependencySet = $roots[0];
 
         $commandString = ReflectionHelper::invoke(
             $processor,
             'generateClosureCompilerCommandString',
-            array( $dependencySet->dependencies )
+            array( $filesList )
         );
 
-        foreach( $dependencySet->dependencies as $dependency )
+        foreach( $filesList as $dependency )
         {
             $this->assertContains(
                 "--js \"{$dependency}\"",
@@ -83,33 +57,43 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
         }
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testGenerateClosureCompilerCommandStringUsesDetailLevel3()
     {
-        $basePath = self::fixturesBasePath . '1_dep';
-        $mainJsPath = $basePath . '/main.js';
-
-        $dependencyTree = new DependencyTree( $mainJsPath );
-
-        $roots = $dependencyTree->getDependencySets();
+        $filesList = array( "somefilea.js", "somefileb.js" );
 
         $processor = new ClosureCompilerProcessor();
-
-        // Grab first dependency set
-        $dependencySet = $roots[0];
 
         $commandString = ReflectionHelper::invoke(
             $processor,
             'generateClosureCompilerCommandString',
-            array( $dependencySet->dependencies )
+            array( $filesList )
         );
 
         $this->assertContains(
             '--summary_detail_level=3',
             $commandString,
             "Command string should set summary_detail_level to 3"
+        );
+    }
+
+    public function testGenerateClosureCompilerCommandStringAcceptsExtraCommandParams()
+    {
+
+        $filesList = array( "somefilea.js", "somefileb.js" );
+
+        $processor = new ClosureCompilerProcessor();
+        $processor->extraCommandParams = '--checks-only';
+
+        $commandString = ReflectionHelper::invoke(
+            $processor,
+            'generateClosureCompilerCommandString',
+            array( $filesList )
+        );
+
+        $this->assertContains(
+            '--checks-only',
+            $commandString,
+            "Command string should include extraCommandParams"
         );
     }
 

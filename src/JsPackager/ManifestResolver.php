@@ -28,11 +28,13 @@
 
 namespace JsPackager;
 
+use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Exception;
 use JsPackager\Exception\MissingFile;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
+use JsPackager\Helpers\FileTypeRecognizer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -99,20 +101,6 @@ class ManifestResolver
 
 
     /**
-     * @param $manifestPath
-     */
-    public function parseManifest($manifestPath) {
-
-        // open manifest
-        // read each line
-
-        // follow, tracking paths
-
-        // push out @remotes to shared path
-
-    }
-
-    /**
      * Get the file handler.
      *
      * @return FileHandler
@@ -134,7 +122,7 @@ class ManifestResolver
      * Set the Compiler.
      *
      * @param Compiler $compiler
-     * @return ScriptFile
+     * @return ManifestResolver
      */
     public function setCompiler($compiler)
     {
@@ -146,7 +134,7 @@ class ManifestResolver
      * Set the file handler.
      *
      * @param $fileHandler
-     * @return ScriptFile
+     * @return ManifestResolver
      */
     public function setFileHandler($fileHandler)
     {
@@ -243,11 +231,11 @@ class ManifestResolver
         // Lets try to always trim out the cwd if we can
         $sourceFilePath = $this->removeCurrentWorkingDirectoryFromPath( $sourceFilePath );
 
-        $sourceFilePath = $compiler->getSourceFilenameFromCompiledFilename( $sourceFilePath );
+        $sourceFilePath = FilenameConverter::getSourceFilenameFromCompiledFilename( $sourceFilePath );
         $this->logger->info('Reverse resolving for source file ' . $sourceFilePath );
 
-        $compiledFilePath = $compiler->getCompiledFilename( $sourceFilePath );
-        $manifestFilePath = $compiler->getManifestFilename( $sourceFilePath );
+        $compiledFilePath = FilenameConverter::getCompiledFilename( $sourceFilePath );
+        $manifestFilePath = FilenameConverter::getManifestFilename( $sourceFilePath );
 
         // If we are using absolute paths, we want to trim the duplicative parts here
         $basePathFromSourceFile = $this->getBasePathFromSourceFile( $sourceFilePath );
@@ -280,33 +268,18 @@ class ManifestResolver
                 $this->logger->info('Manifest detected at ' . $manifestFilePath);
                 $this->logger->info('Parsing manifest for files...');
 
-                $filesFromManifest = $this->parseManifestFile( $manifestFilePath, $pathToSourceFile );
-
-                foreach( $filesFromManifest['stylesheets'] as $idx => $file ) {
-                    $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
-                    $this->logger->info('Parsing stylesheet from manifest: ' . $filesFromManifest['stylesheets'][$idx]);
-                }
-
-                foreach( $filesFromManifest['packages'] as $idx => $file ) {
-                    $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
-                    $this->logger->info('Parsing package from manifest: ' . $filesFromManifest['packages'][$idx]);
-                }
-
-                if ( $filesFromManifest ) {
-                    $files = array_merge( $files, $filesFromManifest['stylesheets'] );
-                    $files = array_merge( $files, $filesFromManifest['packages'] );
-                }
-
+                $this->parseParsedFilesFromManifest($manifestFilePath, $pathToSourceFile, $files);
 
             } else {
 
-                $this->logger->info('Manifest not present. No big deal. Moving on.' );
+                $this->logger->notice('Manifest not present. No big deal. Moving on.' );
 
             }
 
         } else {
 
             throw new MissingFile("Compiled file \"{$compiledFilePath}\" is missing!", 0, null, $compiledFilePath );
+
         }
 
 
@@ -355,10 +328,10 @@ class ManifestResolver
                 $line = $basePath . $line;
             }
 
-            if ( preg_match('/.js$/i', $line ) ) {
+            if ( FileTypeRecognizer::isJavaScriptFile( $line ) ) {
                 $packages[] = $line;
             }
-            else if ( preg_match('/.css$/i', $line ) ) {
+            else if ( FileTypeRecognizer::isStylesheetFile( $line ) ) {
                 $stylesheets[] = $line;
             }
             else {
@@ -396,6 +369,32 @@ class ManifestResolver
 
         return $filePath;
 
+    }
+
+    /**
+     * @param $manifestFilePath
+     * @param $pathToSourceFile
+     * @param $files
+     * @throws ParsingException
+     */
+    protected function parseParsedFilesFromManifest($manifestFilePath, $pathToSourceFile, &$files)
+    {
+        $filesFromManifest = $this->parseManifestFile($manifestFilePath, $pathToSourceFile);
+
+        foreach ($filesFromManifest['stylesheets'] as $idx => $file) {
+            $filesFromManifest['stylesheets'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
+            $this->logger->info('Parsing stylesheet from manifest: ' . $filesFromManifest['stylesheets'][$idx]);
+        }
+
+        foreach ($filesFromManifest['packages'] as $idx => $file) {
+            $filesFromManifest['packages'][$idx] = $this->replaceRemoteSymbolIfPresent($file, $this->remoteFolderPath);
+            $this->logger->info('Parsing package from manifest: ' . $filesFromManifest['packages'][$idx]);
+        }
+
+        if ($filesFromManifest) {
+            $files = array_merge($files, $filesFromManifest['stylesheets']);
+            $files = array_merge($files, $filesFromManifest['packages']);
+        }
     }
 
 

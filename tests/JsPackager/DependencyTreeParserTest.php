@@ -2,6 +2,7 @@
 
 namespace JsPackagerTest;
 
+use JsPackager\Annotations\AnnotationOrderMapping;
 use JsPackager\File;
 use JsPackager\DependencyTreeParser;
 use JsPackager\FileHandler;
@@ -20,98 +21,6 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
     const fixturesBasePath = 'tests/JsPackager/fixtures/';
 
 
-    /******************************************************************
-     * normalizeRelativePath
-     *****************************************************************/
-
-
-    public function testNormalizeRelativePathDoesNotHarmBasicPaths()
-    {
-        $path = '/chocolate/and/strawberries/is/yummy';
-        $expectedPath = '/chocolate/and/strawberries/is/yummy';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
-
-    public function testNormalizeRelativePathDoesNotTrailingSlash()
-    {
-        $path = '/chocolate/and/strawberries/is/yummy/';
-        $expectedPath = '/chocolate/and/strawberries/is/yummy/';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
-
-    public function testNormalizeRelativePathHandlesSingleUpDirectory()
-    {
-        $path = '/chocolate/and/../strawberries';
-        $expectedPath = '/chocolate/strawberries';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
-
-    public function testNormalizeRelativePathHandlesManyUpDirectories()
-    {
-        $path = '/somewhere/in/a/place/../../heaven';
-        $expectedPath = '/somewhere/in/heaven';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
-
-    public function testNormalizeRelativePathEvenSeparated()
-    {
-        $path = '/somewhere/somehow/../in/a/place/../../heaven';
-        $expectedPath = '/somewhere/in/heaven';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
-
-    public function testNormalizeRelativePathDoesNotExceedRoot()
-    {
-        $path = '/somewhere/../../home/';
-        $expectedPath = '/../home/';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
-
-    public function testNormalizeRelativePathDoesNotExceedRootEvenSeparated()
-    {
-        $path = '/somewhere/../../home/ward/../../bound/../../';
-        $expectedPath = '/../../';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
-
-    public function testNormalizeRelativePathHandlesDashes()
-    {
-        $path = '/some-where/../../home-ward/ward/../../bound/../../';
-        $expectedPath = '/../../';
-
-        $treeParser = new DependencyTreeParser();
-        $normalizedPath = $treeParser->normalizeRelativePath( $path );
-
-        $this->assertEquals($expectedPath, $normalizedPath);
-    }
 
 
     /******************************************************************
@@ -153,7 +62,7 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEmpty( $dependencyTree->stylesheets, "Main.js should have no dependent stylesheets" );
         $this->assertEmpty( $dependencyTree->packages, "Main.js should have no dependent packages" );
         $this->assertEmpty(
-            $dependencyTree->annotationOrderMap,
+            $dependencyTree->annotationOrderMap->getAnnotationMappings(),
             "Main.js should have no annotations in its ordering map"
         );
     }
@@ -177,7 +86,7 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEmpty( $dependencyTree->stylesheets );
         $this->assertEmpty( $dependencyTree->packages );
         $this->assertEmpty(
-            $dependencyTree->annotationOrderMap,
+            $dependencyTree->annotationOrderMap->getAnnotationMappings(),
             "Main.js should have no annotations in its ordering map"
         );
     }
@@ -207,14 +116,15 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 'dep_1', $dependencyTree->scripts[0]->filename );
         $this->assertFalse( $dependencyTree->scripts[0]->isRoot, 'File should not be marked isRoot' );
 
+        $annotations = $dependencyTree->annotationOrderMap->getAnnotationMappings();
         $this->assertEquals(
             'require',
-            $dependencyTree->annotationOrderMap[0]['action'],
+            $annotations[0]->getAnnotationName(),
             "Should reflect appropriate bucket"
         );
         $this->assertEquals(
             0,
-            $dependencyTree->annotationOrderMap[0]['annotationIndex'],
+            $annotations[0]->getAnnotationIndex(),
             "Should reflect appropriate order"
         );
     }
@@ -247,14 +157,15 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals( $basePath . '/somePackage/dep_1.js', $dependencyTree->packages[0] );
 
+        $annotations = $dependencyTree->annotationOrderMap->getAnnotationMappings();
         $this->assertEquals(
             'require',
-            $dependencyTree->annotationOrderMap[0]['action'],
+            $annotations[0]->getAnnotationName(),
             "Should reflect appropriate bucket"
         );
         $this->assertEquals(
             0,
-            $dependencyTree->annotationOrderMap[0]['annotationIndex'],
+            $annotations[0]->getAnnotationIndex(),
             "Should reflect appropriate order"
         );
     }
@@ -852,33 +763,43 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         // #5 depends on #4
         $this->assertEquals( 'dep_4', $dep5->scripts[0]->filename );
 
-        $orderMapEntry = $dependencyTree->annotationOrderMap[0];
-        $this->assertEquals( 'require', $orderMapEntry['action'], "Should reflect appropriate bucket" );
-        $this->assertEquals( 0, $orderMapEntry['annotationIndex'], "Should reflect appropriate order" );
-        $orderMapEntry = $dependencyTree->annotationOrderMap[1];
-        $this->assertEquals( 'require', $orderMapEntry['action'], "Should reflect appropriate bucket" );
-        $this->assertEquals( 1, $orderMapEntry['annotationIndex'], "Should reflect appropriate order" );
-        $orderMapEntry = $dependencyTree->annotationOrderMap[2];
-        $this->assertEquals( 'require', $orderMapEntry['action'], "Should reflect appropriate bucket" );
-        $this->assertEquals( 2, $orderMapEntry['annotationIndex'], "Should reflect appropriate order" );
+        /**
+         * TODO update these tests!
+         * @var $orderMapEntry AnnotationOrderMapping
+         */
+        $annotations = $dependencyTree->annotationOrderMap->getAnnotationMappings();
+        $orderMapEntry = $annotations[0];
+        $this->assertInstanceOf('JsPackager\Annotations\AnnotationOrderMapping', $orderMapEntry, 'Returns array of AnnotationOrderMapping value objects');
+        $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
+        $orderMapEntry = $annotations[1];
+        $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
+        $this->assertEquals( 1, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
+        $orderMapEntry = $annotations[2];
+        $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
+        $this->assertEquals( 2, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $orderMapEntry = $dep1->annotationOrderMap[0];
-        $this->assertEquals( 'require', $orderMapEntry['action'], "Should reflect appropriate bucket" );
-        $this->assertEquals( 0, $orderMapEntry['annotationIndex'], "Should reflect appropriate order" );
+        $annotations = $dep1->annotationOrderMap->getAnnotationMappings();
+        $orderMapEntry = $annotations[0];
+        $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $orderMapEntry = $dep2->annotationOrderMap[0];
-        $this->assertEquals( 'require', $orderMapEntry['action'], "Should reflect appropriate bucket" );
-        $this->assertEquals( 0, $orderMapEntry['annotationIndex'], "Should reflect appropriate order" );
+        $annotations = $dep2->annotationOrderMap->getAnnotationMappings();
+        $orderMapEntry = $annotations[0];
+        $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $orderMapEntry = $dep3->annotationOrderMap[0];
-        $this->assertEquals( 'require', $orderMapEntry['action'], "Should reflect appropriate bucket" );
-        $this->assertEquals( 0, $orderMapEntry['annotationIndex'], "Should reflect appropriate order" );
+        $annotations = $dep3->annotationOrderMap->getAnnotationMappings();
+        $orderMapEntry = $annotations[0];
+        $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $this->assertEmpty( $dep4->annotationOrderMap, "Dep #4 has no dependencies" );
+        $this->assertEmpty( $dep4->annotationOrderMap->getAnnotationMappings(), "Dep #4 has no dependencies" );
 
-        $orderMapEntry = $dep5->annotationOrderMap[0];
-        $this->assertEquals( 'require', $orderMapEntry['action'], "Should reflect appropriate bucket" );
-        $this->assertEquals( 0, $orderMapEntry['annotationIndex'], "Should reflect appropriate order" );
+        $annotations = $dep5->annotationOrderMap->getAnnotationMappings();
+        $orderMapEntry = $annotations[0];
+        $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
+        $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
     }
 

@@ -9,7 +9,28 @@ class PathFinder
 {
 
     /**
+     * Normalize a relative path, purifying it of unnecessary ..'s
      *
+     * E.g.
+     *    /somewhere/in/a/place/../../heaven
+     * becomes
+     *    /somewhere/in/heaven
+     *
+     * @param string $relativePath Path/URL
+     */
+    public function normalizeRelativePath($relativePath) {
+        $pattern = '/[\w\-]+\/\.\.\//';
+        while ( preg_match( $pattern, $relativePath ) ) {
+            $relativePath = preg_replace( $pattern, '', $relativePath );
+        }
+        $pattern = '/\/\.\//';
+        while ( preg_match( $pattern, $relativePath ) ) {
+            $relativePath = preg_replace( $pattern, '/', $relativePath );
+        }
+        return $relativePath;
+    }
+
+    /**
      * Happily borrowed from http://stackoverflow.com/a/2638272/1347604
      *
      * @param $from
@@ -51,7 +72,6 @@ class PathFinder
 
     /**
      * From http://stackoverflow.com/a/14329380/1347604
-     *
      *
      * @param $path
      * @param string $from

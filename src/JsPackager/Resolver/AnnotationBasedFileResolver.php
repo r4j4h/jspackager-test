@@ -2,6 +2,8 @@
 
 namespace JsPackager\Resolver;
 
+use JsPackager\File;
+use JsPackager\FileHandler;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 

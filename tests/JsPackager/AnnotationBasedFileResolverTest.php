@@ -2,14 +2,6 @@
 
 namespace JsPackagerTest;
 
-use JsPackager\File;
-use JsPackager\DependencyTreeParser;
-use JsPackager\FileHandler;
-use JsPackager\Exception\Parsing as ParsingException;
-use JsPackager\Exception\Recursion as RecursionException;
-use JsPackager\Exception\MissingFile as MissingFileException;
-
-use JsPackager\Helpers\Reflection as ReflectionHelper;
 use JsPackager\Resolver\AnnotationBasedFileResolver;
 
 /**
@@ -32,6 +24,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
     {
         return $this->getMock('JsPackager\FileHandler', array('is_file', 'fopen', 'fgets', 'fclose'));
     }
+
 
     /**
      * @runInSeparateProcess

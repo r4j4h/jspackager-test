@@ -1,13 +1,14 @@
 <?php
+
 /**
- * The FileUrl class takes a path to a Js or Css file, and depending on configuration, returns a Url.
+ * The CacheBuster class takes a path to a Js or Css file, and depending on configuration, returns a Url.
  *
  * @package JsPackager
  */
 
-namespace JsPackager;
+namespace JsPackager\Helpers;
 
-class FileUrl
+class CacheBuster
 {
 
     /**
@@ -25,8 +26,6 @@ class FileUrl
             throw new \Exception('Config is missing a CDN option block.');
         }
 
-        $cdnUrl = $config->cdn->url;
-        $sharedPath = $config->cdn->cdn_shared_path;
         $path = null;
 
         // Determine if $src already starts with $baseUrl
@@ -115,45 +114,65 @@ class FileUrl
             return $src;
         }
 
+        list($cacheBustingConfig, $cacheBustKey, $cacheBustStrategy) = self::getCacheBustSettings($config);
+
+        // do cache bust strategy
+        $cacheBustStrategies = array(
+            'mtime' => function($filePath, $cacheBustingConfig) {
+                $fileModifiedTime = filemtime($filePath);
+                return $fileModifiedTime;
+            },
+            'constant' => function($filePath, $cacheBustingConfig) {
+                $constantValueForCacheBust = isset( $cacheBustingConfig->constant_value ) ? $cacheBustingConfig->constant_value : '123';
+                return $constantValueForCacheBust;
+            }
+        );
+
+        if ( array_key_exists( $cacheBustStrategy, $cacheBustStrategies ) )
+        {
+            $cacheBustValue = call_user_func($cacheBustStrategies[$cacheBustStrategy], $filePath, $cacheBustingConfig);
+
+            $fragment = parse_url($src, PHP_URL_FRAGMENT);
+            $separator = (parse_url($src, PHP_URL_QUERY) == NULL) ? '?' : '&';
+
+            if ( $fragment ) {
+                $src = str_replace('#' . $fragment, '', $src);
+            }
+
+            while ( strpos($src, $cacheBustKey) !== false ) {
+                $cacheBustKey = $cacheBustKey . 'z';
+            }
+
+            $cacheBustedSrc = $src . $separator . $cacheBustKey . '=' . $cacheBustValue;
+
+            if ( $fragment ) {
+                $cacheBustedSrc .= '#' . $fragment;
+            }
+            return $cacheBustedSrc;
+
+        }
+
+        return $src;
+    }
+
+    /**
+     * @param $config
+     * @return array
+     */
+    protected static function getCacheBustSettings($config)
+    {
         $cacheBustingConfig = $config->cache_busting;
 
-        if ( !isset( $config->key_string ) ) {
+        if (!isset($config->key_string)) {
 //            throw new \Exception('Missing cache bust key configuration value!');
         }
-        if ( !isset( $config->cache_buster_strategy ) ) {
+        if (!isset($config->cache_buster_strategy)) {
 //            throw new \Exception('Missing cache bust strategy!');
         }
 
-        $cacheBustKey = isset( $cacheBustingConfig->key_string ) ? $cacheBustingConfig->key_string : '_cachebust';
-        $cacheBustStrategy = isset( $cacheBustingConfig->strategy ) ? $cacheBustingConfig->strategy : 'constant';
-
-        if ( $cacheBustStrategy === 'mtime' ) {
-            $fileModifiedTime = filemtime($filePath);
-            $cacheBustValue = $fileModifiedTime;
-        } else /* if ( $cacheBustStrategy === 'constant' ) */ { // Default value is to use given constant
-            $constantValueForCacheBust = isset( $cacheBustingConfig->constant_value ) ? $cacheBustingConfig->constant_value : '123';
-            $cacheBustValue = $constantValueForCacheBust;
-        }
-
-        $fragment = parse_url($src, PHP_URL_FRAGMENT);
-        $separator = (parse_url($src, PHP_URL_QUERY) == NULL) ? '?' : '&';
-
-        if ( $fragment ) {
-            $src = str_replace('#' . $fragment, '', $src);
-        }
-
-        while ( strpos($src, $cacheBustKey) !== false ) {
-            $cacheBustKey = $cacheBustKey . 'z';
-        }
-
-        $cacheBustedSrc = $src . $separator . $cacheBustKey . '=' . $cacheBustValue;
-
-        if ( $fragment ) {
-            $cacheBustedSrc .= '#' . $fragment;
-        }
-
-        return $cacheBustedSrc;
+        $cacheBustKey = isset($cacheBustingConfig->key_string) ? $cacheBustingConfig->key_string : '_cachebust';
+        $cacheBustStrategy = isset($cacheBustingConfig->strategy) ? $cacheBustingConfig->strategy : 'constant';
+        return array($cacheBustingConfig, $cacheBustKey, $cacheBustStrategy);
     }
-
 
 }
