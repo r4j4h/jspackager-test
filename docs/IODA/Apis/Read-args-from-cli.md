@@ -1,0 +1,2 @@
+Takes CLI arguments
+Provides Configuration object

@@ -1,0 +1,5 @@
+- Determine "compiled" paths for File (e.g. `array[compiledPath, manifestPath]` ) - relies on out-of-band Compile process
+    - Data In
+        - File path
+    - Data Out
+        - Array file paths

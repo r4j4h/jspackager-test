@@ -1,0 +1,5 @@
+- Determine normal paths for File (e.g. `array[...filePaths]` ) - goes through DependencyResolver
+    - Data In
+        - File path
+    - Data Out
+        - Array file paths

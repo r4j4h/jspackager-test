@@ -1,0 +1,4 @@
+- Data In
+    - File (content OR path)
+- Data Out
+    - File (content)

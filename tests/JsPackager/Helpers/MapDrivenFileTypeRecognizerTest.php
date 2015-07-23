@@ -10,7 +10,7 @@ class MapDrivenFileTypeRecognizerTest extends \PHPUnit_Framework_TestCase
     public function testFoo()
     {
         $hein = "bobby.js";
-        $hoo ="bubba.compiled.js";
+        $hoo = "bubba.compiled.js";
         $lars = "button.tag";
 
         $re = new MapDrivenFileTypeRecognizer();

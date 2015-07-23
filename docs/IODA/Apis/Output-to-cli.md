@@ -1,0 +1,2 @@
+stdout/strerr
+string

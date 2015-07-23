@@ -1,0 +1,1 @@
+Given a list of dependent files and processed output content, outputs compiled files and a manifest file alongside them to a configurable location

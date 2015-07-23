@@ -1,0 +1,1 @@
+Provides a canonical way of defining a set of parameters that are typically or often required for healthy operation.

@@ -1,0 +1,6 @@
+- Read config via DI-given config strategy
+    - Data In
+        - Config strategy
+        - Config strategy params
+    - Data Out
+        - Mode

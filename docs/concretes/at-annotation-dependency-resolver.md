@@ -1,0 +1,1 @@
+Given a filename, parses the file line by line to suss out annotations which are converted into a list of dependencies and followed with this process recursively, ending in a set of file paths.

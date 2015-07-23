@@ -1,0 +1,3 @@
+- Mode
+    - Valid as either 'normal' files or 'compiled' files
+    - Default mode: 'normal'

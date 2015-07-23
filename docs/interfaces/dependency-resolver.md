@@ -1,0 +1,1 @@
+Dependency Resolvers are given a filename and are expected to do some work (can but does not have to use the filename) and return more file names, in order of dependency.

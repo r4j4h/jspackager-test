@@ -1,0 +1,1 @@
+Given a filename, attempts to load a compiled version and an accompanying manifest from a configurable location

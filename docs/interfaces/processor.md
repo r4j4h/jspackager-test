@@ -1,0 +1,1 @@
+Given a set of filenames does some work on those files, returning a set of filenames and/or file contents (!!!??).

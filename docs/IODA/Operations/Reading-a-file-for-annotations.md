@@ -1,0 +1,47 @@
+- Data In
+    - File
+- Data Out
+    - []File
+
+
+Self-contained IODA
+
+- Integrations
+    - Handling an annotation
+    - Converting annotations to things on page
+- Operations
+    - Detecting an annotation in a section of content
+        - Data In
+            - File
+        - Data Out
+            - []Annotation
+    - Detecting a file path in a section of content
+        - Data In
+            - File
+        - Data Out
+            - []Annotation
+    - Adding a file to a collection (for a page) (the same as manually with appendFile)
+        - Data In
+            - []Annotation
+        - Data Out
+            - []File (paths or contents)
+    - Changing a file to
+- Data
+    - Annotation
+        - Valid with source value and parsed structure (annotation itself, parameters)
+        - RequireAnnotation
+            - Ex: @require <path>
+                - Tag: require
+                - Params: <path>
+        - RootAnnotation
+            - Ex: @root [true]
+                - Tag: require
+                - Params: <path>
+        - CompressibleImageAnnotation
+            - Ex: <img src="<path>"></img>
+                - Tag: ImageSrc
+                - Params: <path>
+                - Notes: Uses AST parsers rather than regexp for safety/reliability?
+                - Otherwise ick, Multiline? Weird formatted HTML? Ick.
+    - [File](../Data/File.md)
+- Apis

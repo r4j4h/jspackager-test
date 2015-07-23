@@ -1,0 +1,1 @@
+Given a set of filenames and content (!??!) outputs to a file or over the network.
