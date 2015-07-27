@@ -1,10 +1,11 @@
-jspackager-test
-===============
 
-About
-------------
+![Logo](media/logo/logo-w-tagline.png)
 
-JsPackager is an annotation-based dependency resolver intended for the front end. As developers it is easier to work
+## About
+
+JsPackager is a toolkit to aid in resolving front end dependencies and including them on the page.
+
+JsPackager provides an annotation-based dependency resolver intended for the front end. As developers it is easier to work
 in multiple files, but for browsers we need them packaged together.
 
 JsPackager allows you to pull in complex dependency tree and have it resolve down to something manageable.
@@ -22,8 +23,7 @@ Do you want all of that in one bundle or in several smaller bundles?
 All of these are possible with JsPackager and some combination of @require and @root annotations.
 
 
-Motivation
-------
+## Motivation
 
 Web pages are powered by script and link tags which tell browsers which stylesheets and javascript files to download and execute.
 
@@ -85,8 +85,7 @@ The default resolver/packager moves the dependencies into the file itself in the
 
 
 
-Why Not Just Use <x>?
--------------
+## Why Not Just Use <x>?
 
 There are several technologies around that take different approaches and provide different aspects,
  ranging from require.js to ES6 Modules to Polymer to many others.
@@ -114,8 +113,7 @@ JsPackager is based around three core pieces:
 
 Being primarily used for the web, file pathing can become a complex issue:
 
-File Paths in Play
--------------
+## File Paths in Play
 
 - Filesystem Absolute - Path to get to file on HD
   - Inaccessible to browers
@@ -143,10 +141,17 @@ the type of path for proper operation.
 
 
 
-Projects Using
-------------
+## Projects Using
 
 - [r4j4h/jspackager-cli](https://github.com/r4j4h/jspackager-cli)
   - A Symfony based Command Line Interface
 - [r4j4h/jspackager-zf2](https://github.com/r4j4h/jspackager-zf2)
   - Zend 2 View Helpers utilizing r4j4h/jspackager-test
+
+
+## References
+
+- [Bounded Contexts](docs/bounded-contexts.md)
+- [Concretes](docs/concretes/) and [Interfaces](docs/interfaces/)
+- [Integration, Operation, Data, Apis Architecture](docs/IODA/)
+- [Logo and Details](docs/logo.md)
