@@ -209,45 +209,6 @@ class Compiler implements CompilerInterface
     }
 
 
-
-
-    /**
-     * Take an array of file paths and concatenate them into one blob
-     *
-     * @param array $filePathList Array of file paths
-     * @return string Concatenated file's contents
-     * @throws Exception\MissingFile If a file in the list does not exist
-     * @throws Exception\Parsing If file was unable to be parsed
-     */
-    protected function concatenateFiles($filePathList)
-    {
-        $output = '';
-
-        $this->logger->debug("Concatenating files...");
-
-        foreach( $filePathList as $thisFilePath )
-        {
-            if ( is_file( $thisFilePath ) === false )
-            {
-                throw new MissingFileException($thisFilePath . ' is not a valid file!', 0, null, $thisFilePath);
-            }
-
-            $thisFileContents = file_get_contents( $thisFilePath );
-
-            if ( $thisFileContents === FALSE )
-            {
-                throw new ParsingException($thisFilePath . ' was unable to be parsed. Perhaps permissions problem?');
-            }
-
-            $output .= $thisFileContents;
-        }
-
-        $this->logger->debug("Concatenated files.");
-
-        return $output;
-    }
-
-
     private function logNotice($string) {
         $this->logger->notice($string);
         $statusCallback = $this->statusCallback;
