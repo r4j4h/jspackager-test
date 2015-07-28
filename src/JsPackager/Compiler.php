@@ -421,27 +421,6 @@ class Compiler implements CompilerInterface
         return $success;
     }
 
-    public function parseFolderForSourceFiles($folderPath)
-    {
-        /** @var $file SplFileObject */
-
-        $dirIterator = new RecursiveDirectoryIterator( $folderPath );
-        $iterator = new RecursiveIteratorIterator($dirIterator, RecursiveIteratorIterator::SELF_FIRST);
-        $fileCount = 0;
-        $files = array();
-
-        $this->logger->debug("Parsing folder '".$folderPath."' for source files...");
-        foreach ($iterator as $file) {
-            if ( $file->isFile() && FileTypeRecognizer::isSourceFile( $file->getFilename() ) ) {
-                $files[] = $file->getRealPath();
-                $fileCount++;
-            }
-        }
-        $this->logger->debug("Finished parsing folder. Found ".$fileCount." source files.");
-
-        return $files;
-    }
-
     /**
      * @param $inputFilename
      * @return array
