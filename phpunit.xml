@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit colors="true">
+<phpunit colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         backupGlobals="false"
+         backupStaticAttributes="false"
+         bootstrap="./tests/Bootstrap.php"
+        >
     <testsuites>
         <testsuite name="Application Test Suite">
-            <directory>./tests/</directory>
+            <directory>./tests/JsPackager</directory>
         </testsuite>
     </testsuites>
 </phpunit>

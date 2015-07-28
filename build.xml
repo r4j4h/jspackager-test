@@ -37,7 +37,7 @@
                        outfile="phpunit-testsuites-logfile.xml"/>
 
             <batchtest>
-                <fileset dir="./tests">
+                <fileset dir="./tests/JsPackager">
                     <include name="**/*Test*.php"/>
                 </fileset>
             </batchtest>
