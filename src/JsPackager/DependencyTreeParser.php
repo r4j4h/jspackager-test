@@ -275,6 +275,15 @@ class DependencyTreeParser
             return $this->parsedFiles[ $fileIdentifier ];
         }
 
+        if ( in_array( $filePath, $this->seenFiles ) )
+        {
+            // Bail if we already have seen this file
+            throw new RecursionException(
+                'Encountered recursion within file "' . $filePath . '".',
+                RecursionException::ERROR_CODE
+            );
+        }
+
         $this->logger->debug("Verifying file type '" . $file->filetype . "' is on parsing whitelist.");
 
         if ( in_array( $file->filetype, $this->filetypesAllowingAnnotations) )
@@ -298,15 +307,6 @@ class DependencyTreeParser
 
         $annotations = $annotationsResponse['annotations'];
         $orderingMap = $annotationsResponse['orderingMap'];
-
-        if ( in_array( $filePath, $this->seenFiles ) )
-        {
-            // Bail if we already have seen this file
-            throw new RecursionException(
-                'Encountered recursion within file "' . $filePath . '".',
-                RecursionException::ERROR_CODE
-            );
-        }
 
         // Mark as seen
         $this->logger->debug("Marking {$filePath} as seen.");

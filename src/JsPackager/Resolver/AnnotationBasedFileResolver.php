@@ -40,6 +40,7 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
      * A token's definition continues until the end of the line.
      *
      * @param $filePath string File's path
+     * @return array
      */
     protected function getAnnotationsFromFile( $filePath )
     {

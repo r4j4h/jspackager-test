@@ -27,8 +27,6 @@ class AnnotationsFlatteningService {
      * Recursively converts a File's object hierarchy into flattened arrays with both scripts and stylesheets in
      * separate, ordered arrays.
      *
-     * (Helper function for flattenDependencyTree)
-     *
      * @param File $file
      * @param bool $respectingRootPackages Pass true to respect @root annotations, detecting packages. False to
      * assume all dependent files should be included.

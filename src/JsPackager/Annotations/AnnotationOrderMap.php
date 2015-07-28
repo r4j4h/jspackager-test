@@ -40,7 +40,7 @@ class AnnotationOrderMap
     public function getAnnotationMappings()
     {
         // TODO This should be immutable:
-        // TODO this should be a copy test and make sure changing result does not change inner stored annotation mappings!
+        // TODO this should be a copy. Test and make sure changing result does not change inner stored annotation mappings!
         return $this->annotationOrderMap;
     }
 
