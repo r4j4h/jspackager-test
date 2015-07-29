@@ -104,10 +104,11 @@ class CacheBuster
     {
         // Sanity check against absence of usage flag
         if ( !isset( $config->use_cache_busting ) ) {
-            return $src;
+            // Default to off
+            $usingCacheBuster = false;
+        } else {
+            $usingCacheBuster = $config->use_cache_busting;
         }
-
-        $usingCacheBuster = $config->use_cache_busting;
 
         // Respect usage flag
         if ( !$usingCacheBuster ) {
