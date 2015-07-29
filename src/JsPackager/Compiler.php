@@ -306,39 +306,8 @@ class Compiler implements CompilerInterface
         return $compiledFiles;
     }
 
-    /**
-     * Delete (unlink) any files with *.compiled.js in the filename across the given path.
-     *
-     * @param string $directory Directory path.
-     * @return bool
-     */
-    public function clearPackages($directory)
-    {
-        $success = true;
-        $finder = new FileFinder($this->logger);
-        $foundFiles = $finder->parseFolderForPackageFiles( $directory );
 
-        if ( $foundFiles ) {
 
-            foreach ($foundFiles as $file) {
-
-                $this->logger->notice('[Clearing] Removing ' . $file);
-
-                $unlinkSuccess = unlink( $file );
-                if ( !$unlinkSuccess )
-                {
-                    $this->logger->error('[Clearing] Failed to remove ' . $file);
-
-                    $success = false;
-                    continue;
-                }
-
-            }
-        }
-
-        $this->logger->notice("[Clearing] Cleared compiled files and manifest files relating to packages.");
-        return $success;
-    }
 
     /**
      * @param $inputFilename
