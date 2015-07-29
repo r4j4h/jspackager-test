@@ -6,9 +6,9 @@ interface SimpleProcessorInterface
 {
 
     /**
-     * @param array $orderedFilePaths
+     * @param SimpleProcessorParams $orderedFilePaths
      * @return ProcessingResult
      */
-    public function process(Array $orderedFilePaths);
+    public function process(SimpleProcessorParams $orderedFilePaths);
 
 }

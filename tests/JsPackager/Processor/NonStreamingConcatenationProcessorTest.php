@@ -3,6 +3,7 @@ namespace JsPackagerTest;
 
 use JsPackager\Exception\MissingFile;
 use JsPackager\Processor\NonStreamingConcatenationProcessor;
+use JsPackager\Processor\SimpleProcessorParams;
 
 
 class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
@@ -17,9 +18,11 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
     public function testConcatenateFilesHandlesNoFiles()
     {
         $processor = new NonStreamingConcatenationProcessor();
+
         $dependencies = array();
 
-        $concatenatedFile = $processor->process( $dependencies )->output;
+        $params = new SimpleProcessorParams($dependencies);
+        $concatenatedFile = $processor->process( $params )->output;
 
         $this->assertEquals( '', $concatenatedFile, "Concatenated file should be empty" );
     }
@@ -36,7 +39,8 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
             $mainJsPath,
         );
 
-        $concatenatedFile = $processor->process( $dependencies )->output;
+        $params = new SimpleProcessorParams($dependencies);
+        $concatenatedFile = $processor->process( $params )->output;
 
         $this->assertEquals(
             $mainContents,
@@ -60,7 +64,8 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
             $mainJsPath,
         );
 
-        $concatenatedFile = $processor->process( $dependencies )->output;
+        $params = new SimpleProcessorParams( $dependencies );
+        $concatenatedFile = $processor->process( $params )->output;
 
         $this->assertEquals(
             $dep1Contents . $mainContents,
@@ -81,8 +86,10 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
             $mainJsPath,
         );
 
+        $params = new SimpleProcessorParams($dependencies);
+
         try {
-            $processor->process( $dependencies );
+            $processor->process( $params );
             $this->fail('Set should throw a missing file exception');
         } catch (MissingFile $e) {
             $this->assertEquals(

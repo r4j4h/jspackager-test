@@ -29,19 +29,19 @@ class NonStreamingConcatenationProcessor implements SimpleProcessorInterface
     /**
      * Take an array of file paths and concatenate them into one blob
      *
-     * @param array $orderedFilePaths Array of file paths
+     * @param SimpleProcessorParams $params
      * @return ProcessingResult
      * @throws \Exception
      * @throws MissingFile If a file in the list does not exist
      * @throws Parsing If file was unable to be parsed
      */
-    public function process(Array $orderedFilePaths)
+    public function process(SimpleProcessorParams $params)
     {
         $output = '';
 
         $this->logger->debug("Concatenating files...");
 
-        foreach( $orderedFilePaths as $thisFilePath )
+        foreach( $params->orderedFilePaths as $thisFilePath )
         {
             if ( is_file( $thisFilePath ) === false )
             {

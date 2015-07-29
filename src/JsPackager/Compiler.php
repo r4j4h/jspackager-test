@@ -25,6 +25,7 @@ use JsPackager\Helpers\FileTypeRecognizer;
 use JsPackager\Processor\ClosureCompilerProcessor;
 use JsPackager\Processor\ProcessingResult;
 use JsPackager\Processor\SimpleProcessorInterface;
+use JsPackager\Processor\SimpleProcessorParams;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RecursiveIteratorIterator;
@@ -171,7 +172,9 @@ class Compiler implements CompilerInterface
     {
         $this->logger->debug("Processing...");
 
-        $compilationResults = $processor->process($dependencySet->dependencies);
+        $params = new SimpleProcessorParams( $dependencySet->dependencies );
+
+        $compilationResults = $processor->process($params);
 
         $this->logger->debug("Finished processing.");
 

@@ -34,15 +34,15 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
     }
 
     /**
-     * @param array $orderedFilePaths
+     * @param SimpleProcessorParams $params
      * @return ProcessingResult
      * @throws Parsing
      * @throws \Exception
      */
-    public function process(Array $orderedFilePaths)
+    public function process(SimpleProcessorParams $params)
     {
         $this->logger->debug("Compiling with Google Closure Compiler .jar..."); // todo update these texts
-        $results = $this->compileFileListUsingClosureCompilerJar( $orderedFilePaths );
+        $results = $this->compileFileListUsingClosureCompilerJar( $params->orderedFilePaths );
         $this->logger->debug("Finished compiling with Google Closure Compiler .jar.");
         return $results;
     }
