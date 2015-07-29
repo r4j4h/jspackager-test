@@ -28,6 +28,7 @@
 
 namespace JsPackager;
 
+use JsPackager\Annotations\AnnotationHandlerParameters;
 use JsPackager\Annotations\AnnotationResponseHandler;
 use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
@@ -360,7 +361,10 @@ class DependencyTreeParser
             if ( array_key_exists( $action, $this->handlerMapping ) ) {
                 $handler = $this->handlerMapping[$action];
                 $this->logger->debug("Found {$action} entry.");
-                call_user_func($handler, $filePath, $testsSourcePath, $path, $file, array($this, 'parseFile'));
+                $params = new AnnotationHandlerParameters(
+                    $filePath, $testsSourcePath, $path, $file, array($this, 'parseFile')
+                );
+                call_user_func($handler, $params);
             }
 
         }
