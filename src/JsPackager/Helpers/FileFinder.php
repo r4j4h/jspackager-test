@@ -2,6 +2,7 @@
 
 namespace JsPackager\Helpers;
 
+use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RecursiveDirectoryIterator;
@@ -28,7 +29,7 @@ class FileFinder {
 
     /**
      * Parse given folder for source javascript files, ignoring compiled files and other metadata.
-     * 
+     *
      * @param $folderPath
      * @return array
      */
@@ -53,4 +54,50 @@ class FileFinder {
         return $files;
     }
 
+    /**
+     * Parse given folder for files with *.compiled.js in the filename across the given path.
+     *
+     * todo should belong to CompiledAndManifest domain
+     *
+     * @param string $directory Directory path.
+     * @return string[]
+     */
+    public function parseFolderForPackageFiles($directory)
+    {
+        /** @var $file SplFileObject */
+
+        $dirIterator = new RecursiveDirectoryIterator( $directory );
+        $iterator = new RecursiveIteratorIterator($dirIterator, RecursiveIteratorIterator::SELF_FIRST);
+        $fileCount = 0;
+        $sourceFileCount = 0;
+        $files = array();
+
+        $this->logger->debug("Parsing folder '".$directory."' for package files...");
+
+        foreach ($iterator as $file) {
+            if ( $file->isFile() && preg_match( '/.js$/', $file->getFilename() ) && !preg_match( '/.compiled.js$/', $file->getFilename() ) ) {
+
+                $sourceFileCount++;
+
+                $compiledFilename = FilenameConverter::getCompiledFilename( $file->getRealPath() );
+                $manifestFilename = FilenameConverter::getManifestFilename( $file->getRealPath() );
+
+                if ( is_file( $compiledFilename ) ) {
+                    $files[] = $compiledFilename;
+                    $fileCount++;
+                }
+                if ( is_file( $manifestFilename ) ) {
+                    $files[] = $compiledFilename;
+                    $fileCount++;
+                }
+
+            }
+        }
+
+        $this->logger->debug(
+            "Finished parsing folder. Found ".$fileCount." package files from ".$sourceFileCount." source files."
+        );
+
+        return $files;
+    }
 }

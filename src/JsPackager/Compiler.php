@@ -20,9 +20,11 @@ use JsPackager\Compiler\FileCompilationResultCollection;
 use JsPackager\Exception\CannotWrite as CannotWriteException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Parsing as ParsingException;
+use JsPackager\Helpers\FileFinder;
 use JsPackager\Helpers\FileTypeRecognizer;
 use JsPackager\Processor\ClosureCompilerProcessor;
 use JsPackager\Processor\ProcessingResult;
+use JsPackager\Processor\SimpleProcessorInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RecursiveIteratorIterator;
@@ -110,6 +112,7 @@ class Compiler implements CompilerInterface
 
         $rootFilePath = $rootFile->path;
         $rootFilename = $rootFile->filename . '.' . $rootFile->filetype;
+
         $compiledFilename = FilenameConverter::getCompiledFilename( $rootFilename );
         $manifestFilename = FilenameConverter::getManifestFilename( $rootFilename );
 
@@ -119,45 +122,14 @@ class Compiler implements CompilerInterface
             $dependencySet->pathsMarkedNoCompile
         );
 
-        $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
 
-        $manifestContentsGenerator = $this->getManifestContentsGenerator();
-
-        if ( $dependencySetIndex && $dependencySetIndex > 0 ) {
-            $dependencySetIndexIterator = $dependencySetIndex;
-            while ( $dependencySetIndexIterator > 0 ) {
-                // Roll in dependent package's stylesheets so we only need to read this manifest
-                $this->logger->debug(
-                    "Using dependency set and it's dependency set's stylesheets so that manifests are all-inclusive"
-                );
-                $lastDependencySet = $dependencySets[ $dependencySetIndexIterator - 1 ];
-                $stylesheets = array_merge( $lastDependencySet->stylesheets, $dependencySet->stylesheets );
-                $stylesheets = array_unique( $stylesheets );
-                $dependencySetIndexIterator--;
-            }
-        } else {
-            $this->logger->debug("Using dependency set's stylesheets");
-            $stylesheets = $dependencySet->stylesheets;
-        }
-
-        if ( count( $dependencySet->stylesheets ) > 0 || $totalDependencies > 1 ) {
-            // Build manifest first
-            $compiledFileManifest = $manifestContentsGenerator->generateManifestFileContents(
-                $rootFilePath . '/',
-                $dependencySet->packages,
-                $stylesheets,
-                $this->rollingPathsMarkedNoCompile
-            );
-        } else {
-            $this->logger->debug(
-                "Skipping building manifest '{$manifestFilename}' because file has no other dependencies than itself."
-            );
-            $compiledFileManifest = null;
-        }
-
-        $this->logger->debug("Built manifest.");
+        $compiledFileManifest = $this->assembleManifest(
+            $dependencySet, $dependencySetIndex, $dependencySets,
+            $rootFilename, $totalDependencies, $rootFilePath,
+            $manifestFilename);
 
 
+        // todo is this marked no process at all, or do we have ability to skip certain ones?
         if ( in_array( $rootFilePath .'/'. $rootFilename, $dependencySet->pathsMarkedNoCompile ) ) {
             $this->logger->debug("File marked as do not compile or process.");
             $this->logger->debug("Skipping by marking as succeeded with no output..."); // why is this necessary?
@@ -165,7 +137,8 @@ class Compiler implements CompilerInterface
 
         } else {
 
-            $compilationResults = $this->processOrderedFilePathsArray($dependencySet);
+            $processor = $this->createClosureCompilerProcessor(); // todo make more dynamic
+            $compilationResults = $this->processOrderedFilePathsArray($processor, $dependencySet);
 
         }
 
@@ -189,22 +162,32 @@ class Compiler implements CompilerInterface
     }
 
     /**
+     * @param SimpleProcessorInterface $processor
      * @param $dependencySet
      * @return ProcessingResult
      * @throws \Exception
      */
-    protected function processOrderedFilePathsArray($dependencySet)
+    protected function processOrderedFilePathsArray($processor, $dependencySet)
     {
-        $this->logger->debug("Compiling with Google Closure Compiler .jar...");
+        $this->logger->debug("Processing...");
 
+        $compilationResults = $processor->process($dependencySet->dependencies);
+
+        $this->logger->debug("Finished processing.");
+
+        return $compilationResults;
+    }
+
+    /**
+     * Configures with logger for output.
+     *
+     * @return ClosureCompilerProcessor
+     */
+    private function createClosureCompilerProcessor() {
         // Compile & Concatenate via Google closure Compiler Jar
         $processor = new ClosureCompilerProcessor();
         $processor->logger = $this->logger;
-        $compilationResults = $processor->process($dependencySet->dependencies);
-
-        $this->logger->debug("Finished compiling with Google Closure Compiler .jar.");
-
-        return $compilationResults;
+        return $processor;
     }
 
 
@@ -328,56 +311,29 @@ class Compiler implements CompilerInterface
      */
     public function clearPackages($directory)
     {
-        /** @var $file SplFileObject */
-
-        $dirIterator = new RecursiveDirectoryIterator( $directory );
-        $iterator = new RecursiveIteratorIterator($dirIterator, RecursiveIteratorIterator::SELF_FIRST);
-        $fileCount = 0;
         $success = true;
+        $finder = new FileFinder($this->logger);
+        $foundFiles = $finder->parseFolderForPackageFiles( $directory );
 
-        $sourceFileCount = 0;
+        if ( $foundFiles ) {
 
-        foreach ($iterator as $file) {
-            if ( $file->isFile() && preg_match( '/.js$/', $file->getFilename() ) && !preg_match( '/.compiled.js$/', $file->getFilename() ) ) {
+            foreach ($foundFiles as $file) {
 
-                $this->logger->notice("[Clearing] Detected package {$file->getFilename()}");
+                $this->logger->notice('[Clearing] Removing ' . $file);
 
-                $sourceFileCount++;
+                $unlinkSuccess = unlink( $file );
+                if ( !$unlinkSuccess )
+                {
+                    $this->logger->error('[Clearing] Failed to remove ' . $file);
 
-                $compiledFilename = FilenameConverter::getCompiledFilename( $file->getRealPath() );
-                $manifestFilename = FilenameConverter::getManifestFilename( $file->getRealPath() );
-
-                if ( is_file( $compiledFilename ) ) {
-                    $this->logger->notice('[Clearing] Removing ' . $compiledFilename);
-
-                    $unlinkSuccess = unlink( $compiledFilename );
-                    if ( !$unlinkSuccess )
-                    {
-                        $this->logger->error('[Clearing] Failed to remove ' . $compiledFilename);
-
-                        $success = false;
-                        continue;
-                    }
-                    $fileCount++;
-                }
-                if ( is_file( $manifestFilename ) ) {
-                    $this->logger->notice('[Clearing] Removing ' . $manifestFilename);
-
-                    $unlinkSuccess = unlink( $manifestFilename );
-                    if ( !$unlinkSuccess )
-                    {
-                        $this->logger->error('[Clearing] Failed to remove ' . $manifestFilename);
-
-                        $success = false;
-                        continue;
-                    }
-                    $fileCount++;
+                    $success = false;
+                    continue;
                 }
 
             }
         }
 
-        $this->logger->notice("[Clearing] Detected $sourceFileCount packages, resulting in $fileCount files being removed.");
+        $this->logger->notice("[Clearing] Cleared compiled files and manifest files relating to packages.");
         return $success;
     }
 
@@ -403,5 +359,57 @@ class Compiler implements CompilerInterface
         return $manifestContentsGenerator;
     }
 
+    /**
+     * @param $dependencySet
+     * @param $dependencySetIndex
+     * @param $dependencySets
+     * @param $rootFilename
+     * @param $totalDependencies
+     * @param $rootFilePath
+     * @param $manifestFilename
+     * @return null|string
+     */
+    protected function assembleManifest($dependencySet, $dependencySetIndex, $dependencySets,
+                                        $rootFilename, $totalDependencies, $rootFilePath, $manifestFilename)
+    {
+        $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
+
+        $manifestContentsGenerator = $this->getManifestContentsGenerator();
+
+        if ($dependencySetIndex && $dependencySetIndex > 0) {
+            $dependencySetIndexIterator = $dependencySetIndex;
+            while ($dependencySetIndexIterator > 0) {
+                // Roll in dependent package's stylesheets so we only need to read this manifest
+                $this->logger->debug(
+                    "Using dependency set and it's dependency set's stylesheets so that manifests are all-inclusive"
+                );
+                $lastDependencySet = $dependencySets[$dependencySetIndexIterator - 1];
+                $stylesheets = array_merge($lastDependencySet->stylesheets, $dependencySet->stylesheets);
+                $stylesheets = array_unique($stylesheets);
+                $dependencySetIndexIterator--;
+            }
+        } else {
+            $this->logger->debug("Using dependency set's stylesheets");
+            $stylesheets = $dependencySet->stylesheets;
+        }
+
+        if (count($dependencySet->stylesheets) > 0 || $totalDependencies > 1) {
+            // Build manifest first
+            $compiledFileManifest = $manifestContentsGenerator->generateManifestFileContents(
+                $rootFilePath . '/',
+                $dependencySet->packages,
+                $stylesheets,
+                $this->rollingPathsMarkedNoCompile
+            );
+        } else {
+            $this->logger->debug(
+                "Skipping building manifest '{$manifestFilename}' because file has no other dependencies than itself."
+            );
+            $compiledFileManifest = null;
+        }
+
+        $this->logger->debug("Built manifest.");
+        return $compiledFileManifest;
+    }
 
 }
