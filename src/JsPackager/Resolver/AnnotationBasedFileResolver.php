@@ -9,6 +9,7 @@ use Psr\Log\NullLogger;
 
 class AnnotationBasedFileResolver implements FileResolverInterface {
 
+
     /**
      * Regexp pattern for detecting annotations with optional space delimited arguments
      * @var string
@@ -33,6 +34,53 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
 
 
     /**
+     * @var LoggerInterface
+     */
+    public $logger;
+
+
+    protected $fileHandler;
+
+
+    public function __construct($logger = null)
+    {
+        if ( $logger instanceof LoggerInterface ) {
+            $this->logger = $logger;
+        } else {
+            $this->logger = new NullLogger();
+        }
+    }
+
+    public function resolveDependenciesForFile($filePath)
+    {
+        return $this->getAnnotationsFromFile( $filePath );
+    }
+
+
+    /**
+     * Get the file handler.
+     *
+     * @return mixed
+     */
+    public function getFileHandler()
+    {
+        return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
+    }
+
+    /**
+     * Set the file handler.
+     *
+     * @param $fileHandler
+     * @return File
+     */
+    public function setFileHandler($fileHandler)
+    {
+        $this->fileHandler = $fileHandler;
+        return $this;
+    }
+
+
+    /**
      * Extracts tokens from a given file.
      *
      * Tokens are composed of the token start identifier (@), the action name, and any parameters separated by space.
@@ -48,13 +96,8 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
         $fileHandler = $this->getFileHandler();
 
         // Set up empty containers for all accepted annotations
-        $annotations = array();
+        $annotations = $this->bucketizeAcceptedTokens( array() );
         $orderingMap = array();
-
-        foreach( $this->acceptedTokens as $acceptedToken )
-        {
-            $annotations[ $acceptedToken ] = array();
-        }
 
         if ( $fileHandler->is_file( $filePath ) )
         {
@@ -88,38 +131,20 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
                         // Trim the space delimited arguments string and then explode it on spaces
                         $params = explode( ' ',  trim( $matches[2] ) );
 
-                        foreach( $params as $key => $param ) {
+                        foreach( $params as $param ) {
                             // Any extraneous spaces between arguments will
                             // get exploded as empty strings so skip them
                             if ( $param === "" )
                                 continue;
 
-                            $this->logger->info("Found '{$action}' annotation with param '{$param}'.");
-
-                            // Add argument for this action
-                            $annotations[ $action ][] = $param;
-
-                            // Append to annotation ordering map
-                            $annotationIndex = count( $annotations[ $action ] ) - 1;
-                            $orderingMap[] = array(
-                                'action' => $action,
-                                'annotationIndex' => $annotationIndex
-                            );
+                            $this->handleParameterizedAction($action, $param, $annotations, $orderingMap);
                         }
 
                     }
                     // Otherwise we only care about the action
                     else
                     {
-                        $this->logger->info("Found '{$action}' action annotation.");
-
-                        $annotations[ $action ] = true;
-
-                        // Append to annotation ordering map
-                        $orderingMap[] = array(
-                            'action' => $action,
-                            'annotationIndex' => 0
-                        );
+                        $this->handleActionAnnotation($action, $annotations, $orderingMap);
                     }
 
                 }
@@ -137,47 +162,60 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
         );
     }
 
-    public function resolveDependenciesForFile($filePath)
-    {
-        return $this->getAnnotationsFromFile( $filePath );
-    }
-
-    public function __construct()
-    {
-        $this->logger = new NullLogger();
-    }
-
-
 
     /**
-     * @var LoggerInterface
-     */
-    public $logger;
-
-
-
-    protected $fileHandler;
-
-    /**
-     * Get the file handler.
+     * Prepare buckets for each accepted annotation token.
      *
-     * @return mixed
+     * @param array $annotations
      */
-    public function getFileHandler()
+    protected function bucketizeAcceptedTokens(array $annotations)
     {
-        return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
+        foreach ($this->acceptedTokens as $acceptedToken) {
+            $annotations[$acceptedToken] = array();
+        }
+        return $annotations;
     }
 
     /**
-     * Set the file handler.
+     * Record an action and parameter
      *
-     * @param $fileHandler
-     * @return File
+     * @param $action
+     * @param $param
+     * @param $annotations
+     * @param $orderingMap
      */
-    public function setFileHandler($fileHandler)
+    protected function handleParameterizedAction($action, $param, &$annotations, &$orderingMap)
     {
-        $this->fileHandler = $fileHandler;
-        return $this;
+        $this->logger->info("Found '{$action}' annotation with param '{$param}'.");
+
+        // Add argument for this action
+        $annotations[$action][] = $param;
+
+        // Append to annotation ordering map
+        $annotationIndex = count($annotations[$action]) - 1;
+        $orderingMap[] = array(
+            'action' => $action,
+            'annotationIndex' => $annotationIndex
+        );
+    }
+
+    /**
+     * Mark an action as present and record it.
+     * @param $action
+     * @param $annotations
+     * @param $orderingMap
+     */
+    protected function handleActionAnnotation($action, &$annotations, &$orderingMap)
+    {
+        $this->logger->info("Found '{$action}' action annotation.");
+
+        $annotations[$action] = true;
+
+        // Append to annotation ordering map
+        $orderingMap[] = array(
+            'action' => $action,
+            'annotationIndex' => 0
+        );
     }
 
 }
