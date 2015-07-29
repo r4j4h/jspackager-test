@@ -155,18 +155,18 @@ class DependencyTreeParser
         $this->arrayTraversalService = new ArrayTraversalService();
         $this->pathFinder = new PathFinder();
 
-        $this->handler = new AnnotationResponseHandler( $this->remoteSymbol );
-        $this->handler->logger = $this->logger;
-        $this->handler->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
-        $this->handler->remoteFolderPath = $this->remoteFolderPath;
+        $this->annotationResponseHandler = new AnnotationResponseHandler( $this->remoteSymbol );
+        $this->annotationResponseHandler->logger = $this->logger;
+        $this->annotationResponseHandler->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
+        $this->annotationResponseHandler->remoteFolderPath = $this->remoteFolderPath;
 
-        $this->handlerMapping = array(
-            'requireRemote'     => array($this->handler, 'doAnnotation_requireRemote' ),
-            'require'           => array($this->handler, 'doAnnotation_require' ),
-            'requireRemoteStyle'=> array($this->handler, 'doAnnotation_requireRemoteStyle' ),
-            'requireStyle'      => array($this->handler, 'doAnnotation_requireStyle' ),
-            'tests'             => array($this->handler, 'doAnnotation_tests' ),
-            'testsRemote'       => array($this->handler, 'doAnnotation_testsRemote' ),
+        $this->annotationResponseHandlerMapping = array(
+            'requireRemote'     => array($this->annotationResponseHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($this->annotationResponseHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($this->annotationResponseHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($this->annotationResponseHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($this->annotationResponseHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($this->annotationResponseHandler, 'doAnnotation_testsRemote' ),
         );
     }
 
@@ -312,7 +312,7 @@ class DependencyTreeParser
             // Read annotations
             $annotationsResponse = $resolver->resolveDependenciesForFile( $filePath );
 
-            $this->translateAnnotationsResponseIntoFile($filePath, $testsSourcePath, $annotationsResponse, $file);
+            $this->translateAnnotationsResponseIntoExistingFile($filePath, $testsSourcePath, $annotationsResponse, $file);
         }
 
         // Store in cache
@@ -323,7 +323,7 @@ class DependencyTreeParser
         return $file;
     }
 
-    protected function translateAnnotationsResponseIntoFile($filePath, $testsSourcePath, $annotationsResponse, &$file) {
+    protected function translateAnnotationsResponseIntoExistingFile($filePath, $testsSourcePath, $annotationsResponse, &$file) {
 
         $annotations = $annotationsResponse['annotations'];
         $orderingMap = $annotationsResponse['orderingMap'];
@@ -347,8 +347,8 @@ class DependencyTreeParser
         }
 
 
-        $this->handler->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
-        $this->handler->remoteFolderPath = $this->remoteFolderPath;
+        $this->annotationResponseHandler->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
+        $this->annotationResponseHandler->remoteFolderPath = $this->remoteFolderPath;
 
         // Go through each required file and see if it has requirements and if so
         // Populate scripts/stylesheets w/ File objects
@@ -358,8 +358,8 @@ class DependencyTreeParser
             $bucketIndex = $orderingMapEntry['annotationIndex'];
             $path = $annotations[ $action ][ $bucketIndex ];
 
-            if ( array_key_exists( $action, $this->handlerMapping ) ) {
-                $handler = $this->handlerMapping[$action];
+            if ( array_key_exists( $action, $this->annotationResponseHandlerMapping ) ) {
+                $handler = $this->annotationResponseHandlerMapping[$action];
                 $this->logger->debug("Found {$action} entry.");
                 $params = new AnnotationHandlerParameters(
                     $filePath, $testsSourcePath, $path, $file, array($this, 'parseFile')
