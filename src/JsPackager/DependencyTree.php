@@ -36,6 +36,12 @@ class DependencyTree
 
 
     /**
+     * @var String
+     */
+    public $remoteSymbol = '@remote';
+
+
+    /**
      * @var LoggerInterface
      */
     public $logger;
@@ -89,7 +95,7 @@ class DependencyTree
      */
     public function createDefaultDependencyTreeParser()
     {
-        $dependencyTreeParser = new DependencyTreeParser();
+        $dependencyTreeParser = new DependencyTreeParser( $this->remoteSymbol, $this->remoteFolderPath, $this->logger );
         $this->configureTreeParser( $dependencyTreeParser );
         $this->dependencyTreeParser = $dependencyTreeParser;
         return $dependencyTreeParser;
@@ -111,8 +117,6 @@ class DependencyTree
      */
     protected function configureTreeParser($treeParser)
     {
-        $treeParser->logger = $this->logger;
-        $treeParser->remoteFolderPath = $this->remoteFolderPath;
         if ( $this->mutingMissingFileExceptions ) {
             $treeParser->muteMissingFileExceptions();
         } else {

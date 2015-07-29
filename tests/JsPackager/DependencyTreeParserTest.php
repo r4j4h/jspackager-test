@@ -3,14 +3,10 @@
 namespace JsPackagerTest;
 
 use JsPackager\Annotations\AnnotationOrderMapping;
-use JsPackager\File;
 use JsPackager\DependencyTreeParser;
-use JsPackager\FileHandler;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Exception\MissingFile as MissingFileException;
-
-use JsPackager\Helpers\Reflection as ReflectionHelper;
 
 /**
  * @group      JsPackager

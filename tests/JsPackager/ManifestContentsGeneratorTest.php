@@ -2,7 +2,6 @@
 
 namespace JsPackagerTest;
 
-use JsPackager\Helpers\Reflection as ReflectionHelper;
 use JsPackager\ManifestContentsGenerator;
 
 /**
@@ -16,14 +15,14 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
      * generateManifestFileContents
      *****************************************************************/
 
-    public function testGenerateManifestFileContentsHandlesNoFiles()
+    public function testGenerateManifestFileContentsHandlesNoFilesGracefully()
     {
-        $compiler = new ManifestContentsGenerator();
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
 
         $stylesheets = array();
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
+        $manifestFileContents = $compiler->generateManifestFileContents( '', $packages, $stylesheets );
 
         $this->assertEquals('', $manifestFileContents, "Manifest should be empty" );
 
@@ -31,7 +30,7 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
 
     public function testGenerateManifestContainingDependentPackages()
     {
-        $compiler = new ManifestContentsGenerator();
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
 
         $stylesheets = array();
         $packages = array(
@@ -44,14 +43,14 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
                 'another/package.compiled.js'
             )) . PHP_EOL;
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
+        $manifestFileContents = $compiler->generateManifestFileContents( '', $packages, $stylesheets );
 
         $this->assertEquals($expectedOutput, $manifestFileContents, "Manifest should have packages" );
     }
 
     public function testGenerateManifestContainingStylesheets()
     {
-        $compiler = new ManifestContentsGenerator();
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
 
         $stylesheets = array(
             'some/stylesheet.css',
@@ -59,13 +58,21 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
         );
         $packages = array();
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
+        $manifestFileContents = $compiler->generateManifestFileContents( '', $packages, $stylesheets );
+
+        $expectedContents = <<<BLOCK
+some/stylesheet.css
+some/modifiers.css
+
+BLOCK;
+
+        $this->assertEquals($expectedContents, $manifestFileContents);
 
     }
 
     public function testGenerateManifestContainingMixture()
     {
-        $compiler = new ManifestContentsGenerator();
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
 
         $stylesheets = array(
             'some/stylesheet.css',
@@ -76,7 +83,7 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
             'another/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets ) );
+        $manifestFileContents = $compiler->generateManifestFileContents( '', $packages, $stylesheets );
 
         $expectedContents = <<<BLOCK
 some/stylesheet.css
@@ -89,9 +96,9 @@ BLOCK;
         $this->assertEquals( $expectedContents, $manifestFileContents );
     }
 
-    public function testGenerateManifestContainingNoCompileFile()
+    public function testGenerateManifestPassesNoCompileFilesThrough()
     {
-        $compiler = new ManifestContentsGenerator();
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
 
         $stylesheets = array(
             'css/my_stylesheet.css'
@@ -104,7 +111,7 @@ BLOCK;
             'some/nocompile/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array( '', $packages, $stylesheets, $filesMarkedNoCompile ) );
+        $manifestFileContents = $compiler->generateManifestFileContents( '', $packages, $stylesheets, $filesMarkedNoCompile );
 
         $expectedContents = <<<BLOCK
 css/my_stylesheet.css
@@ -116,9 +123,9 @@ BLOCK;
         $this->assertEquals( $expectedContents, $manifestFileContents );
     }
 
-    public function testGenerateManifestHandlesBasePath()
+    public function testGenerateManifestConvertsAbsolutePathsToRelativeFromWebRoot()
     {
-        $compiler = new ManifestContentsGenerator();
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
 
         $stylesheets = array(
             '/some/absolute/path/to/websites/website_1/css/my_stylesheet.css'
@@ -131,16 +138,48 @@ BLOCK;
             '/some/absolute/path/to/websites/website_1/some/nocompile/package.js'
         );
 
-        $manifestFileContents = ReflectionHelper::invoke( $compiler, 'generateManifestFileContents', array(
+        $manifestFileContents = $compiler->generateManifestFileContents(
             '/some/absolute/path/to/websites/website_1/',
             $packages,
             $stylesheets,
             $filesMarkedNoCompile
-        ) );
+        );
 
         $expectedContents = <<<BLOCK
 css/my_stylesheet.css
 some/nocompile/package.js
+some/normal/package.compiled.js
+
+BLOCK;
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
+
+    public function testGenerateManifestDoesNotConvertRemoteFilesToRelative()
+    {
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+
+        $stylesheets = array(
+            '@remote/some/absolute/path/to/websites/website_1/css/my_stylesheet.css'
+        );
+        $packages = array(
+            '@remote/some/absolute/path/to/websites/website_1/some/nocompile/package.js',
+            '/some/absolute/path/to/websites/website_1/some/normal/package.js'
+        );
+        $filesMarkedNoCompile = array(
+            '@remote/some/absolute/path/to/websites/website_1/some/nocompile/package.js'
+        );
+
+        $manifestFileContents = $compiler->generateManifestFileContents(
+            '/some/absolute/path/to/websites/website_1/',
+            $packages,
+            $stylesheets,
+            $filesMarkedNoCompile
+        );
+
+        $expectedContents = <<<BLOCK
+@remote/some/absolute/path/to/websites/website_1/css/my_stylesheet.css
+@remote/some/absolute/path/to/websites/website_1/some/nocompile/package.js
 some/normal/package.compiled.js
 
 BLOCK;

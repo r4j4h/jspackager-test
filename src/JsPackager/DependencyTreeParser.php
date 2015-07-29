@@ -28,7 +28,6 @@
 
 namespace JsPackager;
 
-use JsPackager\Annotations\AnnotationOrderMapping;
 use JsPackager\Annotations\AnnotationResponseHandler;
 use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
@@ -43,7 +42,15 @@ use Psr\Log\NullLogger;
 class DependencyTreeParser
 {
 
+    /**
+     * @var string
+     */
     public $remoteFolderPath = 'shared';
+
+    /**
+     * @var string
+     */
+    public $remoteSymbol = '@remote';
 
     /**
      * Definition list of file types that are scanned for annotation tokens
@@ -128,14 +135,26 @@ class DependencyTreeParser
      */
     private $arrayTraversalService;
 
-
-    public function __construct()
+    /**
+     * @param string $remoteSymbol
+     * @param string $remoteFolderPath
+     * @param LoggerInterface [$logger]
+     */
+    public function __construct($remoteSymbol = '@remote', $remoteFolderPath = 'shared', $logger = null)
     {
-        $this->logger = new NullLogger();
+        if ( $logger ) {
+            $this->logger = $logger;
+        } else {
+            $this->logger = new NullLogger();
+        }
+        $this->remoteSymbol = $remoteSymbol;
+        $this->remoteFolderPath = $remoteFolderPath;
+
+
         $this->arrayTraversalService = new ArrayTraversalService();
         $this->pathFinder = new PathFinder();
 
-        $this->handler = new AnnotationResponseHandler();
+        $this->handler = new AnnotationResponseHandler( $this->remoteSymbol );
         $this->handler->logger = $this->logger;
         $this->handler->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
         $this->handler->remoteFolderPath = $this->remoteFolderPath;

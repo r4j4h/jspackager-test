@@ -1,0 +1,9 @@
+$!cashmoney!$foobarbaz$!cashmoney!$/remotepackage/package_subfolder/local_on_remote.css
+$!cashmoney!$foobarbaz$!cashmoney!$/remotepackage/package_subfolder/remote_on_remote.css
+stylesheet_before.css
+local_subfolder/local_subfolder_before.css
+$!cashmoney!$foobarbaz$!cashmoney!$/remotescript/script_subfolder/local_on_remote.css
+$!cashmoney!$foobarbaz$!cashmoney!$/remotescript/script_subfolder/remote_on_remote.css
+local_subfolder/local_subfolder_after.css
+stylesheet_after.css
+$!cashmoney!$foobarbaz$!cashmoney!$/remotepackage/script.compiled.js

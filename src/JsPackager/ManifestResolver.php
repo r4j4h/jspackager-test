@@ -32,8 +32,6 @@ use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Exception;
 use JsPackager\Exception\MissingFile;
 use JsPackager\Exception\Parsing as ParsingException;
-use JsPackager\Exception\MissingFile as MissingFileException;
-use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Helpers\FileTypeRecognizer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -63,19 +61,15 @@ class ManifestResolver
      */
     public $remoteFolderPath = 'shared';
 
-
+    /**
+     * @var string
+     */
+    public $remoteSymbol = '@remote';
 
     /**
      * @var FileHandler
      */
     protected $fileHandler;
-
-    /**
-     * @var Compiler
-     */
-    protected $compiler;
-
-
 
 
     public function __construct()
@@ -112,23 +106,6 @@ class ManifestResolver
     }
 
 
-    public function getCompiler()
-    {
-//        return $this->serviceLocator->get('JsPackager\Compiler');
-        return ( $this->compiler ? $this->compiler : new Compiler() );
-    }
-
-    /**
-     * Set the Compiler.
-     *
-     * @param Compiler $compiler
-     * @return ManifestResolver
-     */
-    public function setCompiler($compiler)
-    {
-        $this->compiler = $compiler;
-        return $this;
-    }
 
     /**
      * Set the file handler.
@@ -224,8 +201,6 @@ class ManifestResolver
         }
 
         $files = array();
-        $compiler = $this->getCompiler();
-        $compiler->remoteFolderPath = $this->remoteFolderPath;
         $fileHandler = $this->getFileHandler();
 
         // Lets try to always trim out the cwd if we can
@@ -321,7 +296,7 @@ class ManifestResolver
             // Strip new line characters
             $line = rtrim( $line, "\r\n" );
 
-            $lineStartsWithRemote = ( strpos($line, '@remote') === 0 );
+            $lineStartsWithRemote = ( strpos($line, $this->remoteSymbol) === 0 );
 
             // Pre-pend current basepath extension
             if ( !$lineStartsWithRemote ) {
@@ -347,8 +322,6 @@ class ManifestResolver
     }
 
 
-
-    public $remoteSymbol = '@remote';
 
     public function replaceRemoteSymbolIfPresent($filePath, $browserRelativePathToRemote = '') {
 

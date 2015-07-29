@@ -3,9 +3,6 @@
 namespace JsPackager;
 
 use JsPackager\Compiler;
-use JsPackager\Exception\MissingFile as MissingFileException;
-
-use JsPackager\Helpers\Reflection as ReflectionHelper;
 
 /**
  * Class CompilerTest

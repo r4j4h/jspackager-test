@@ -27,12 +27,18 @@ class AnnotationResponseHandler
      */
     public $logger;
 
+    /**
+     * @var String
+     */
+    public $remoteSymbol;
 
-    public function __construct()
+
+    public function __construct($remoteSymbol = '@remote')
     {
         $this->logger = new NullLogger();
         $this->arrayTraversalService = new ArrayTraversalService();
         $this->pathFinder = new PathFinder();
+        $this->remoteSymbol = $remoteSymbol;
     }
 
 
@@ -131,7 +137,7 @@ class AnnotationResponseHandler
             $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
             if ( $dependencyFile->isRemote ) {
                 // Reset path from actual to using @remote symbol
-                $dependencyFile->path = '@remote' . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+                $dependencyFile->path = $this->remoteSymbol . '/' . $basePathFromSourceFileWithoutTrailingSlash;
             }
             if ( $this->recursionDepth === 0 && $this->currentlyRecursingInRemoteFile ) {
                 $this->currentlyRecursingInRemoteFile = false;
@@ -210,7 +216,7 @@ class AnnotationResponseHandler
                 // don't prepend recursedPath if it already is the beginning
 
                 $dependencyFile->path = rtrim(
-                    '@remote' . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/'
+                    $this->remoteSymbol . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/'
                 );
 
             }
@@ -273,7 +279,7 @@ class AnnotationResponseHandler
         }
 
         // Reset path from actual to using @remote symbol
-        $htmlPath = '@remote' . '/' . $path;
+        $htmlPath = $this->remoteSymbol . '/' . $path;
 
 
         // Add to stylesheets list
@@ -315,7 +321,7 @@ class AnnotationResponseHandler
             // Reset path from actual to using @remote symbol
             // Reset path from actual to using @remote symbol
             $basePathFromDependents = $this->arrayTraversalService->array_last( $this->recursedPath );
-            $htmlPath = '@remote' . '/' . $basePathFromDependents .'/' . $path;
+            $htmlPath = $this->remoteSymbol . '/' . $basePathFromDependents .'/' . $path;
         }
 
         // Add to stylesheets list
@@ -372,7 +378,7 @@ class AnnotationResponseHandler
                 $basePathFromSourceFile = $this->getBasePathFromFilePathWithoutTrailingSlash($path);
                 // don't prepend recursedPath if it already is the beginning
 
-                $dependencyFile->path = rtrim('@remote' . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/');
+                $dependencyFile->path = rtrim($this->remoteSymbol . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/');
 
             }
         }
@@ -430,7 +436,7 @@ class AnnotationResponseHandler
             $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
             if ( $dependencyFile->isRemote ) {
                 // Reset path from actual to using @remote symbol
-                $dependencyFile->path = '@remote' . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+                $dependencyFile->path = $this->remoteSymbol . '/' . $basePathFromSourceFileWithoutTrailingSlash;
             }
             if ( $this->recursionDepth === 0 && $this->currentlyRecursingInRemoteFile ) {
                 $this->currentlyRecursingInRemoteFile = false;

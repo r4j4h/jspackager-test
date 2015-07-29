@@ -2,15 +2,10 @@
 
 namespace JsPackager;
 
-use JsPackager\File;
-use JsPackager\DependencyTree;
-use JsPackager\FileHandler;
 use JsPackager\Compiler\DependencySet;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Parsing as ParsingException;
-
-use JsPackager\Helpers\Reflection as ReflectionHelper;
 
 /**
  * @group      JsPackager
@@ -312,20 +307,20 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $i = 0;
         $this->assertEquals( $basePath . '/stylesheet_before.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/stylesheet_after.css', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_file_before.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/script.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/script.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_file_after.js', $fileHierarchy[ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $filePath, $fileHierarchy[ $i ], "Given file is last" );
@@ -347,12 +342,12 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $i = 0;
         $this->assertEquals( $basePath . '/local_file_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_file_after.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $filePath, $fileHierarchy['scripts'][ $i ], "Given file is last" );
@@ -362,10 +357,10 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $i = 0;
         $this->assertEquals( $basePath . '/stylesheet_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/stylesheet_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
     }
@@ -385,10 +380,10 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $i = 0;
         $this->assertEquals( $basePath . '/local_file_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
-//        $this->assertEquals( '@remote/remotepackage/script.compiled.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order and points to compiled file" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
+//        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/script.compiled.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order and points to compiled file" );
         $i++;
 
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.js', $fileHierarchy['scripts'][ $i++ ], "getFlatten maintains proper file order" );
@@ -400,10 +395,10 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $i = 0;
         $this->assertEquals( $basePath . '/stylesheet_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_before.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
-        $this->assertEquals( '@remote/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
+        $this->assertEquals( $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/local_subfolder/local_subfolder_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
         $this->assertEquals( $basePath . '/stylesheet_after.css', $fileHierarchy['stylesheets'][ $i++ ], "getFlatten maintains proper file order" );
     }
@@ -639,6 +634,114 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
     /**
      * @throws Exception\Parsing
      */
+    public function testGetDependencySetsHandlesCustomRemoteSymbol()
+    {
+        /**
+         * @var DependencySet $remoteDependencySet
+         * @var DependencySet $localDependencySet
+         */
+
+        $basePath = self::fixturesBasePath . 'remote_annotation-custom-annotation';
+        $mainJsPath = $basePath . '/main.js';
+        $sharedPath = self::fixturesBasePath . 'remote_annotation-remote';
+
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
+        $dependencyTree->remoteSymbol = '$!cashmoney!$foobarbaz$!cashmoney!$'; // or whatever non @remote thing we want to use for testing
+
+        $dependencySets = $dependencyTree->getDependencySets();
+
+        $this->assertEquals(
+            $sharedPath,
+            $dependencyTree->remoteFolderPath,
+            'Should provide a default value to use in place of ' . $dependencyTree->remoteSymbol
+        );
+
+        $this->assertEquals(
+            2,
+            count( $dependencySets ),
+            "Expect 2 packages -- 1 for the file, 1 for the remote package"
+        );
+
+        $remoteDependencySet = $dependencySets[0];
+        $localDependencySet  = $dependencySets[1];
+
+        $this->assertEquals(
+            3,
+            count( $remoteDependencySet->dependencies ),
+            "Remote package has 3 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.js',
+            $remoteDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.js',
+            $remoteDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            $dependencyTree->remoteSymbol . '/remotepackage/script.js',
+            $remoteDependencySet->dependencies[2]
+        );
+
+
+
+        $this->assertEquals(
+            8,
+            count( $localDependencySet->dependencies ),
+            "Local package has 6 dependencies, including itself."
+        );
+
+        $this->assertEquals(
+            1,
+            count( $localDependencySet->packages ),
+            "Local dependency set has 1 package."
+        );
+        $this->assertEquals(
+            $dependencyTree->remoteSymbol . '/remotepackage/script.js',
+            $localDependencySet->packages[0],
+            "Local dependency set's package is the remote package."
+        );
+
+
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-custom-annotation/local_file_before.js',
+            $localDependencySet->dependencies[0]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-custom-annotation/local_subfolder/local_subfolder_before.js',
+            $localDependencySet->dependencies[1]
+        );
+        $this->assertEquals(
+            $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.js',
+            $localDependencySet->dependencies[2]
+        );
+        $this->assertEquals(
+            $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.js',
+            $localDependencySet->dependencies[3]
+        );
+        $this->assertEquals(
+            $dependencyTree->remoteSymbol . '/remotescript/script.js',
+            $localDependencySet->dependencies[4]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-custom-annotation/local_subfolder/local_subfolder_after.js',
+            $localDependencySet->dependencies[5]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-custom-annotation/local_file_after.js',
+            $localDependencySet->dependencies[6]
+        );
+        $this->assertEquals(
+            'tests/JsPackager/fixtures/remote_annotation-custom-annotation/main.js',
+            $localDependencySet->dependencies[7]
+        );
+
+    }
+
+    /**
+     * @throws Exception\Parsing
+     */
     public function testGetDependencySetsHandlesRemoteAnnotations()
     {
         /**
@@ -658,7 +761,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(
             $sharedPath,
             $dependencyTree->remoteFolderPath,
-            'Should provide a default value to use in place of @remote'
+            'Should provide a default value to use in place of ' . $dependencyTree->remoteSymbol
         );
 
         $this->assertEquals(
@@ -677,15 +780,15 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertEquals(
-            '@remote/remotepackage/package_subfolder/local_on_remote.js',
+            $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.js',
             $remoteDependencySet->dependencies[0]
         );
         $this->assertEquals(
-            '@remote/remotepackage/package_subfolder/remote_on_remote.js',
+            $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.js',
             $remoteDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            '@remote/remotepackage/script.js',
+            $dependencyTree->remoteSymbol . '/remotepackage/script.js',
             $remoteDependencySet->dependencies[2]
         );
 
@@ -703,7 +806,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
             "Local dependency set has 1 package."
         );
         $this->assertEquals(
-            '@remote/remotepackage/script.js',
+            $dependencyTree->remoteSymbol . '/remotepackage/script.js',
             $localDependencySet->packages[0],
             "Local dependency set's package is the remote package."
         );
@@ -718,15 +821,15 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
             $localDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            '@remote/remotescript/script_subfolder/local_on_remote.js',
+            $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.js',
             $localDependencySet->dependencies[2]
         );
         $this->assertEquals(
-            '@remote/remotescript/script_subfolder/remote_on_remote.js',
+            $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.js',
             $localDependencySet->dependencies[3]
         );
         $this->assertEquals(
-            '@remote/remotescript/script.js',
+            $dependencyTree->remoteSymbol . '/remotescript/script.js',
             $localDependencySet->dependencies[4]
         );
         $this->assertEquals(

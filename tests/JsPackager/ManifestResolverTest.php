@@ -2,16 +2,7 @@
 
 namespace JsPackagerTest;
 
-use JsPackager\File;
-use JsPackager\DependencyTreeParser;
-use JsPackager\FileHandler;
-use JsPackager\Exception\Parsing as ParsingException;
-use JsPackager\Exception\Recursion as RecursionException;
-use JsPackager\Exception\MissingFile as MissingFileException;
-
-use JsPackager\Helpers\Reflection as ReflectionHelper;
 use JsPackager\ManifestResolver;
-use JsPackager\PathFinder;
 
 /**
  * @group      JsPackager
@@ -414,14 +405,14 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 'basey/tests/JsPackager/fixtures/remote_annotation/main.compiled.js', $paths[$i++] );
 
         $i = 0;
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
-        $this->assertStringStartsNotWith('@remote', $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
+        $this->assertStringStartsNotWith($manifestResolver->remoteSymbol, $paths[$i++]);
 
     }
 

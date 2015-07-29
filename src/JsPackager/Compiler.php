@@ -10,6 +10,7 @@
 
 namespace JsPackager;
 
+use JsPackager\Annotations\RemoteAnnotationStringService;
 use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Compiler\CompiledFile;
 use JsPackager\Compiler\CompilerInterface;
@@ -64,13 +65,6 @@ class Compiler implements CompilerInterface
         $this->rollingPathsMarkedNoCompile = array();
     }
 
-    public function expandOutRemoteAnnotation($string) {
-        return str_replace( $this->remoteSymbol, $this->remoteFolderPath, $string );
-    }
-
-    public function stringContainsRemoteAnnotation($string) {
-        return ( strpos($string, $this->remoteSymbol) !== FALSE );
-    }
 
     /**
      * @param String $filePath
@@ -99,9 +93,14 @@ class Compiler implements CompilerInterface
 
         $totalDependencies = count( $dependencySet->dependencies );
 
+        $remoteSymbolStringTransfer = new RemoteAnnotationStringService(
+            $this->remoteSymbol,
+            $this->remoteFolderPath
+        );
+
         // Expand out any @remote annotations
         foreach( $dependencySet->dependencies as $idx => $dependency ) {
-            $dependencySet->dependencies[$idx] = $this->expandOutRemoteAnnotation( $dependency );
+            $dependencySet->dependencies[$idx] = $remoteSymbolStringTransfer->expandOutRemoteAnnotation( $dependency );
         }
 
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
@@ -399,7 +398,7 @@ class Compiler implements CompilerInterface
      */
     private function getManifestContentsGenerator()
     {
-        $manifestContentsGenerator = new ManifestContentsGenerator();
+        $manifestContentsGenerator = new ManifestContentsGenerator($this->remoteSymbol, $this->remoteFolderPath);
         $manifestContentsGenerator->logger = $this->logger;
         return $manifestContentsGenerator;
     }

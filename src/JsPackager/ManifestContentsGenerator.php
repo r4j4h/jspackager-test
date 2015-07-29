@@ -1,6 +1,7 @@
 <?php
 namespace JsPackager;
 
+use JsPackager\Annotations\RemoteAnnotationStringService;
 use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
@@ -16,13 +17,31 @@ class ManifestContentsGenerator
      */
     public $logger;
 
-    public function __construct()
+    /**
+     * Remote Folder Path represented by remoteSymbol
+     *
+     * @var string
+     */
+    public $remoteFolderPath = 'shared';
+
+    /**
+     * Symbol used to represent remote folders.
+     *
+     * @var string
+     */
+    public $remoteSymbol = '@shared';
+
+    /**
+     * @param string $remoteSymbol Symbol used to represent remote folders.
+     * @param string $remoteFolderPath Remote Folder Path represented by remoteSymbol
+     */
+    public function __construct($remoteSymbol, $remoteFolderPath)
     {
         $this->logger = new NullLogger();
+        $this->remoteSymbol = $remoteSymbol;
+        $this->remoteFolderPath = $remoteFolderPath;
     }
 
-
-    protected $remoteSymbol = '@remote';
 
     /**
      * Convert a given filename to its compiled equivalent
@@ -35,10 +54,6 @@ class ManifestContentsGenerator
         return preg_replace('/.js$/', '.' . Constants::COMPILED_SUFFIX . '.js', $filename);
     }
 
-
-    protected function stringContainsRemoteAnnotation($string) {
-        return ( strpos($string, $this->remoteSymbol) !== FALSE );
-    }
 
     /**
      * Take an array of stylesheet file paths and package file paths and generate a manifest file from them.
@@ -100,7 +115,11 @@ class ManifestContentsGenerator
 
     private function calculateRelativePathingForStylesheet($stylesheetPath, $basePath, PathFinder $pathFinder) {
 
-        $pathUsesRemote = $this->stringContainsRemoteAnnotation( $stylesheetPath );
+        $remoteAnnotationStringService = new RemoteAnnotationStringService(
+            $this->remoteSymbol,
+            $this->remoteFolderPath
+        );
+        $pathUsesRemote = $remoteAnnotationStringService->stringContainsRemoteAnnotation( $stylesheetPath );
 
         if ( !$pathUsesRemote )
         {
@@ -147,7 +166,11 @@ class ManifestContentsGenerator
         }
 
 
-        $pathUsesRemote = $this->stringContainsRemoteAnnotation( $packagePath );
+        $remoteAnnotationStringService = new RemoteAnnotationStringService(
+            $this->remoteSymbol,
+            $this->remoteFolderPath
+        );
+        $pathUsesRemote = $remoteAnnotationStringService->stringContainsRemoteAnnotation( $packagePath );
 
         if ( !$pathUsesRemote )
         {
