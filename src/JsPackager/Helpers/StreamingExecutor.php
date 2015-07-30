@@ -54,7 +54,7 @@ class StreamingExecutor
                     fclose($pipes[1]);
                     $read_output = false;
                 } else {
-                    $str = fgets($pipes[1], 1024);
+                    $str = fgets($pipes[1], 4096);
                     $len = strlen($str);
                     if ($len) {
                         $stdout .= $str;
@@ -68,7 +68,7 @@ class StreamingExecutor
                     fclose($pipes[2]);
                     $read_error = false;
                 } else {
-                    $str = fgets($pipes[2], 1024);
+                    $str = fgets($pipes[2], 4096);
                     $len = strlen($str);
                     if ($len) {
                         $stderr .= $str;
