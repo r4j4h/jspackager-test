@@ -7,7 +7,7 @@ use JsPackager\File;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-class FileFlatteningToDependencySetsService
+class FileToDependencySetsService
 {
 
     /**

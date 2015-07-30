@@ -10,10 +10,9 @@
 
 namespace JsPackager;
 
-
 use JsPackager\Annotations\AnnotationOrderMapping;
-use JsPackager\Annotations\AnnotationsFlatteningService;
-use JsPackager\Annotations\FileFlatteningToDependencySetsService;
+use JsPackager\Annotations\AnnotationsToAssocArraysService;
+use JsPackager\Annotations\FileToDependencySetsService;
 use JsPackager\Compiler\DependencySet;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -154,11 +153,17 @@ class DependencyTree
      */
     public function flattenDependencyTree( $respectRootPackages = false )
     {
+        /**
+         * @var File $thisTree
+         */
         $thisTree = $this->getTree();
+        if ( !$thisTree ) {
+            throw new \Exception('No File returned!');
+        }
 
-        $flattener = new AnnotationsFlatteningService( $this->logger );
+        $annotationsToAssocArraysService = new AnnotationsToAssocArraysService( $this->logger );
 
-        $flattenedFile = $flattener->flattenFileToAssocArray( $thisTree, $respectRootPackages );
+        $flattenedFile = $annotationsToAssocArraysService->flattenFileToAssocArray( $thisTree, $respectRootPackages );
 
         // Combine stylesheets and then scripts for proper dependency ordering
         $flattenedTree = array_merge_recursive( $flattenedFile['stylesheets'], $flattenedFile['scripts'] );
@@ -179,9 +184,9 @@ class DependencyTree
     {
         $thisTree = $this->getTree();
 
-        $flattener = new AnnotationsFlatteningService( $this->logger );
+        $annotationsToAssocArraysService = new AnnotationsToAssocArraysService( $this->logger );
 
-        $flattenedFile = $flattener->flattenFileToAssocArray( $thisTree, $respectRootPackages );
+        $flattenedFile = $annotationsToAssocArraysService->flattenFileToAssocArray( $thisTree, $respectRootPackages );
 
         // This is faster than array_unique and doesn't cause gaps in array keys
         $flattenedFile['stylesheets'] = array_merge(array_keys(array_flip($flattenedFile['stylesheets'])));
@@ -215,7 +220,7 @@ class DependencyTree
         //  The main file is the file passed to this function
         $thisTree = $this->getTree();
 
-        $service = new FileFlatteningToDependencySetsService( $this->logger );
+        $service = new FileToDependencySetsService( $this->logger );
 
         $uniquePackages = $service->getDependencySets( $thisTree );
 

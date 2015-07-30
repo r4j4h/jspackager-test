@@ -6,7 +6,11 @@ use JsPackager\File;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-class AnnotationsFlatteningService {
+/**
+ * Class AnnotationsToAssocArraysService parses a File's metadata for annotation data to flatten it into an array of FileReps
+ * @package JsPackager\Annotations
+ */
+class AnnotationsToAssocArraysService {
 
     /**
      * @var LoggerInterface

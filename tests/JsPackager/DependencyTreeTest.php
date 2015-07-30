@@ -33,6 +33,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $dependencyTree = new DependencyTree( $filePath );
 
         $fileHierarchy = $dependencyTree->getTree();
+        $this->assertInstanceOf( 'JsPackager\File', $fileHierarchy );
 
         $this->assertEquals( 'main', $fileHierarchy->filename );
         $this->assertEquals( 'js', $fileHierarchy->filetype );
