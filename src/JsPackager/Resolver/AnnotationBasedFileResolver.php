@@ -2,8 +2,11 @@
 
 namespace JsPackager\Resolver;
 
+use JsPackager\Annotations\AnnotationHandlerParameters;
+use JsPackager\Annotations\AnnotationResponseHandler;
 use JsPackager\File;
 use JsPackager\FileHandler;
+use JsPackager\ResolverContext;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -18,44 +21,30 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
 
 
     /**
-     * Definition list of allowed annotation tokens
-     * @var array
-     */
-    public $acceptedTokens = array(
-        'require',
-        'requireRemote',
-        'requireStyle',
-        'requireRemoteStyle',
-        'root',
-        'nocompile',
-        'tests',
-        'testsRemote'
-    );
-
-
-    /**
      * @var LoggerInterface
      */
-    public $logger;
+    protected $logger;
 
-
-    protected $fileHandler;
-
-
-    public function __construct($logger = null)
+    /**
+     * @return LoggerInterface
+     */
+    public function getLogger()
     {
-        if ( $logger instanceof LoggerInterface ) {
-            $this->logger = $logger;
-        } else {
-            $this->logger = new NullLogger();
+        return $this->logger;
+    }
+
+    /**
+     * @param LoggerInterface $logger
+     */
+    public function setLogger($logger)
+    {
+        $this->logger = $logger;
+        if ( isset( $this->annotationResponseHandler ) ) {
+            $this->annotationResponseHandler->logger = $this->logger;
         }
     }
 
-    public function resolveDependenciesForFile($filePath)
-    {
-        return $this->getAnnotationsFromFile( $filePath );
-    }
-
+    protected $fileHandler;
 
     /**
      * Get the file handler.
@@ -78,6 +67,80 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
         $this->fileHandler = $fileHandler;
         return $this;
     }
+
+    public function __construct($logger = null)
+    {
+        if ( $logger instanceof LoggerInterface ) {
+            $this->logger = $logger;
+        } else {
+            $this->logger = new NullLogger();
+        }
+
+        $this->annotationResponseHandler = new AnnotationResponseHandler();
+        $this->annotationResponseHandler->logger = $this->logger;
+
+        $this->annotationResponseHandlerMapping = array(
+            'requireRemote'     => array($this->annotationResponseHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($this->annotationResponseHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($this->annotationResponseHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($this->annotationResponseHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($this->annotationResponseHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($this->annotationResponseHandler, 'doAnnotation_testsRemote' ),
+            'root'              => array($this->annotationResponseHandler, 'doAnnotation_root' ),
+            'nocompile'         => array($this->annotationResponseHandler, 'doAnnotation_noCompile' )
+        );
+
+    }
+
+    /**
+     * @param File $file
+     * @return File
+     */
+    public function resolveDependenciesForFile(File $file, ResolverContext $context)
+    {
+
+        $annotationMapping = $this->getAnnotationsFromFile( $file->getFullPath() );
+        return $this->translateMappingIntoExistingFile( $annotationMapping, $file, $context );
+    }
+
+    /**
+     * @param $annotationsResponse
+     * @param File $file
+     * @return File
+     */
+    protected function translateMappingIntoExistingFile($annotationsResponse, File $file, ResolverContext $context) {
+
+        $this->annotationResponseHandler->mutingMissingFileExceptions = $context->mutingMissingFileExceptions;
+        $this->annotationResponseHandler->remoteFolderPath = $context->remoteFolderPath;
+        $this->annotationResponseHandler->remoteSymbol = $context->remoteSymbol;
+
+        $filePath = $file->getFullPath();
+        $annotations = $annotationsResponse['annotations'];
+        $orderingMap = $annotationsResponse['orderingMap'];
+
+        // Go through each required file and see if it has requirements and if so
+        // Populate scripts/stylesheets w/ File objects
+        foreach ( $orderingMap as $orderingMapEntry )
+        {
+            $action = $orderingMapEntry['action'];
+            $bucketIndex = $orderingMapEntry['annotationIndex'];
+            $path = $annotations[ $action ][ $bucketIndex ];
+
+            if ( array_key_exists( $action, $this->annotationResponseHandlerMapping ) ) {
+                $handler = $this->annotationResponseHandlerMapping[$action];
+                $this->logger->debug("Found {$action} entry.");
+                $params = new AnnotationHandlerParameters(
+                    $filePath, $context->testsSourcePath, $path, $file, $context->recursionCb
+                );
+                call_user_func($handler, $params);
+            }
+
+        }
+
+        return $file;
+    }
+
+
 
 
     /**
@@ -119,12 +182,13 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
                     $action = $matches[1];
 
                     // Skip if its not a defined token
-                    if ( !in_array( $action, $this->acceptedTokens ) )
+                    if ( !array_key_exists( $action, $this->annotationResponseHandlerMapping ) )
                     {
-                        $this->logger->debug("Found {$action} but it was not in acceptedTokens array.");
+                        $this->logger->debug(
+                            "Found potential annotation '{$action}' but it was not mapped in acceptedTokens array."
+                        );
                         continue;
                     }
-
                     // If it has params, split them
                     if ( $matchCount > 2 && $matches[2] !== "" )
                     {
@@ -170,7 +234,8 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
      */
     protected function bucketizeAcceptedTokens(array $annotations)
     {
-        foreach ($this->acceptedTokens as $acceptedToken) {
+
+        foreach ($this->annotationResponseHandlerMapping as $acceptedToken => $handler) {
             $annotations[$acceptedToken] = array();
         }
         return $annotations;
@@ -217,5 +282,7 @@ class AnnotationBasedFileResolver implements FileResolverInterface {
             'annotationIndex' => 0
         );
     }
+
+
 
 }

@@ -2,7 +2,11 @@
 
 namespace JsPackagerTest;
 
+use JsPackager\Annotations\AnnotationHandlerParameters;
+use JsPackager\File;
+use JsPackager\Helpers\Reflection;
 use JsPackager\Resolver\AnnotationBasedFileResolver;
+use JsPackager\ResolverContext;
 
 /**
  * @group      JsPackager
@@ -12,10 +16,11 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
     // Tests are run from project root
     const fixturesBasePath = 'tests/JsPackager/fixtures/';
 
+
+
     /******************************************************************
      * getAnnotationsFromFile
      *****************************************************************/
-
 
     /**
      * @return \JsPackager\FileHandler
@@ -50,9 +55,9 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
             ->method('fclose')
             ->will($this->returnValue(true));
 
-        $resolver->setFileHandler( $mockedFileHandler );
+         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $this->assertArrayHasKey('annotations', $annotationResponse);
         $this->assertArrayHasKey('orderingMap', $annotationResponse);
         $this->assertEmpty( $annotationResponse['orderingMap'] );
@@ -110,7 +115,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertContains( 'bla.js', $annotations['require'] );
@@ -156,7 +161,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertEmpty( $annotations['require'] );
@@ -203,7 +208,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertEmpty( $annotations['require'] );
@@ -247,7 +252,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertEmpty( $annotations['require'] );
@@ -288,7 +293,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertTrue( $annotations['root'] );
@@ -329,7 +334,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertEmpty( $annotations['require'] );
@@ -373,7 +378,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertTrue( $annotations['nocompile'] );
@@ -419,7 +424,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertContains( 'bob.js', $annotations['require'] );
@@ -473,7 +478,7 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
         $resolver->setFileHandler( $mockedFileHandler );
 
-        $annotationResponse = $resolver->resolveDependenciesForFile( 'mocked' );
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
         $annotations = $annotationResponse['annotations'];
 
         $this->assertContains( 'bob.js', $annotations['require'] );
@@ -505,6 +510,246 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 0, $annotationOrderingMap[6]['annotationIndex'], "Should reflect appropriate order" );
         $this->assertEquals( 'requireStyle', $annotationOrderingMap[7]['action'], "Should reflect appropriate bucket" );
         $this->assertEquals( 1, $annotationOrderingMap[7]['annotationIndex'], "Should reflect appropriate order" );
+    }
+
+    public function testGetAnnotationsOnlyUsesMappedAnnotations()
+    {
+        $lineA = "window.wpt = window.wpt || {};";
+        $lineB = "// @root ";
+        $lineC = "// /!#5/ttgeag   @require   bob.js billy.js  ";
+        $lineD = "// @requireRemote common.js   rare.js";
+        $lineE = "// @root "; // For testing ordering map
+        $lineF = "// @requireStyle beautiful.css rawr.css ";
+        $lineG = "// Some comment";
+        $resolver = new AnnotationBasedFileResolver();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls($lineA, $lineB, $lineC, $lineD, $lineE, $lineF, $lineG, false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        $resolver->setFileHandler( $mockedFileHandler );
+
+        $resolver->annotationResponseHandlerMapping = array(
+            'bogus' => function() {},
+            'requireStyle' => function() {}
+        );
+
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
+        $annotations = $annotationResponse['annotations'];
+
+        $this->assertArrayHasKey( 'bogus', $annotations );
+        $this->assertArrayNotHasKey( 'root', $annotations );
+        $this->assertArrayHasKey( 'requireStyle', $annotations );
+        $this->assertEquals( 2, count( $annotations['requireStyle'] ), "Should detect the two requireStyle references" );
+        $this->assertArrayNotHasKey( 'require', $annotations );
+    }
+
+    public function testGetAnnotationsOnlyUsesMappedAnnotations2()
+    {
+        $lineA = "window.wpt = window.wpt || {};";
+        $lineB = "// @root ";
+        $lineC = "// /!#5/ttgeag   @require   bob.js billy.js  ";
+        $lineD = "// @requireRemote common.js   rare.js";
+        $lineE = "// @root "; // For testing ordering map
+        $lineF = "// @requireStyle beautiful.css rawr.css ";
+        $lineG = "// Some comment";
+        $resolver = new AnnotationBasedFileResolver();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls($lineA, $lineB, $lineC, $lineD, $lineE, $lineF, $lineG, false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        $resolver->setFileHandler( $mockedFileHandler );
+
+        $resolver->annotationResponseHandlerMapping = array(
+            'bogus' => function() {},
+            'root' => function() {}
+        );
+
+        $annotationResponse = Reflection::invoke( $resolver, 'getAnnotationsFromFile', array( 'mocked' ) );
+        $annotations = $annotationResponse['annotations'];
+
+        $this->assertArrayHasKey( 'bogus', $annotations );
+        $this->assertArrayHasKey( 'root', $annotations );
+        $this->assertArrayNotHasKey( 'requireStyle', $annotations );
+        $this->assertArrayNotHasKey( 'require', $annotations );
+    }
+
+    /******************************************************************
+     * translateMappingIntoExistingFile
+     *****************************************************************/
+
+    public function testTranslateMappingUsesMappedAnnotations()
+    {
+        $resolver = new AnnotationBasedFileResolver();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls('fake file contents @bogus', false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        $fileMock = $this->getMock('JsPackager\File', array('getFullPath'), array('mocked', false, $mockedFileHandler));
+        $fileMock->expects($this->any())
+            ->method('getFullPath')
+            ->will($this->returnValue('mocked'));
+
+        $resolver->setFileHandler( $mockedFileHandler );
+
+        $resolver->annotationResponseHandlerMapping = array(
+            'bogus' => function(AnnotationHandlerParameters $params) { $params->file->bogus = true; }
+        );
+
+        $annotationResponse = array(
+            'annotations' => array(
+                'bogus' => true,
+                'riffraff' => 'skip me'
+            ),
+            'orderingMap' => array(
+                array(
+                    'action' => 'bogus',
+                    'annotationIndex' => 0
+                ),
+                array(
+                    'action' => 'riffraff',
+                    'annotationIndex' => 0
+                )
+            )
+        );
+
+        $context = new ResolverContext();
+
+        $annotationResponse = Reflection::invoke( $resolver, 'translateMappingIntoExistingFile', array( $annotationResponse, $fileMock, $context ) );
+        $this->assertEquals(true, $annotationResponse->bogus);
+    }
+
+    public function testTranslateMappingToFileMarksRoots()
+    {
+        $resolver = new AnnotationBasedFileResolver();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls('fake file contents', false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        /**
+         * @var File $fileMock
+         */
+        $fileMock = $this->getMock('JsPackager\File', array('getFullPath'), array('mocked', false, $mockedFileHandler));
+        $fileMock->expects($this->any())
+            ->method('getFullPath')
+            ->will($this->returnValue('mocked'));
+
+        $resolver->setFileHandler( $mockedFileHandler );
+
+
+        $annotationResponse = array(
+            'annotations' => array(
+                'root' => true
+            ),
+            'orderingMap' => array(
+                array(
+                    'action' => 'root',
+                    'annotationIndex' => 0
+                )
+            )
+        );
+
+        $context = new ResolverContext();
+
+        $this->assertEquals( $fileMock->isRoot, false );
+
+        $annotationResponse = Reflection::invoke( $resolver, 'translateMappingIntoExistingFile', array( $annotationResponse, $fileMock, $context ) );
+
+        $this->assertEquals( $fileMock->isRoot, true );
+
+    }
+    public function testTranslateMappingToFileMarksNoCompile()
+    {
+
+        $resolver = new AnnotationBasedFileResolver();
+
+        $mockedFileHandler = $this->getMockedFileHandler();
+        $mockedFileHandler->expects($this->any())
+            ->method('is_file')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fopen')
+            ->will($this->returnValue(true));
+        $mockedFileHandler->expects($this->any())
+            ->method('fgets')
+            ->will($this->onConsecutiveCalls('fake file contents', false));
+        $mockedFileHandler->expects($this->any())
+            ->method('fclose')
+            ->will($this->returnValue(true));
+
+        /**
+         * @var File $fileMock
+         */
+        $fileMock = $this->getMock('JsPackager\File', array('getFullPath'), array('mocked', false, $mockedFileHandler));
+        $fileMock->expects($this->any())
+            ->method('getFullPath')
+            ->will($this->returnValue('mocked'));
+
+        $resolver->setFileHandler( $mockedFileHandler );
+
+
+        $annotationResponse = array(
+            'annotations' => array(
+                'nocompile' => true
+            ),
+            'orderingMap' => array(
+                array(
+                    'action' => 'nocompile',
+                    'annotationIndex' => 0
+                )
+            )
+        );
+
+        $context = new ResolverContext();
+
+        $this->assertEquals( $fileMock->isMarkedNoCompile, false );
+
+        $annotationResponse = Reflection::invoke( $resolver, 'translateMappingIntoExistingFile', array( $annotationResponse, $fileMock, $context ) );
+
+        $this->assertEquals( $fileMock->isMarkedNoCompile, true );
     }
 
 }

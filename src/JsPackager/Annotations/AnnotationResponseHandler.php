@@ -5,6 +5,7 @@ use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
+use JsPackager\File;
 use JsPackager\FileHandler;
 use JsPackager\Helpers\ArrayTraversalService;
 use JsPackager\PathFinder;
@@ -23,7 +24,7 @@ class AnnotationHandlerParameters
     public function __construct($filePath,
                                 $testsSourcePath,
                                 $path,
-                                &$file,
+                                File &$file,
                                 $recursionCb) {
         $this->filePath = $filePath;
         $this->testsSourcePath = $testsSourcePath;
@@ -131,11 +132,30 @@ class AnnotationResponseHandler
     }
 
 
+    public function doAnnotation_root(AnnotationHandlerParameters $params)
+    {
+        // This is considered parameterless so if params came through ignore it as it is likely a misread.
+        if ( $params->path ) {
+            return;
+        }
+
+        $params->file->isRoot = true;
+    }
+
+    public function doAnnotation_noCompile(AnnotationHandlerParameters $params)
+    {
+        // This is considered parameterless so if params came through ignore it as it is likely a misread.
+        if ( $params->path ) {
+            return;
+        }
+
+        $params->file->isMarkedNoCompile = true;
+    }
+
     public function doAnnotation_requireRemote(AnnotationHandlerParameters $params)
     {
         // need to load actual file
         // but store @remote/
-
         // Alter path to remote files' root
         $remotePath = $this->remoteFolderPath;
 

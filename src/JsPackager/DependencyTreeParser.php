@@ -28,8 +28,6 @@
 
 namespace JsPackager;
 
-use JsPackager\Annotations\AnnotationHandlerParameters;
-use JsPackager\Annotations\AnnotationResponseHandler;
 use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
@@ -39,6 +37,7 @@ use JsPackager\Resolver\AnnotationBasedFileResolver;
 use JsPackager\Resolver\FileResolverInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+
 
 class DependencyTreeParser
 {
@@ -108,8 +107,7 @@ class DependencyTreeParser
      */
     public function createDefaultResolver()
     {
-        $resolver = new AnnotationBasedFileResolver();
-        $resolver->logger = $this->logger;
+        $resolver = new AnnotationBasedFileResolver($this->logger);
         $resolver->setFileHandler( $this->getFileHandler() );
         $this->setResolver( $resolver );
         return $resolver;
@@ -154,20 +152,6 @@ class DependencyTreeParser
 
         $this->arrayTraversalService = new ArrayTraversalService();
         $this->pathFinder = new PathFinder();
-
-        $this->annotationResponseHandler = new AnnotationResponseHandler( $this->remoteSymbol );
-        $this->annotationResponseHandler->logger = $this->logger;
-        $this->annotationResponseHandler->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
-        $this->annotationResponseHandler->remoteFolderPath = $this->remoteFolderPath;
-
-        $this->annotationResponseHandlerMapping = array(
-            'requireRemote'     => array($this->annotationResponseHandler, 'doAnnotation_requireRemote' ),
-            'require'           => array($this->annotationResponseHandler, 'doAnnotation_require' ),
-            'requireRemoteStyle'=> array($this->annotationResponseHandler, 'doAnnotation_requireRemoteStyle' ),
-            'requireStyle'      => array($this->annotationResponseHandler, 'doAnnotation_requireStyle' ),
-            'tests'             => array($this->annotationResponseHandler, 'doAnnotation_tests' ),
-            'testsRemote'       => array($this->annotationResponseHandler, 'doAnnotation_testsRemote' ),
-        );
     }
 
 
@@ -276,12 +260,21 @@ class DependencyTreeParser
             throw $e;
         }
 
+        $context = new ResolverContext();
+
+        $context->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
+        $context->remoteFolderPath = $this->remoteFolderPath;
+        $context->remoteSymbol = $this->remoteSymbol;
+        $context->recursionCb = array($this, 'parseFile');
+
         if ( !$testsSourcePath )
         {
             // Default test's Source path to be the same folder as the given file if it was not provided
             // which restores the original behavior
             $this->logger->info("testsSourcePath not provided, so defaulting it to file's path ('" . $file->path . "').");
-            $testsSourcePath = $file->path;
+            $context->testsSourcePath = $file->path;
+        } else {
+            $context->testsSourcePath = $testsSourcePath;
         }
 
         // Build identifier
@@ -308,11 +301,13 @@ class DependencyTreeParser
 
         if ( in_array( $file->filetype, $this->filetypesAllowingAnnotations) )
         {
+            // Mark as seen
+            $this->logger->debug("Marking {$filePath} as seen.");
+            $this->seenFiles[] = $filePath;
+
             $this->logger->debug("Reading annotations in {$filePath}");
             // Read annotations
-            $annotationsResponse = $resolver->resolveDependenciesForFile( $filePath );
-
-            $this->translateAnnotationsResponseIntoExistingFile($filePath, $testsSourcePath, $annotationsResponse, $file);
+            $file = $resolver->resolveDependenciesForFile( $file, $context );
         }
 
         // Store in cache
@@ -323,54 +318,6 @@ class DependencyTreeParser
         return $file;
     }
 
-    protected function translateAnnotationsResponseIntoExistingFile($filePath, $testsSourcePath, $annotationsResponse, &$file) {
-
-        $annotations = $annotationsResponse['annotations'];
-        $orderingMap = $annotationsResponse['orderingMap'];
-
-        // Mark as seen
-        $this->logger->debug("Marking {$filePath} as seen.");
-        $this->seenFiles[] = $filePath;
-
-        // Mark isRoot
-        if ( $annotations['root'] === true )
-        {
-            $this->logger->debug("Marking {$filePath} as root.");
-            $file->isRoot = true;
-        }
-
-        // Mark isMarkedNoCompile
-        if ( $annotations['nocompile'] === true )
-        {
-            $this->logger->debug("Marking {$filePath} as nocompile.");
-            $file->isMarkedNoCompile = true;
-        }
-
-
-        $this->annotationResponseHandler->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
-        $this->annotationResponseHandler->remoteFolderPath = $this->remoteFolderPath;
-
-        // Go through each required file and see if it has requirements and if so
-        // Populate scripts/stylesheets w/ File objects
-        foreach ( $orderingMap as $orderingMapEntry )
-        {
-            $action = $orderingMapEntry['action'];
-            $bucketIndex = $orderingMapEntry['annotationIndex'];
-            $path = $annotations[ $action ][ $bucketIndex ];
-
-            if ( array_key_exists( $action, $this->annotationResponseHandlerMapping ) ) {
-                $handler = $this->annotationResponseHandlerMapping[$action];
-                $this->logger->debug("Found {$action} entry.");
-                $params = new AnnotationHandlerParameters(
-                    $filePath, $testsSourcePath, $path, $file, array($this, 'parseFile')
-                );
-                call_user_func($handler, $params);
-            }
-
-        }
-
-        return $file;
-    }
 
 
 
