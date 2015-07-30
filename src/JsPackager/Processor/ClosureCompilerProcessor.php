@@ -52,9 +52,42 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
     const GCC_API_OUTPUT_FORMAT = 'json';
     const GCC_API_COMPILER_URL  = 'http://closure-compiler.appspot.com/compile';
 
-    const GCC_JAR_PATH = 'bin/google/closure_compiler';
-    const GCC_JAR_FILENAME = 'compiler.jar';
+    /**
+     * Path to Java
+     * @var string
+     */
+    public $javaPath = '/usr/bin/java';
 
+    /**
+     * Path to google closure compiler
+     * @var string
+     */
+    public $gccJarPath = 'bin/google/closure_compiler';
+
+    /**
+     * Filename of google closure compiler .jar
+     * @var string
+     */
+    public $gccJarFilename = 'compiler.jar';
+
+
+    /**
+     * @param array $fileList
+     * @return ProcessingResult
+     * @throws \Exception
+     */
+    public function compileFileListUsingClosureCompilerJar($fileList)
+    {
+        // Prepare command
+        $command = $this->generateClosureCompilerCommandString( $fileList );
+
+        list($stdout, $stderr, $returnCode, $successful) = $this->executeClosureCompilerCommand($command);
+
+        $processingResult = $this->handleClosureCompilerOutput($stdout, $stderr, $returnCode, $successful);
+
+        return $processingResult;
+
+    }
 
     /**
      * Generate command line arguments for Google Closure Compiler
@@ -65,10 +98,10 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
     protected function generateClosureCompilerCommandString($fileList)
     {
         $pathStart = dirname( dirname( dirname( dirname(__FILE__) ) ) );
-        $compilerPath = $pathStart . '/' . self::GCC_JAR_PATH . '/' . self::GCC_JAR_FILENAME;
+        $compilerPath = $pathStart . '/' . $this->gccJarPath. '/' . $this->gccJarFilename;
 
         // Prepare command
-        $command = '/usr/bin/java -jar "' . $compilerPath . '" ';
+        $command = $this->javaPath . ' -jar "' . $compilerPath . '" ';
         foreach( $fileList as $file )
         {
             $command .= "--js \"${file}\" ";
@@ -89,15 +122,13 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
 
 
     /**
-     * @param array $fileList
-     * @return ProcessingResult
+     * @param $command
+     * @param $pipes
+     * @return array
      * @throws \Exception
      */
-    public function compileFileListUsingClosureCompilerJar($fileList)
+    protected function executeClosureCompilerCommand($command)
     {
-        // Prepare command
-        $command = $this->generateClosureCompilerCommandString( $fileList );
-
         // Prepare process pipe file pointers
         $descriptorSpec = array(
             0 => array("pipe", "r"), // stdin
@@ -106,34 +137,44 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
         );
 
         // Open process
-        $process = proc_open( $command, $descriptorSpec, $pipes, null, null );
-        if ( $process === FALSE )
-        {
+        $process = proc_open($command, $descriptorSpec, $pipes, null, null);
+        if ($process === FALSE) {
             throw new \Exception('Unable to open java to run the Closure Compiler .jar');
         }
 
         // Execute process
         list($stdout, $stderr, $returnCode, $successful) = StreamingExecutor::streaming_exec($pipes, $process);
+        return array($stdout, $stderr, $returnCode, $successful);
+    }
 
-        // Handle results:
+    protected function handleClosureCompilerOutput($stdout, $stderr, $returnCode, $successful)
+    {
+        $errorCount = 0;
+        $warningCount = 0;
 
-        // - With Google Closure Compiler the return code indicates the # of errors so lets grab that
-        $numberOfErrors = $returnCode;
-        if ( $numberOfErrors > 0 ) {
-            assert( $successful === false );
+        // Google Closure Compiler prints a error/warning count through stderr, so lets grab from that
+        $errorLines = explode("\n", $stderr); // Break by newlines
+        $numErrorLines = count($errorLines);
+        if ( $numErrorLines > 1 ) {
+            $lastErrorLine = $errorLines[count($errorLines) - 2]; // Last last line is a newline so we want line before
+            $fragments = explode(", ", $lastErrorLine);
+            sscanf($fragments[0], '%d error', $errorCount);
+            sscanf($fragments[1], '%d warning', $warningCount);
+
+            if ($errorCount > 0) {
+                $successful = false;
+            }
         }
-        // - and Restore return code to typical meaning which is 0 for ok and 1 for problem
-        $returnCode = (int)(!$successful);
 
         return new ProcessingResult(
             $successful,
             $returnCode,
             $stdout,
             $stderr,
-            $numberOfErrors
+            $errorCount
         );
-    }
 
+    }
 
     protected function compileFileContentsUsingClosureCompilerApi($fileContents)
     {
@@ -195,6 +236,7 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
             return $response->compiledCode;
         }
     }
+
 
 
 }
