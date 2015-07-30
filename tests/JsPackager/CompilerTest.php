@@ -19,7 +19,6 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
      *****************************************************************/
 
     /**
-     * @runInSeparateProcess
      */
     public function testCompileDependencySetHandlesDependenciesWithoutPackages()
     {
@@ -56,7 +55,6 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @runInSeparateProcess
      */
     public function testCompileDependencySetHandlesDependenciesWithPackages()
     {
@@ -145,7 +143,6 @@ MANIFEST;
 
 
     /**
-     * @runInSeparateProcess
      */
     public function testCompileDependencySetHandlesDependenciesWithPackagesMarkedNoCompile()
     {
@@ -236,7 +233,6 @@ MANIFEST;
 
 
     /**
-     * @runInSeparateProcess
      */
     public function testCompileDependencySetExpandsRemoteAnnotations()
     {

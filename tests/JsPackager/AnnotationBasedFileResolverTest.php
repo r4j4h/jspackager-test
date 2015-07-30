@@ -32,7 +32,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
 
     /**
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations()
     {
@@ -79,7 +78,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsReturnsOrderingMap($annotationResponse)
     {
@@ -89,7 +87,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileGetsRequireAnnotations()
     {
@@ -135,7 +132,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileGetsRemoteRequires()
     {
@@ -182,7 +178,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileGetsStylesheetRequires()
     {
@@ -227,7 +222,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileGetsRootAnnotation()
     {
@@ -268,7 +262,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileGetsRootAnnotation
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileGetsRootAnnotationWithWhitespace()
     {
@@ -309,7 +302,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileGetsNoCompileWithNormalScriptAnnotation()
     {
@@ -352,7 +344,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileParsesNoCompileWithRootAnnotation()
     {
@@ -396,7 +387,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileGetsAllAnnotations()
     {
@@ -449,7 +439,6 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGetAnnotationsFromFileReturnsEmptyArrayWhenNoAnnotations
-     * @runInSeparateProcess
      */
     public function testGetAnnotationsFromFileWithMultipleArguments()
     {
