@@ -51,12 +51,12 @@ class FileToDependencySetsService
 
         // Consider the main file a starting root package to start the set collection
         $nonRootFiles = $this->getDependencySetFiles( $thisTree );
-        $rootPackages[] = new DependencySet(
+        array_push($rootPackages, new DependencySet(
             $nonRootFiles['stylesheetFilePaths'],
             $nonRootFiles['rootFilePaths'],
             $nonRootFiles['nonRootFilePaths'],
             $nonRootFiles['pathsMarkedNoCompile']
-        );
+        ));
 
         // Hold a cache of sets that need to be visited
         $rootsToVisit = $nonRootFiles['rootsToVisit'];
@@ -71,12 +71,12 @@ class FileToDependencySetsService
             {
                 // Grab this set's file collection
                 $furtherRoots = $this->getDependencySetFiles( $thisRootToVisit );
-                $rootPackages[] = new DependencySet(
+                array_unshift($rootPackages, new DependencySet(
                     $furtherRoots['stylesheetFilePaths'],
                     $furtherRoots['rootFilePaths'],
                     $furtherRoots['nonRootFilePaths'],
                     $furtherRoots['pathsMarkedNoCompile']
-                );
+                ));
 
                 // Add any new sets to examine to sets remaining to be examined list
                 if ( count( $furtherRoots['rootsToVisit'] ) > 0 )
@@ -88,11 +88,6 @@ class FileToDependencySetsService
             // Update looping threshold examination to include any remaining sets to examine
             $rootsToVisit = $newRootsToVisit;
         }
-
-        // We are now finished, but our files are ordered from dependency to root, while our sets are
-        // ordered from root to dependency, so let's flip so they both are ordered dependency to root
-        // which is more consistent and more useful for the Compiler component.
-        $rootPackages = array_reverse( $rootPackages );
 
         // Ensure we do not return redundant root packages
         $uniquePackages = array();
