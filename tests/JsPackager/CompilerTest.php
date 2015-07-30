@@ -234,7 +234,7 @@ MANIFEST;
 
     /**
      */
-    public function testCompileDependencySetExpandsRemoteAnnotations()
+    public function testCompileDependencySetExpandsRemoteAnnotationsAndWithCustomRemoteAnnotation()
     {
         $basePath = self::fixturesBasePath . 'remote_annotation';
         $mainJsPath = $basePath . '/main.js';
@@ -242,10 +242,11 @@ MANIFEST;
         $sharedPath = $basePath . '-remote';
 
         $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
-
+        $dependencyTree->remoteSymbol = '@rawr';
         $roots = $dependencyTree->getDependencySets();
 
         $compiler = new Compiler();
+        $compiler->remoteSymbol = '@rawr';
         $compiler->remoteFolderPath = $sharedPath;
 
         // Grab first dependency set
@@ -258,8 +259,8 @@ window.remotepackage_local_on_remote=!0;window.remotepackage_remote_on_remote=!0
 COMPILEFILE;
 
         $manifestContents = <<< 'MANIFEST'
-@remote/remotepackage/package_subfolder/local_on_remote.css
-@remote/remotepackage/package_subfolder/remote_on_remote.css
+@rawr/remotepackage/package_subfolder/local_on_remote.css
+@rawr/remotepackage/package_subfolder/remote_on_remote.css
 
 MANIFEST;
 
@@ -291,11 +292,11 @@ COMPILEFILE;
         $manifestContents = <<<'MANIFEST'
 stylesheet_before.css
 local_subfolder/local_subfolder_before.css
-@remote/remotescript/script_subfolder/local_on_remote.css
-@remote/remotescript/script_subfolder/remote_on_remote.css
+@rawr/remotescript/script_subfolder/local_on_remote.css
+@rawr/remotescript/script_subfolder/remote_on_remote.css
 local_subfolder/local_subfolder_after.css
 stylesheet_after.css
-@remote/remotepackage/script.compiled.js
+@rawr/remotepackage/script.compiled.js
 
 MANIFEST;
 
