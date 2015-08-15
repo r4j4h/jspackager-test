@@ -7,6 +7,8 @@ use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
+use JsPackager\Helpers\Constants;
+use JsPackager\Helpers\PathFinder;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -22,24 +24,25 @@ class ManifestContentsGenerator
      *
      * @var string
      */
-    public $remoteFolderPath = 'shared';
+    public $remoteFolderPath;
 
     /**
      * Symbol used to represent remote folders.
      *
      * @var string
      */
-    public $remoteSymbol = '@shared';
+    public $remoteSymbol;
 
     /**
      * @param string $remoteSymbol Symbol used to represent remote folders.
      * @param string $remoteFolderPath Remote Folder Path represented by remoteSymbol
+     * @param LoggerInterface $logger
      */
-    public function __construct($remoteSymbol, $remoteFolderPath)
+    public function __construct($remoteSymbol = '@shared', $remoteFolderPath = 'shared', LoggerInterface $logger)
     {
-        $this->logger = new NullLogger();
         $this->remoteSymbol = $remoteSymbol;
         $this->remoteFolderPath = $remoteFolderPath;
+        $this->logger = $logger;
     }
 
 
@@ -67,6 +70,10 @@ class ManifestContentsGenerator
     public function generateManifestFileContents( $basePath, $packagePaths, $stylesheetPaths, $pathsMarkedNoCompile = array() )
     {
         $pathFinder = new PathFinder();
+        $remoteAnnotationStringService = new RemoteAnnotationStringService(
+            $this->remoteSymbol,
+            $this->remoteFolderPath
+        );
         $manifestFileContents = '';
 
         $this->logger->debug("Generating manifest file contents...");
@@ -75,7 +82,9 @@ class ManifestContentsGenerator
 
         foreach ($stylesheetPaths as $stylesheetPath)
         {
-            $stylesheetPath = $this->calculateRelativePathingForStylesheet($stylesheetPath, $basePath, $pathFinder);
+            $stylesheetPath = $this->calculateRelativePathingForStylesheet(
+                $stylesheetPath, $basePath, $pathFinder, $remoteAnnotationStringService
+            );
             array_push( $stylesheetPathsForManifest, $stylesheetPath );
         }
         $stylesheetPathsForManifest = array_unique( $stylesheetPathsForManifest );
@@ -87,7 +96,7 @@ class ManifestContentsGenerator
         {
 
             $packagePath = $this->calculateRelativePathingForPackage(
-                $packagePath, $basePath, $pathFinder, $pathsMarkedNoCompile
+                $packagePath, $basePath, $pathsMarkedNoCompile, $pathFinder, $remoteAnnotationStringService
             );
 
             $manifestFileContents .= $packagePath . PHP_EOL;
@@ -113,12 +122,15 @@ class ManifestContentsGenerator
         return $stringToTrim;
     }
 
-    private function calculateRelativePathingForStylesheet($stylesheetPath, $basePath, PathFinder $pathFinder) {
+    /**
+     * @param $stylesheetPath
+     * @param $basePath
+     * @param PathFinder $pathFinder
+     * @param RemoteAnnotationStringService $remoteAnnotationStringService
+     * @return mixed|string
+     */
+    private function calculateRelativePathingForStylesheet($stylesheetPath, $basePath, PathFinder $pathFinder, RemoteAnnotationStringService $remoteAnnotationStringService) {
 
-        $remoteAnnotationStringService = new RemoteAnnotationStringService(
-            $this->remoteSymbol,
-            $this->remoteFolderPath
-        );
         $pathUsesRemote = $remoteAnnotationStringService->stringContainsRemoteAnnotation( $stylesheetPath );
 
         if ( !$pathUsesRemote )
@@ -154,7 +166,15 @@ class ManifestContentsGenerator
         return $stylesheetPath;
     }
 
-    private function calculateRelativePathingForPackage($packagePath, $basePath, PathFinder $pathFinder, $pathsMarkedNoCompile) {
+    /**
+     * @param $packagePath
+     * @param $basePath
+     * @param $pathsMarkedNoCompile
+     * @param PathFinder $pathFinder
+     * @param RemoteAnnotationStringService $remoteAnnotationStringService
+     * @return mixed|string
+     */
+    private function calculateRelativePathingForPackage($packagePath, $basePath, $pathsMarkedNoCompile, PathFinder $pathFinder, RemoteAnnotationStringService $remoteAnnotationStringService) {
         $this->logger->debug( "Determining if should use compiled file or not..." );
 
         if ( in_array( $packagePath, $pathsMarkedNoCompile ) ) {
@@ -165,11 +185,6 @@ class ManifestContentsGenerator
             $packagePath = FilenameConverter::getCompiledFilename($packagePath);
         }
 
-
-        $remoteAnnotationStringService = new RemoteAnnotationStringService(
-            $this->remoteSymbol,
-            $this->remoteFolderPath
-        );
         $pathUsesRemote = $remoteAnnotationStringService->stringContainsRemoteAnnotation( $packagePath );
 
         if ( !$pathUsesRemote )

@@ -3,6 +3,7 @@
 namespace JsPackager;
 
 use JsPackager\Compiler;
+use JsPackager\Resolver\DependencyTree;
 
 /**
  * Class CompilerTest

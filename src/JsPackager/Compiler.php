@@ -26,6 +26,7 @@ use JsPackager\Processor\ClosureCompilerProcessor;
 use JsPackager\Processor\ProcessingResult;
 use JsPackager\Processor\SimpleProcessorInterface;
 use JsPackager\Processor\SimpleProcessorParams;
+use JsPackager\Resolver\DependencyTree;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RecursiveIteratorIterator;
@@ -78,7 +79,7 @@ class Compiler implements CompilerInterface
      */
     public function compile( $filePath )
     {
-        return $this->compileAndWriteFilesAndManifests( $filePath, false );
+        return $this->compileAndWriteFilesAndManifests( $filePath );
     }
 
     /**
@@ -315,7 +316,9 @@ class Compiler implements CompilerInterface
      */
     private function getDependencySetsForFilename($inputFilename)
     {
-        $dependencyTree = new DependencyTree($inputFilename, null, false, $this->logger, $this->remoteFolderPath);
+        $dependencyTree = new DependencyTree(
+            $inputFilename, null, false, $this->logger, $this->remoteFolderPath
+        );
         $dependencyTree->logger = $this->logger;
         $dependencySets = $dependencyTree->getDependencySets();
         return $dependencySets;
@@ -326,12 +329,14 @@ class Compiler implements CompilerInterface
      */
     private function getManifestContentsGenerator()
     {
-        $manifestContentsGenerator = new ManifestContentsGenerator($this->remoteSymbol, $this->remoteFolderPath);
-        $manifestContentsGenerator->logger = $this->logger;
+        $manifestContentsGenerator = new ManifestContentsGenerator(
+            $this->remoteSymbol, $this->remoteFolderPath, $this->logger
+        );
         return $manifestContentsGenerator;
     }
 
     /**
+     * Assemble and compile a manifest file for a DependencySet
      * @param $dependencySet
      * @param $dependencySetIndex
      * @param $dependencySets

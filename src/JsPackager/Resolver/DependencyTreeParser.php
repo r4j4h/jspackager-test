@@ -1,5 +1,7 @@
 <?php
 /**
+ * This class uses a Resolver to create Files with the factory method parseFile.
+ *
  * Dependency Tree Parser is used to parse through front end files linked together via annotations. Generally
  * this operates on javascript, but it may also include stylesheets and other types of resources.
  *
@@ -26,15 +28,18 @@
  * @copyright Copyright (c) 2012 WebPT, INC
  */
 
-namespace JsPackager;
+namespace JsPackager\Resolver;
 
 use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
-use JsPackager\Helpers\ArrayTraversalService;
+use JsPackager\File;
+use JsPackager\Helpers\FileHandler;
+use JsPackager\Helpers\PathFinder;
 use JsPackager\Resolver\AnnotationBasedFileResolver;
 use JsPackager\Resolver\FileResolverInterface;
+use JsPackager\ResolverContext;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -105,7 +110,7 @@ class DependencyTreeParser
     /**
      * @return mixed
      */
-    public function createDefaultResolver()
+    public function createDefaultResolver() // todo extreme php says we need to force this to be required to be passed in
     {
         $resolver = new AnnotationBasedFileResolver($this->logger);
         $resolver->setFileHandler( $this->getFileHandler() );
@@ -130,11 +135,6 @@ class DependencyTreeParser
     }
 
     /**
-     * @var ArrayTraversalService
-     */
-    private $arrayTraversalService;
-
-    /**
      * @param string $remoteSymbol
      * @param string $remoteFolderPath
      * @param LoggerInterface [$logger]
@@ -146,11 +146,10 @@ class DependencyTreeParser
         } else {
             $this->logger = new NullLogger();
         }
+
         $this->remoteSymbol = $remoteSymbol;
         $this->remoteFolderPath = $remoteFolderPath;
 
-
-        $this->arrayTraversalService = new ArrayTraversalService();
         $this->pathFinder = new PathFinder();
     }
 
@@ -160,7 +159,6 @@ class DependencyTreeParser
      */
     public function muteMissingFileExceptions() {
         $this->mutingMissingFileExceptions = true;
-
     }
 
     /**
@@ -168,7 +166,6 @@ class DependencyTreeParser
      */
     public function unMuteMissingFileExceptions() {
         $this->mutingMissingFileExceptions = false;
-
     }
 
 

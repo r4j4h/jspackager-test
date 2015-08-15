@@ -3,7 +3,7 @@
 namespace JsPackagerTest;
 
 use JsPackager\Annotations\AnnotationOrderMapping;
-use JsPackager\DependencyTreeParser;
+use JsPackager\Resolver\DependencyTreeParser;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Exception\MissingFile as MissingFileException;

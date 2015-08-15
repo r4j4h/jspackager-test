@@ -3,6 +3,7 @@
 namespace JsPackagerTest;
 
 use JsPackager\ManifestContentsGenerator;
+use Psr\Log\NullLogger;
 
 /**
  * @group      JsPackager
@@ -17,7 +18,7 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
 
     public function testGenerateManifestFileContentsHandlesNoFilesGracefully()
     {
-        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
 
         $stylesheets = array();
         $packages = array();
@@ -30,7 +31,7 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
 
     public function testGenerateManifestContainingDependentPackages()
     {
-        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
 
         $stylesheets = array();
         $packages = array(
@@ -50,7 +51,7 @@ class ManifestContentsGeneratorTest extends \PHPUnit_Framework_TestCase
 
     public function testGenerateManifestContainingStylesheets()
     {
-        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
 
         $stylesheets = array(
             'some/stylesheet.css',
@@ -72,7 +73,7 @@ BLOCK;
 
     public function testGenerateManifestContainingMixture()
     {
-        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
 
         $stylesheets = array(
             'some/stylesheet.css',
@@ -98,7 +99,7 @@ BLOCK;
 
     public function testGenerateManifestPassesNoCompileFilesThrough()
     {
-        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
 
         $stylesheets = array(
             'css/my_stylesheet.css'
@@ -125,7 +126,7 @@ BLOCK;
 
     public function testGenerateManifestConvertsAbsolutePathsToRelativeFromWebRoot()
     {
-        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
 
         $stylesheets = array(
             '/some/absolute/path/to/websites/website_1/css/my_stylesheet.css'
@@ -157,7 +158,7 @@ BLOCK;
 
     public function testGenerateManifestDoesNotConvertRemoteFilesToRelative()
     {
-        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path');
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
 
         $stylesheets = array(
             '@remote/some/absolute/path/to/websites/website_1/css/my_stylesheet.css'

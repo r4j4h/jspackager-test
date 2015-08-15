@@ -116,7 +116,7 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertContains(
-            '--compilation_level=' . $processor::GCC_COMPILATION_LEVEL,
+            '--compilation_level=' . $processor->gccCompilationLevel,
             $commandString,
             "Command string should set the compilation level to that of the class's constant"
         );

@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2012 WebPT, INC
  */
 
-namespace JsPackager;
+namespace JsPackager\Helpers;
 
 class FileHandler
 {

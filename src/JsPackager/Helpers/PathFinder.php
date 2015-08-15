@@ -3,7 +3,7 @@
  * PathFinder helps get the relative travel path required to go from one absolute path to another.
  */
 
-namespace JsPackager;
+namespace JsPackager\Helpers;
 
 class PathFinder
 {

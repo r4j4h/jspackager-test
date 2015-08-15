@@ -23,11 +23,11 @@ class AnnotationBasedFileResolverTest extends \PHPUnit_Framework_TestCase
      *****************************************************************/
 
     /**
-     * @return \JsPackager\FileHandler
+     * @return \JsPackager\Helpers\FileHandler
      */
     private function getMockedFileHandler()
     {
-        return $this->getMock('JsPackager\FileHandler', array('is_file', 'fopen', 'fgets', 'fclose'));
+        return $this->getMock('JsPackager\Helpers\FileHandler', array('is_file', 'fopen', 'fgets', 'fclose'));
     }
 
 

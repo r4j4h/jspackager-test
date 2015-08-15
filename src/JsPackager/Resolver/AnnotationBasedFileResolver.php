@@ -5,7 +5,7 @@ namespace JsPackager\Resolver;
 use JsPackager\Annotations\AnnotationHandlerParameters;
 use JsPackager\Annotations\AnnotationResponseHandler;
 use JsPackager\File;
-use JsPackager\FileHandler;
+use JsPackager\Helpers\FileHandler;
 use JsPackager\ResolverContext;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;

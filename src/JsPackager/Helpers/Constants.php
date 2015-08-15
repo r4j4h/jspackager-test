@@ -1,5 +1,5 @@
 <?php
-namespace JsPackager;
+namespace JsPackager\Helpers;
 
 use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;

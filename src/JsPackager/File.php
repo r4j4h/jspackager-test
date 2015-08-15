@@ -15,6 +15,7 @@ namespace JsPackager;
 
 use JsPackager\Annotations\AnnotationOrderMap;
 use JsPackager\Annotations\AnnotationOrderMapping;
+use JsPackager\Helpers\FileHandler;
 
 class File
 {

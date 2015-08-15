@@ -3,6 +3,7 @@
 namespace JsPackagerTest;
 
 use JsPackager\ManifestResolver;
+use Psr\Log\NullLogger;
 
 /**
  * @group      JsPackager
@@ -23,9 +24,12 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_package';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = ''; //self::fixturesBasePath;
-        $manifestResolver->remoteFolderPath = '';
+        $manifestResolver = new ManifestResolver(
+            '', //self::fixturesBasePath,
+            '',
+            '@remote',
+            new NullLogger()
+        );
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -47,9 +51,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
+        $manifestResolver = new ManifestResolver($basePath, $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -151,11 +153,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
-
-        $manifestResolver->baseFolderPath = '';
+        $manifestResolver = new ManifestResolver('', $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -209,11 +207,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
-
-        $manifestResolver->baseFolderPath = '.';
+        $manifestResolver = new ManifestResolver('.', $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -267,11 +261,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
-
-        $manifestResolver->baseFolderPath = './';
+        $manifestResolver = new ManifestResolver('./', $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -325,11 +315,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
-
-        $manifestResolver->baseFolderPath = '/';
+        $manifestResolver = new ManifestResolver('/', $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -384,9 +370,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = 'basey'; //self::fixturesBasePath;
-        $manifestResolver->remoteFolderPath = 'remmy';
+        $manifestResolver = new ManifestResolver('basey', 'remmy', '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -423,7 +407,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
+        $manifestResolver = new ManifestResolver('basey', 'remmy', '@remote', new NullLogger());
         $manifestResolver->baseFolderPath = 'basey'; //self::fixturesBasePath;
         $manifestResolver->remoteFolderPath = 'remmy';
 
@@ -452,9 +436,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
+        $manifestResolver = new ManifestResolver($basePath, $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -558,10 +540,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
-
+        $manifestResolver = new ManifestResolver($basePath, $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -617,11 +596,12 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = getcwd() . '/' . $basePath;
-        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
-
-
+        $manifestResolver = new ManifestResolver(
+            getcwd() . '/' . $basePath,
+            getcwd() . '/' . $remotePath,
+            '@remote',
+            new NullLogger()
+        );
 
         $paths = $manifestResolver->resolveFile( getcwd() . '/' . $filePath );
 
@@ -677,12 +657,9 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
+        $manifestResolver = new ManifestResolver($basePath, $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( getcwd() . '/' . $filePath );
-
 
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
@@ -736,12 +713,9 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
+        $manifestResolver = new ManifestResolver($basePath, getcwd() . '/' . $remotePath, '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $filePath );
-
 
         $this->assertEquals( 10, count( $paths ) );
         $i = 0;
@@ -794,9 +768,9 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = 'http://bebopjims.com/cool-90s-stuff';
+        $manifestResolver = new ManifestResolver(
+            $basePath, 'http://bebopjims.com/cool-90s-stuff', '@remote', new NullLogger()
+        );
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -855,9 +829,12 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $remotePath = $basePath . '-remote';
         $filePath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = getcwd() . '/' . $basePath;
-        $manifestResolver->remoteFolderPath = getcwd() . '/' . $remotePath;
+        $manifestResolver = new ManifestResolver(
+            getcwd() . '/' . $basePath,
+            getcwd() . '/' . $remotePath,
+            '@remote',
+            new NullLogger()
+        );
 
         $paths = $manifestResolver->resolveFile( $filePath );
 
@@ -956,9 +933,12 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . 'remote_annotation';
         $mainJsPath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = '';
-        $manifestResolver->remoteFolderPath = getcwd() . '/' . 'hella_rela_path';
+        $manifestResolver = new ManifestResolver(
+            '',
+            getcwd() . '/' . 'hella_rela_path',
+            '@remote',
+            new NullLogger()
+        );
 
         $paths = $manifestResolver->resolveFile( $mainJsPath );
 
@@ -1011,9 +991,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . 'remote_annotation';
         $mainJsPath = $basePath . '/main.js';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = '';
-        $manifestResolver->remoteFolderPath = '/abso_path';
+        $manifestResolver = new ManifestResolver('', '/abso_path', '@remote', new NullLogger());
 
         $paths = $manifestResolver->resolveFile( $mainJsPath );
 
@@ -1069,10 +1047,7 @@ class ManifestResolverTest extends \PHPUnit_Framework_TestCase
 
         $remotePath = 'http://theinternet.con/abso_path';
 
-        $manifestResolver = new ManifestResolver();
-        $manifestResolver->baseFolderPath = $basePath;
-        $manifestResolver->remoteFolderPath = $remotePath;
-
+        $manifestResolver = new ManifestResolver( $basePath, $remotePath, '@remote', new NullLogger() );
 
         $paths = $manifestResolver->resolveFile( $mainJsPath );
 

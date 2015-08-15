@@ -21,8 +21,8 @@ the final result for inclusion on a page.
 ## CLI Domain
 
 Responsible for taking a file or a list of files or a folder or list of folders and pairing them
-with any necessary metadata and passing them through the Compilation Domain, returning not only the final
-result but notifications of progress through the Domain.
+with any necessary metadata and passing them through the Dependency Resolution Domain and handing the result to the
+Compilation Domain, returning not only the final result but notifications of progress through the Domain.
 
 ## Dependency Resolution Domain
 
@@ -32,7 +32,7 @@ representing dependencies, and parsing bower.json files and using wiredep to res
 
 ## Compilation Domain
 
-Responsible for taking a list of files and processing them in some way: such as concatenation and minifcation, baking
+Responsible for taking a list of files and potential metadata and processing them in some way: such as concatenation and minification, baking
 a file that represents dependencies, detect local urls and process their contents and modify the urls to point
 to processed contents, or lint and generate reports.
 

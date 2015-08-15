@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2012 WebPT, INC
  */
 
-namespace JsPackager;
+namespace JsPackager\Resolver;
 
 use JsPackager\Annotations\AnnotationOrderMapping;
 use JsPackager\Annotations\AnnotationsToAssocArraysService;
@@ -76,7 +76,10 @@ class DependencyTree
      * @throws Exception\MissingFile Through internal File object if $filePath does not point to a valid file
      */
     public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false, LoggerInterface $logger = null, $sharedPath = 'shared' ) {
-
+// todo some of this can go into ResolverContext - which may need to be renamed after since it may help in more than that or just be confined to this resolution stage
+// todo move remoteFolderPath into ResolverContext
+// todo move testsSourcePath into ResolverContext
+// todo move $muteMissingFileExceptions into ResolverContext
         $this->filePath = $filePath;
         $this->testsSourcePath = $testsSourcePath;
         $this->mutingMissingFileExceptions = $muteMissingFileExceptions;

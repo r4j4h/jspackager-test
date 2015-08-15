@@ -2,7 +2,7 @@
 
 namespace JsPackager\CompiledFileAndManifest;
 
-use JsPackager\Constants;
+use JsPackager\Helpers\Constants;
 
 class FilenameConverter
 {

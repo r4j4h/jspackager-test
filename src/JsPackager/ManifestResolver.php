@@ -32,6 +32,7 @@ use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Exception;
 use JsPackager\Exception\MissingFile;
 use JsPackager\Exception\Parsing as ParsingException;
+use JsPackager\Helpers\FileHandler;
 use JsPackager\Helpers\FileTypeRecognizer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -50,21 +51,20 @@ class ManifestResolver
      */
     public $logger;
 
+    /**
+     * @var string
+     */
+    public $baseFolderPath;
 
     /**
      * @var string
      */
-    public $baseFolderPath = 'public';
+    public $remoteFolderPath;
 
     /**
      * @var string
      */
-    public $remoteFolderPath = 'shared';
-
-    /**
-     * @var string
-     */
-    public $remoteSymbol = '@remote';
+    public $remoteSymbol;
 
     /**
      * @var FileHandler
@@ -72,9 +72,18 @@ class ManifestResolver
     protected $fileHandler;
 
 
-    public function __construct()
+    /**
+     * @param string $baseFolderPath
+     * @param string $remoteFolderPath
+     * @param string $remoteSymbol
+     * @param LoggerInterface $logger
+     */
+    public function __construct($baseFolderPath = 'public', $remoteFolderPath = 'shared', $remoteSymbol = '@remote', LoggerInterface $logger)
     {
-        $this->logger = new NullLogger();
+        $this->baseFolderPath = $baseFolderPath;
+        $this->remoteFolderPath = $remoteFolderPath;
+        $this->remoteSymbol = $remoteSymbol;
+        $this->logger = $logger;
     }
 
 
@@ -101,7 +110,7 @@ class ManifestResolver
      */
     public function getFileHandler()
     {
-//        return $this->serviceLocator->get('JsPackager\FileHandler');
+//        return $this->serviceLocator->get('JsPackager\Helpers\FileHandler');
         return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
     }
 

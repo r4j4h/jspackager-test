@@ -3,14 +3,14 @@
 namespace JsPackagerTest;
 
 use JsPackager\File;
-use JsPackager\DependencyTreeParser;
-use JsPackager\FileHandler;
+use JsPackager\Resolver\DependencyTreeParser;
+use JsPackager\Helpers\FileHandler;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 
 use JsPackager\Helpers\Reflection as ReflectionHelper;
-use JsPackager\PathFinder;
+use JsPackager\Helpers\PathFinder;
 
 /**
  * @group      JsPackager

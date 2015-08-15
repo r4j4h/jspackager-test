@@ -6,9 +6,9 @@ use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\File;
-use JsPackager\FileHandler;
+use JsPackager\Helpers\FileHandler;
 use JsPackager\Helpers\ArrayTraversalService;
-use JsPackager\PathFinder;
+use JsPackager\Helpers\PathFinder;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 

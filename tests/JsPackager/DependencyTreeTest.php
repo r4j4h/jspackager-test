@@ -2,10 +2,13 @@
 
 namespace JsPackager;
 
+use JsPackager\Annotations\FileToDependencySetsService;
 use JsPackager\Compiler\DependencySet;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Parsing as ParsingException;
+use JsPackager\Resolver\DependencyTree;
+use JsPackager\Resolver\DependencyTreeParser;
 
 /**
  * @group      JsPackager
@@ -422,9 +425,13 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_deps_2_package_2_deep';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTreeParser = new DependencyTreeParser( '@remote', $basePath );
+        $fileObject = $dependencyTreeParser->parseFile( $filePath, $basePath, false );
+        $service = new FileToDependencySetsService();
+        $roots = $service->getDependencySets( $fileObject );
 
-        $roots = $dependencyTree->getDependencySets();
+//        $dependencyTree = new DependencyTree( $filePath );
+//        $roots = $dependencyTree->getDependencySets();
 
         $this->assertCount( 3, $roots, "There should be 3 dependency sets returned" );
 
@@ -648,8 +655,13 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
 
         $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
         $dependencyTree->remoteSymbol = '$!cashmoney!$foobarbaz$!cashmoney!$'; // or whatever non @remote thing we want to use for testing
-
         $dependencySets = $dependencyTree->getDependencySets();
+
+        $dependencyTreeParser = new DependencyTreeParser( '$!cashmoney!$foobarbaz$!cashmoney!$', $sharedPath );
+        $fileObject = $dependencyTreeParser->parseFile( $mainJsPath, $basePath, false );
+        $service = new FileToDependencySetsService();
+        $dependencySets = $service->getDependencySets( $fileObject );
+
 
         $this->assertEquals(
             $sharedPath,
