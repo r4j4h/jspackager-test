@@ -42,9 +42,11 @@ class Compiler implements CompilerInterface
     public $logger;
 
     /**
+     * Optional callback to update User Interface through progress.
+     *
      * @var callable|bool
      */
-    public $statusCallback = false; // Optional callback to update User Interface through progress.
+    public $statusCallback;
 
     /**
      * An aggregated array of paths used to skip compilation.
@@ -54,18 +56,30 @@ class Compiler implements CompilerInterface
     private $rollingPathsMarkedNoCompile;
 
     /**
-     * Path to replace `@remote` symbols with.
+     * Path to replace $remoteSymbol symbols with.
      *
      * @var string
      */
-    public $remoteFolderPath = 'shared';
+    public $remoteFolderPath;
 
-    public $remoteSymbol = '@remote';
+    /**
+     * @var string
+     */
+    public $remoteSymbol;
 
 
-    public function __construct()
+    /**
+     * @param string $remoteFolderPath
+     * @param string $remoteSymbol
+     * @param LoggerInterface $logger
+     * @param bool|false [$statusCallback] Optional callback to update User Interface through progress. Default: false.
+     */
+    public function __construct($remoteFolderPath = 'shared', $remoteSymbol = '@remote', LoggerInterface $logger, $statusCallback = false)
     {
-        $this->logger = new NullLogger();
+        $this->remoteFolderPath = $remoteFolderPath;
+        $this->remoteSymbol = $remoteSymbol;
+        $this->logger = $logger;
+        $this->statusCallback = $statusCallback;
         $this->rollingPathsMarkedNoCompile = array();
     }
 
@@ -189,8 +203,7 @@ class Compiler implements CompilerInterface
      */
     private function createClosureCompilerProcessor() {
         // Compile & Concatenate via Google closure Compiler Jar
-        $processor = new ClosureCompilerProcessor();
-        $processor->logger = $this->logger;
+        $processor = new ClosureCompilerProcessor($this->logger, '');
         return $processor;
     }
 

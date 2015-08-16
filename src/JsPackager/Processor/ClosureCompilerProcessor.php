@@ -26,11 +26,17 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
     /**
      * @var string Optional. Set this to any desired additional GCC .jar parameters and they will be added to the end.
      */
-    public $extraCommandParams = '';
+    public $extraCommandParams;
 
-    public function __construct()
+    /**
+     * @param LoggerInterface $logger
+     * @param string [$extraCommandParams] Optional. Set this to any desired additional GCC .jar parameters and they will
+     * be added to the end. Default: ''.
+     */
+    public function __construct(LoggerInterface $logger, $extraCommandParams = '')
     {
-        $this->logger = new NullLogger();
+        $this->logger = $logger;
+        $this->extraCommandParams = $extraCommandParams;
     }
 
     /**

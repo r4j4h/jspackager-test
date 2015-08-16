@@ -4,6 +4,7 @@ namespace JsPackager;
 
 use JsPackager\Compiler;
 use JsPackager\Resolver\DependencyTree;
+use Psr\Log\NullLogger;
 
 /**
  * Class CompilerTest
@@ -30,7 +31,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
 
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
 
         // Grab first dependency set
         $dependencySet = $roots[0];
@@ -66,7 +67,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
 
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
 
         // Grab first dependency set
         $dependencySet = $roots[0];
@@ -154,7 +155,7 @@ MANIFEST;
 
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
 
         // Grab first dependency set
         $dependencySet = $roots[0];
@@ -246,9 +247,7 @@ MANIFEST;
         $dependencyTree->remoteSymbol = '@rawr';
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler();
-        $compiler->remoteSymbol = '@rawr';
-        $compiler->remoteFolderPath = $sharedPath;
+        $compiler = new Compiler($sharedPath, '@rawr', new NullLogger());
 
         // Grab first dependency set
         $dependencySet = $roots[0];

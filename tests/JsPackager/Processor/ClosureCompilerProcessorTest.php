@@ -6,6 +6,7 @@ use JsPackager\Helpers\Reflection as ReflectionHelper;
 use JsPackager\Processor\ClosureCompilerProcessor;
 use JsPackager\Processor\ProcessingResult;
 use JsPackager\Processor\SimpleProcessorParams;
+use Psr\Log\NullLogger;
 
 
 class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
@@ -22,7 +23,7 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
     {
         $filesList = array( "somefilea.js", "somefileb.js" );
 
-        $processor = $this->getMock('JsPackager\Processor\ClosureCompilerProcessor', array('executeClosureCompilerCommand') );
+        $processor = $this->getMock('JsPackager\Processor\ClosureCompilerProcessor', array('executeClosureCompilerCommand'), array(new NullLogger()) );
 
         $processor->expects($this->once())
             ->method('executeClosureCompilerCommand')
@@ -74,7 +75,7 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
     {
         $filesList = array( "somefilea.js", "somefileb.js" );
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
         $processorParams = new SimpleProcessorParams( $filesList );
         $result = $processor->process( $processorParams );
 
@@ -107,7 +108,7 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
     {
         $filesList = array( "somefilea.js", "somefileb.js" );
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger());
 
         $commandString = ReflectionHelper::invoke(
             $processor,
@@ -126,7 +127,7 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
     {
         $filesList = array( "somefilea.js", "somefileb.js" );
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
 
         $commandString = ReflectionHelper::invoke(
             $processor,
@@ -148,7 +149,7 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
     {
         $filesList = array( "somefilea.js", "somefileb.js" );
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
 
         $commandString = ReflectionHelper::invoke(
             $processor,
@@ -168,8 +169,7 @@ class ClosureCompilerProcessorTest extends \PHPUnit_Framework_TestCase
 
         $filesList = array( "somefilea.js", "somefileb.js" );
 
-        $processor = new ClosureCompilerProcessor();
-        $processor->extraCommandParams = '--checks-only';
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '--checks-only');
 
         $commandString = ReflectionHelper::invoke(
             $processor,
@@ -202,7 +202,7 @@ STDERR;
         $returnCode = 0;
         $successful = true;
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
         $result = ReflectionHelper::invoke(
             $processor,
             'handleClosureCompilerOutput',
@@ -236,7 +236,7 @@ STDERR;
         $returnCode = 0;
         $successful = true;
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
         $result = ReflectionHelper::invoke(
             $processor,
             'handleClosureCompilerOutput',
@@ -270,7 +270,7 @@ STDERR;
         $returnCode = 0;
         $successful = true;
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
         /**
          * @type ProcessingResult $result
          */
@@ -312,7 +312,7 @@ STDERR;
         $returnCode = 0;
         $successful = true;
 
-        $processor = new ClosureCompilerProcessor();
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
         /**
          * @type ProcessingResult $result
          */

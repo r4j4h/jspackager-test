@@ -3,6 +3,7 @@
 namespace JsPackager;
 
 use JsPackager\CompiledFileAndManifest\FilenameConverter;
+use Psr\Log\NullLogger;
 
 class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 {
@@ -13,7 +14,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCompiledFilename()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.js';
 
         $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
@@ -22,7 +23,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCompiledFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.js';
 
         $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
@@ -31,7 +32,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCompiledFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
 
         $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
@@ -40,7 +41,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCompiledFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.js';
 
         $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
@@ -53,7 +54,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromCompiledFilename()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.compiled.js';
 
         $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
@@ -62,7 +63,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromCompiledFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.compiled.js';
 
         $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
@@ -71,7 +72,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromCompiledFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
 
         $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
@@ -80,7 +81,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromCompiledFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.compiled.js';
 
         $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
@@ -94,7 +95,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetManifestFilename()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.js';
 
         $manifestFilename = FilenameConverter::getManifestFilename( $filename );
@@ -103,7 +104,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetManifestFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.js';
 
         $manifestFilename = FilenameConverter::getManifestFilename( $filename );
@@ -112,7 +113,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetManifestFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
 
         $manifestFilename = FilenameConverter::getManifestFilename( $filename );
@@ -121,7 +122,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetManifestFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.js';
 
         $manifestFilename = FilenameConverter::getManifestFilename( $filename );
@@ -134,7 +135,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromManifestFilename()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.js.manifest';
 
         $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
@@ -143,7 +144,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromManifestFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.js.manifest';
 
         $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
@@ -152,7 +153,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromManifestFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
 
         $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
@@ -161,7 +162,7 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromManifestFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler();
+        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.js.manifest';
 
         $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
