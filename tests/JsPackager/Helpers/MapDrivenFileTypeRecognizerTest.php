@@ -32,6 +32,22 @@ class MapDrivenFileTypeRecognizerTest extends \PHPUnit_Framework_TestCase
 
         }
 
+        $this->assertContains('javascript', $heinAs);
+        $this->assertContains('source-file', $heinAs);
+        $this->assertNotContains('stylesheet', $heinAs);
+
+        $this->assertContains('javascript', $hooAs);
+        $this->assertNotContains('source-file', $hooAs);
+        $this->assertNotContains('stylesheet', $hooAs);
+
+        $this->assertNotContains('javascript', $larsAs);
+        $this->assertNotContains('source-file', $larsAs);
+        $this->assertNotContains('stylesheet', $larsAs);
+
+        $this->assertTrue( $heinisScript );
+        $this->assertFalse( $heinisStyle );
+        $this->assertTrue( $heinisSource );
+
     }
 
 }
