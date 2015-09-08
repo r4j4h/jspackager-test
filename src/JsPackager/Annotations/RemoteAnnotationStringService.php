@@ -2,8 +2,6 @@
 
 namespace JsPackager\Annotations;
 
-use JsPackager\Constants;
-
 class RemoteAnnotationStringService
 {
 
@@ -12,19 +10,19 @@ class RemoteAnnotationStringService
      *
      * @var string
      */
-    public $remoteFolderPath = 'shared';
+    public $remoteFolderPath;
 
     /**
      * Symbol used to represent remote folders.
      *
      * @var string
      */
-    public $remoteSymbol = '@shared';
+    public $remoteSymbol;
 
     /**
      * @param string $remoteFolderPath Path to replace Remote Symbols with.
      */
-    public function __construct($remoteSymbol, $remoteFolderPath) {
+    public function __construct($remoteSymbol = '@shared', $remoteFolderPath = 'shared') {
         $this->remoteSymbol = $remoteSymbol;
         $this->remoteFolderPath = $remoteFolderPath;
     }

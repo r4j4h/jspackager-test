@@ -3,16 +3,27 @@
 
 ## About
 
-JsPackager is a toolkit to aid in resolving front end dependencies and including them on the page.
+JsPackager is a tool for resolving front end dependencies, including them on the page, packaging them, and including
+their packaged versions on the page. Written in PHP, it is conceptually similar to
+[Sprockets](https://github.com/sstephenson/sprockets), [Smash](https://github.com/mbostock/smash), and
+[wiredep](https://github.com/taptapship/wiredep) but in PHP.
 
-JsPackager provides an annotation-based dependency resolver intended for the front end. As developers it is easier to work
-in multiple files, but for browsers we need them packaged together.
+It is designed to be a little less free-form in purpose than Gulp, Grunt, Ant, Phing, or Broccoli and instead more
+focused on the previously stated goal - more like Browserify or Webpack. It is built to be able to
+utilize these tools in a transparent, useful manner when building websites.
 
-JsPackager allows you to pull in complex dependency tree and have it resolve down to something manageable.
+It helps include files on the page, like wiredep, but does so through a view helper call instead of template replacement
+(although replacement is a possible Processor/Outputter configuration as well). There is also a wiredep resolver that
+will utilize wiredep to include bower.json-defined dependencies into the pipeline.
 
-It supports having a remote path for files, as opposed to the local workspace. [how do we describe this better?]
+JsPackager provides an annotation-based dependency resolver for the front end. This is where it is similar to Sprockets
+ and Smash. Instead of `--` or `import` it uses a set of annotations prefixed with `@`, similar to JsDoc annotations.
+
+JsPackager allows you to pull in a complex dependency tree and have it resolve down to something manageable.
+
+It supports having a remote path for files, as opposed to the local workspace.
 This remote path can be stored locally for development, and on a CDN in production, and the remote path can be
-changed out.
+changed out. Later there will be named remotes, enabling multiple remote sources.
 
 
 
@@ -21,6 +32,25 @@ Or do you want to only pull in the parts you use where you use them?
 Do you want all of that in one bundle or in several smaller bundles?
 
 All of these are possible with JsPackager and some combination of @require and @root annotations.
+
+## Getting Started
+
+How to interface with JsPackager depends on how you want to use it.
+
+### Using JsPackager to Resolve Files For Development
+
+For this you want to send your file through Resolvers and probably into some Processors.
+
+For Output you want either JsonNestedArrayOutputter or
+
+### Using JsPackager to Compile Files for Production
+
+### Using JsPackager to Resolve Compiled Files For Production
+
+### Using JsPackager to Resolve Files for Testing
+
+
+
 
 
 ## Motivation

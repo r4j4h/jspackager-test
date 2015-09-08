@@ -3,9 +3,8 @@
 namespace JsPackager\Annotations;
 
 use JsPackager\Compiler\DependencySet;
-use JsPackager\File;
+use JsPackager\DependencyFileInterface;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 class FileToDependencySetsService
 {
@@ -15,12 +14,8 @@ class FileToDependencySetsService
      */
     public $logger;
 
-    public function __construct(LoggerInterface $logger = null) {
-        if ( $logger === null ) {
-            $this->logger = new NullLogger();
-        } else {
-            $this->logger = $logger;
-        }
+    public function __construct(LoggerInterface $logger) {
+        $this->logger = $logger;
     }
 
     /**
@@ -38,7 +33,7 @@ class FileToDependencySetsService
      *                       included on page w/ compiled file)
      *  dependencies  array  The file paths of any files this set of files depends on (should be compiled)
      */
-    public function getDependencySets(File $thisTree)
+    public function getDependencySets(DependencyFileInterface $thisTree)
     {
         $this->logger->debug("getDependencySets called.");
 
@@ -107,12 +102,12 @@ class FileToDependencySetsService
      *
      * (Helper function for getDependencySets)
      *
-     * @param File $file
+     * @param DependencyFileInterface $file
      * @return array
      */
-    private function getDependencySetFiles( File $file )
+    private function getDependencySetFiles( DependencyFileInterface $file )
     {
-        $this->logger->debug("getDependencySetFiles called with '{$file->getFullPath()}'.");
+        $this->logger->debug("getDependencySetFiles called with '{$file->getPath()}'.");
 
         $nonRootFilePaths = array();
         $rootFilePaths = array();
@@ -145,9 +140,11 @@ class FileToDependencySetsService
      * @param $stylesheetFilePaths
      * @param $pathsMarkedNoCompile
      */
-    private function handleJavaScriptDependencyAnnotationFromFile(File $scriptFile, &$nonRootFilePaths, &$rootFilePaths, &$rootsToVisit, &$stylesheetFilePaths, &$pathsMarkedNoCompile)
+    private function handleJavaScriptDependencyAnnotationFromFile(DependencyFileInterface $scriptFile, &$nonRootFilePaths, &$rootFilePaths, &$rootsToVisit, &$stylesheetFilePaths, &$pathsMarkedNoCompile)
     {
-        if (!$scriptFile->isRoot) {
+        $metaData = $scriptFile->getMetaData();
+        $isRoot = $metaData['isRoot'];
+        if (!$isRoot) {
             // Add any children to the list
             $children = $this->getDependencySetFiles($scriptFile);
 
@@ -166,14 +163,14 @@ class FileToDependencySetsService
             if (count($children['stylesheetFilePaths']) > 0) {
                 $stylesheetFilePaths = array_merge($stylesheetFilePaths, $children['stylesheetFilePaths']);
             }
-        } else if ($scriptFile->isRoot) {
+        } else if ($isRoot) {
             // Add to list, and stop here, going into this guy later for a new list
-            $rootFilePaths[] = $scriptFile->getFullPath();
+            $rootFilePaths[] = $scriptFile->getPath();
             $rootsToVisit[] = $scriptFile;
         }
 
-        if ($scriptFile->isMarkedNoCompile) {
-            $pathsMarkedNoCompile[] = $scriptFile->getFullPath();
+        if ($isRoot['isMarkedNoCompile']) {
+            $pathsMarkedNoCompile[] = $scriptFile->getPath();
         }
     }
 
@@ -187,45 +184,51 @@ class FileToDependencySetsService
     }
 
     /**
-     * @param File $file
+     * @param DependencyFileInterface $file
      * @param $nonRootFilePaths
      * @param $pathsMarkedNoCompile
      * @param $stylesheetFilePaths
      * @param $rootFilePaths
      * @param $rootsToVisit
      */
-    private function getDependencySetFilesFromFileObject(File $file, &$nonRootFilePaths, &$pathsMarkedNoCompile, &$stylesheetFilePaths, &$rootFilePaths, &$rootsToVisit)
+    private function getDependencySetFilesFromFileObject(DependencyFileInterface $file, &$nonRootFilePaths, &$pathsMarkedNoCompile, &$stylesheetFilePaths, &$rootFilePaths, &$rootsToVisit)
     {
         /**
          * @var AnnotationOrderMapping $aOMEntry
          */
-        $anns = $file->annotationOrderMap->getAnnotationMappings();
-        foreach ($anns as $aOMEntry) {
-            $orderMapEntryAnnotationType = $aOMEntry->getAnnotationName();
-            $orderMapEntryBucketIndex = $aOMEntry->getAnnotationIndex();
+        $metaData = $file->getMetaData();
+        $annotationOrderMap = $metaData['annotationOrderMap'];
+        if ( $annotationOrderMap ) {
+            $anns = $annotationOrderMap->getAnnotationMappings();
+            foreach ($anns as $aOMEntry) {
+                $orderMapEntryAnnotationType = $aOMEntry->getAnnotationName();
+                $orderMapEntryBucketIndex = $aOMEntry->getAnnotationIndex();
 
-            if ($orderMapEntryAnnotationType === 'requireStyle' || $orderMapEntryAnnotationType === 'requireRemoteStyle') {
-                $styleFile = $file->stylesheets[$orderMapEntryBucketIndex];
-                $this->handleStylesheetDependencyAnnotationFromPath(
-                    $styleFile,
-                    $stylesheetFilePaths
-                );
-            } else if ($orderMapEntryAnnotationType === 'require' || $orderMapEntryAnnotationType === 'requireRemote') {
-                $scriptFile = $file->scripts[$orderMapEntryBucketIndex];
-                $this->handleJavaScriptDependencyAnnotationFromFile(
-                    $scriptFile,
-                    $nonRootFilePaths, $rootFilePaths, $rootsToVisit, $stylesheetFilePaths, $pathsMarkedNoCompile
-                );
-            } else {
-                var_dump('Unknown annotation ' . $orderMapEntryAnnotationType . ' encountered');
+                if ($orderMapEntryAnnotationType === 'requireStyle' || $orderMapEntryAnnotationType === 'requireRemoteStyle') {
+                    $styleFile = $metaData['stylesheets'][$orderMapEntryBucketIndex];
+                    $this->handleStylesheetDependencyAnnotationFromPath(
+                        $styleFile,
+                        $stylesheetFilePaths
+                    );
+                } else if ($orderMapEntryAnnotationType === 'require' || $orderMapEntryAnnotationType === 'requireRemote') {
+                    $scriptFile = $metaData['scripts'][$orderMapEntryBucketIndex];
+                    $this->handleJavaScriptDependencyAnnotationFromFile(
+                        $scriptFile,
+                        $nonRootFilePaths, $rootFilePaths, $rootsToVisit, $stylesheetFilePaths, $pathsMarkedNoCompile
+                    );
+                } else {
+                    var_dump('Unknown annotation ' . $orderMapEntryAnnotationType . ' encountered');
+                }
             }
+        } else {
+//            throw new \Exception('should there have been?');
         }
 
         // Add this file to the list
-        $nonRootFilePaths[] = $file->getFullPath();
+        $nonRootFilePaths[] = $file->getPath();
 
-        if ($file->isMarkedNoCompile) {
-            $pathsMarkedNoCompile[] = $file->getFullPath();
+        if ($metaData['isMarkedNoCompile']) {
+            $pathsMarkedNoCompile[] = $file->getPath();
         }
     }
 

@@ -2,20 +2,21 @@
 
 namespace JsPackager\CompiledFileAndManifest;
 
-use JsPackager\Helpers\Constants;
-
 class FilenameConverter
 {
+    /**
+     * @var string
+     */
+    private $compiledSuffix;
 
     /**
-     * Convert a given filename to its compiled equivalent
-     *
-     * @param string $filename
-     * @return string
+     * @var string
      */
-    public static function getCompiledFilename($filename)
-    {
-        return preg_replace('/.js$/', '.' . Constants::COMPILED_SUFFIX . '.js', $filename);
+    private $manifestSuffix;
+
+    public function __construct($compiledSuffix = 'compiled', $manifestSuffix = 'manifest') {
+        $this->compiledSuffix = $compiledSuffix;
+        $this->manifestSuffix = $manifestSuffix;
     }
 
     /**
@@ -24,9 +25,20 @@ class FilenameConverter
      * @param string $filename
      * @return string
      */
-    public static function getSourceFilenameFromCompiledFilename($filename)
+    public function getCompiledFilename($filename)
     {
-        return preg_replace('/.' . Constants::COMPILED_SUFFIX . '.js$/', '.js', $filename);
+        return preg_replace('/.js$/', '.' . $this->compiledSuffix . '.js', $filename);
+    }
+
+    /**
+     * Convert a given filename to its compiled equivalent
+     *
+     * @param string $filename
+     * @return string
+     */
+    public function getSourceFilenameFromCompiledFilename($filename)
+    {
+        return preg_replace('/.' . $this->compiledSuffix . '.js$/', '.js', $filename);
     }
 
     /**
@@ -35,9 +47,9 @@ class FilenameConverter
      * @param $filename
      * @return string
      */
-    public static function getManifestFilename($filename)
+    public function getManifestFilename($filename)
     {
-        return preg_replace('/.js$/', '.js.' . Constants::MANIFEST_SUFFIX, $filename);
+        return preg_replace('/.js$/', '.js.' . $this->manifestSuffix, $filename);
     }
 
     /**
@@ -46,9 +58,9 @@ class FilenameConverter
      * @param string $filename
      * @return string
      */
-    public static function getSourceFilenameFromManifestFilename($filename)
+    public function getSourceFilenameFromManifestFilename($filename)
     {
-        return preg_replace('/.js.' . Constants::MANIFEST_SUFFIX . '$/', '.js', $filename);
+        return preg_replace('/.js.' . $this->manifestSuffix . '$/', '.js', $filename);
     }
 
 }

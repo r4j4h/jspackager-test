@@ -60,9 +60,10 @@ class FileFinder {
      * todo should belong to CompiledAndManifest domain
      *
      * @param string $directory Directory path.
-     * @return string[]
+     * @param FilenameConverter $filenameConverter
+     * @return \string[]
      */
-    public function parseFolderForPackageFiles($directory)
+    public function parseFolderForPackageFiles($directory, FilenameConverter $filenameConverter)
     {
         /** @var $file SplFileObject */
 
@@ -79,8 +80,8 @@ class FileFinder {
 
                 $sourceFileCount++;
 
-                $compiledFilename = FilenameConverter::getCompiledFilename( $file->getRealPath() );
-                $manifestFilename = FilenameConverter::getManifestFilename( $file->getRealPath() );
+                $compiledFilename = $filenameConverter->getCompiledFilename( $file->getRealPath() );
+                $manifestFilename = $filenameConverter->getManifestFilename( $file->getRealPath() );
 
                 if ( is_file( $compiledFilename ) ) {
                     $files[] = $compiledFilename;

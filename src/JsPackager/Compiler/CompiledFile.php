@@ -12,8 +12,7 @@ namespace JsPackager\Compiler;
 class CompiledFile
 {
     /**
-     * The default filename of this compiled file (derived from the source file this object was
-     * created from)
+     * The default filename of this compiled file (derived from the source file this object was created from)
      * @var string
      */
     public $filename;

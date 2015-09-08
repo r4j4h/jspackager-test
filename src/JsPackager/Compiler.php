@@ -10,6 +10,12 @@
 
 namespace JsPackager;
 
+use JsPackager\Annotations\AnnotationHandlers\IsMarkedNoCompiledHandler;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemote;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemoteStyleAnnotationHandler;
+use JsPackager\Annotations\AnnotationHandlers\RootAnnotationHandler;
+use JsPackager\Annotations\AnnotationParser;
+use JsPackager\Annotations\FileToDependencySetsService;
 use JsPackager\Annotations\RemoteAnnotationStringService;
 use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Compiler\CompiledFile;
@@ -21,17 +27,21 @@ use JsPackager\Exception\CannotWrite as CannotWriteException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Helpers\FileFinder;
+use JsPackager\Helpers\FileHandler;
 use JsPackager\Helpers\FileTypeRecognizer;
 use JsPackager\Processor\ClosureCompilerProcessor;
+use JsPackager\Processor\CompiledAndManifestProcessor;
 use JsPackager\Processor\ProcessingResult;
 use JsPackager\Processor\SimpleProcessorInterface;
 use JsPackager\Processor\SimpleProcessorParams;
 use JsPackager\Resolver\DependencyTree;
+use JsPackager\Resolver\DependencyTreeParser;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use SplFileObject;
+use Streamer\Stream;
 
 class Compiler implements CompilerInterface
 {
@@ -74,13 +84,23 @@ class Compiler implements CompilerInterface
      * @param LoggerInterface $logger
      * @param bool|false [$statusCallback] Optional callback to update User Interface through progress. Default: false.
      */
-    public function __construct($remoteFolderPath = 'shared', $remoteSymbol = '@remote', LoggerInterface $logger, $statusCallback = false)
+    public function __construct($remoteFolderPath = 'shared', $remoteSymbol = '@remote', LoggerInterface $logger, $statusCallback = false, FileHandler $fileHandler)
     {
         $this->remoteFolderPath = $remoteFolderPath;
         $this->remoteSymbol = $remoteSymbol;
         $this->logger = $logger;
         $this->statusCallback = $statusCallback;
         $this->rollingPathsMarkedNoCompile = array();
+        $this->fileHandler = $fileHandler;
+
+        $this->remoteAnnotationStringTransformationService = new RemoteAnnotationStringService(
+            $this->remoteSymbol,
+            $this->remoteFolderPath
+        );
+
+        $this->filenameConverter = new FilenameConverter('compiled', 'manifest');
+
+
     }
 
 
@@ -111,14 +131,10 @@ class Compiler implements CompilerInterface
 
         $totalDependencies = count( $dependencySet->dependencies );
 
-        $remoteSymbolStringTransfer = new RemoteAnnotationStringService(
-            $this->remoteSymbol,
-            $this->remoteFolderPath
-        );
-
         // Expand out any @remote annotations
         foreach( $dependencySet->dependencies as $idx => $dependency ) {
-            $dependencySet->dependencies[$idx] = $remoteSymbolStringTransfer->expandOutRemoteAnnotation( $dependency );
+            $dependencySet->dependencies[$idx] = $this->remoteAnnotationStringTransformationService->
+                                                                            expandOutRemoteAnnotation( $dependency );
         }
 
         $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
@@ -126,11 +142,11 @@ class Compiler implements CompilerInterface
 
         $rootFile = new File($lastDependency);
 
-        $rootFilePath = $rootFile->path;
-        $rootFilename = $rootFile->filename . '.' . $rootFile->filetype;
+        $rootFilePath = $rootFile->getDirName();
+        $rootFilename = $rootFile->getFileName();
 
-        $compiledFilename = FilenameConverter::getCompiledFilename( $rootFilename );
-        $manifestFilename = FilenameConverter::getManifestFilename( $rootFilename );
+        $compiledFilename = $this->filenameConverter->getCompiledFilename( $rootFilename );
+        $manifestFilename = $this->filenameConverter->getManifestFilename( $rootFilename );
 
 
         $this->rollingPathsMarkedNoCompile = array_merge(
@@ -139,13 +155,44 @@ class Compiler implements CompilerInterface
         );
 
 
-        $compiledFileManifest = $this->assembleManifest(
+        //$resolverPipeline
+
+        $closureCompilerProcessor = new ClosureCompilerProcessor($this->logger, '');
+        $manifestContentsGenerator = new ManifestContentsGenerator(
+            $this->remoteSymbol, $this->remoteFolderPath, $this->logger
+        );
+        $compiledAndManifestProcessor = new CompiledAndManifestProcessor(
+            // Compile & Concatenate via Google closure Compiler Jar
+            $closureCompilerProcessor,
+            $manifestContentsGenerator,
+            $this->logger
+        );
+
+        /*
+
+
+        */
+
+        // todo this should be CompiledAndManifestFileProcessor and
+        // todo this should be added to the list before or after gcc
+        $compiledFileManifestContents = $this->assembleManifest(
             $dependencySet, $dependencySetIndex, $dependencySets,
             $rootFilename, $totalDependencies, $rootFilePath,
-            $manifestFilename);
+            $manifestFilename, $this->rollingPathsMarkedNoCompile, $manifestContentsGenerator);
 
+        // I have to figure out how to not only move the above into closureCompilerProcessor but also remove the below without removing the
+        // no process at all, except manifests should still be created for those files? or maybe they shouldn't be!
+        // or it should be configurable? maybe that logic should live within the closureCompilerProcessor itself?
+
+// Processor Compiler Compliance Classes
+// Level 3 - Supports all "Defined MetaData Keys" as of tag x.x.
+// Level 2 - Supports all required "Defined MetaData Keys" as of tag x.x.
+// Level 1 - Supports at least one "Defined MetaData Keys" as of tag x.x.
+// Level 0 - Does not support any "Defined MetaData Keys" as of tag x.x.
 
         // todo is this marked no process at all, or do we have ability to skip certain ones?
+        // todo When separated this is will be handled by a metadata annotated 'skipCompile' which our processors
+// will respond to.
         if ( in_array( $rootFilePath .'/'. $rootFilename, $dependencySet->pathsMarkedNoCompile ) ) {
             $this->logger->debug("File marked as do not compile or process.");
             $this->logger->debug("Skipping by marking as succeeded with no output..."); // why is this necessary?
@@ -153,8 +200,7 @@ class Compiler implements CompilerInterface
 
         } else {
 
-            $processor = $this->createClosureCompilerProcessor(); // todo make more dynamic
-            $compilationResults = $this->processOrderedFilePathsArray($processor, $dependencySet);
+            $compilationResults = $this->processDependencySetDependencies($closureCompilerProcessor, $dependencySet);
 
         }
 
@@ -172,9 +218,63 @@ class Compiler implements CompilerInterface
             $compiledFilename,
             $compiledFileContents,
             $manifestFilename,
-            $compiledFileManifest,
+            $compiledFileManifestContents,
             $compilationResults->err
         );
+    }
+
+
+    /**
+     * Assemble and compile a manifest file for a DependencySet
+     * @param $dependencySet
+     * @param $dependencySetIndex
+     * @param $dependencySets
+     * @param $rootFilename
+     * @param $totalDependencies
+     * @param $rootFilePath
+     * @param $manifestFilename
+     * @return null|string
+     */
+    protected function assembleManifest($dependencySet, $dependencySetIndex, $dependencySets,
+                                        $rootFilename, $totalDependencies, $rootFilePath, $manifestFilename,
+                                        $rollingPathsMarkedNoCompile, $generator)
+    {
+        $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
+
+        if ($dependencySetIndex && $dependencySetIndex > 0) {
+            $dependencySetIndexIterator = $dependencySetIndex;
+            while ($dependencySetIndexIterator > 0) {
+                // Roll in dependent package's stylesheets so we only need to read this manifest
+                $this->logger->debug(
+                    "Using dependency set and it's dependency set's stylesheets so that manifests are all-inclusive"
+                );
+                $lastDependencySet = $dependencySets[$dependencySetIndexIterator - 1];
+                $stylesheets = array_merge($lastDependencySet->stylesheets, $dependencySet->stylesheets);
+                $stylesheets = array_unique($stylesheets);
+                $dependencySetIndexIterator--;
+            }
+        } else {
+            $this->logger->debug("Using dependency set's stylesheets");
+            $stylesheets = $dependencySet->stylesheets;
+        }
+
+        if (count($dependencySet->stylesheets) > 0 || $totalDependencies > 1) {
+            // Build manifest first
+            $compiledFileManifest = $generator->generateManifestFileContents(
+                $rootFilePath . '/',
+                $dependencySet->packages,
+                $stylesheets,
+                $rollingPathsMarkedNoCompile
+            );
+        } else {
+            $this->logger->debug(
+                "Skipping building manifest '{$manifestFilename}' because file has no other dependencies than itself."
+            );
+            $compiledFileManifest = null;
+        }
+
+        $this->logger->debug("Built manifest.");
+        return $compiledFileManifest;
     }
 
     /**
@@ -183,7 +283,7 @@ class Compiler implements CompilerInterface
      * @return ProcessingResult
      * @throws \Exception
      */
-    protected function processOrderedFilePathsArray($processor, $dependencySet)
+    protected function processDependencySetDependencies($processor, $dependencySet)
     {
         $this->logger->debug("Processing...");
 
@@ -195,18 +295,6 @@ class Compiler implements CompilerInterface
 
         return $compilationResults;
     }
-
-    /**
-     * Configures with logger for output.
-     *
-     * @return ClosureCompilerProcessor
-     */
-    private function createClosureCompilerProcessor() {
-        // Compile & Concatenate via Google closure Compiler Jar
-        $processor = new ClosureCompilerProcessor($this->logger, '');
-        return $processor;
-    }
-
 
     private function logNotice($string) {
         $this->logger->notice($string);
@@ -238,6 +326,15 @@ class Compiler implements CompilerInterface
      * @param string $inputFilename Path to the file to be compiled.
      * @return FileCompilationResultCollection
      * @throws Exception\CannotWrite
+     * @throws ParsingException
+     * @throws \Exception
+     *
+     * todo rework to not write output/manifest but to return their contents in some stream and refs to that and move to CompiledAndManifest Generator/Processor
+     * todo rework file outputing stuff into CompiledAndManifest Outputter
+     *
+     * if we change the code here to return a reference to a stream
+     * we can then have a function that takes that stream and outputs it the file
+     *
      */
     public function compileAndWriteFilesAndManifests($inputFilename)
     {
@@ -249,7 +346,10 @@ class Compiler implements CompilerInterface
         foreach( $dependencySets as $dependencySetIndex => $dependencySet )
         {
             try {
+                // this should be within the processor itself
                 $result = $this->compileDependencySet( $dependencySet, $dependencySetIndex, $dependencySets );
+
+                // this should be within the outputters and treated as normal files so FileOutputter
                 $this->logNotice('Successfully compiled Dependency Set: ' . $result->filename);
 
                 if ( strlen( $result->warnings ) > 0 ) {
@@ -329,77 +429,58 @@ class Compiler implements CompilerInterface
      */
     private function getDependencySetsForFilename($inputFilename)
     {
-        $dependencyTree = new DependencyTree(
-            $inputFilename, null, false, $this->logger, $this->remoteFolderPath
+        $resolverContext = new AnnotationBasedResolverContext();
+        $resolverContext->remoteFolderPath = $this->remoteFolderPath;
+        $resolverContext->remoteSymbol = $this->remoteSymbol;
+
+        $testsSourcePath = null;
+        $mutingMissingFileExceptions = false;
+
+
+        $rootHandler = new RootAnnotationHandler();
+        $noCompileHandler = new IsMarkedNoCompiledHandler();
+        $requireRemoteStyleHandler = new RequireRemoteStyleAnnotationHandler(
+            $this->remoteFolderPath, $this->remoteSymbol, $mutingMissingFileExceptions, $this->logger
         );
-        $dependencyTree->logger = $this->logger;
-        $dependencySets = $dependencyTree->getDependencySets();
+        $requireRemoteHandler = new RequireRemote(
+            $this->remoteFolderPath, $this->remoteSymbol, $mutingMissingFileExceptions, $this->logger
+        );
+
+        $annotationResponseHandlerMapping = array(
+            'requireRemote'     => array($requireRemoteHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($requireRemoteHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($requireRemoteStyleHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($requireRemoteHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($requireRemoteHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($requireRemoteHandler, 'doAnnotation_testsRemote' ),
+            'root'              => array($rootHandler, 'doAnnotation_root' ),
+            'nocompile'         => array($noCompileHandler, 'doAnnotation_noCompile' )
+        );
+
+        $annParser = new AnnotationParser(
+            $annotationResponseHandlerMapping,
+            $testsSourcePath,
+            $this->logger,
+            $this->fileHandler
+        );
+        $treeParser = new DependencyTreeParser(
+            $annParser,
+            $this->remoteSymbol,
+            $this->remoteFolderPath,
+            $testsSourcePath,
+            $this->logger,
+            $mutingMissingFileExceptions,
+            $this->fileHandler
+        );
+
+        $thisTree = $treeParser->parseFile( $inputFilename, false );
+
+        $service = new FileToDependencySetsService( $this->logger );
+
+        $dependencySets = $service->getDependencySets( $thisTree );
+
         return $dependencySets;
     }
 
-    /**
-     * @return ManifestContentsGenerator
-     */
-    private function getManifestContentsGenerator()
-    {
-        $manifestContentsGenerator = new ManifestContentsGenerator(
-            $this->remoteSymbol, $this->remoteFolderPath, $this->logger
-        );
-        return $manifestContentsGenerator;
-    }
-
-    /**
-     * Assemble and compile a manifest file for a DependencySet
-     * @param $dependencySet
-     * @param $dependencySetIndex
-     * @param $dependencySets
-     * @param $rootFilename
-     * @param $totalDependencies
-     * @param $rootFilePath
-     * @param $manifestFilename
-     * @return null|string
-     */
-    protected function assembleManifest($dependencySet, $dependencySetIndex, $dependencySets,
-                                        $rootFilename, $totalDependencies, $rootFilePath, $manifestFilename)
-    {
-        $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
-
-        $manifestContentsGenerator = $this->getManifestContentsGenerator();
-
-        if ($dependencySetIndex && $dependencySetIndex > 0) {
-            $dependencySetIndexIterator = $dependencySetIndex;
-            while ($dependencySetIndexIterator > 0) {
-                // Roll in dependent package's stylesheets so we only need to read this manifest
-                $this->logger->debug(
-                    "Using dependency set and it's dependency set's stylesheets so that manifests are all-inclusive"
-                );
-                $lastDependencySet = $dependencySets[$dependencySetIndexIterator - 1];
-                $stylesheets = array_merge($lastDependencySet->stylesheets, $dependencySet->stylesheets);
-                $stylesheets = array_unique($stylesheets);
-                $dependencySetIndexIterator--;
-            }
-        } else {
-            $this->logger->debug("Using dependency set's stylesheets");
-            $stylesheets = $dependencySet->stylesheets;
-        }
-
-        if (count($dependencySet->stylesheets) > 0 || $totalDependencies > 1) {
-            // Build manifest first
-            $compiledFileManifest = $manifestContentsGenerator->generateManifestFileContents(
-                $rootFilePath . '/',
-                $dependencySet->packages,
-                $stylesheets,
-                $this->rollingPathsMarkedNoCompile
-            );
-        } else {
-            $this->logger->debug(
-                "Skipping building manifest '{$manifestFilename}' because file has no other dependencies than itself."
-            );
-            $compiledFileManifest = null;
-        }
-
-        $this->logger->debug("Built manifest.");
-        return $compiledFileManifest;
-    }
 
 }

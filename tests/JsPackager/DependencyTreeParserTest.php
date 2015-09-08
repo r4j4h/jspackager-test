@@ -2,11 +2,20 @@
 
 namespace JsPackagerTest;
 
+use JsPackager\Annotations\AnnotationHandlers\IsMarkedNoCompiledHandler;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemote;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemoteStyleAnnotationHandler;
+use JsPackager\Annotations\AnnotationHandlers\RootAnnotationHandler;
 use JsPackager\Annotations\AnnotationOrderMapping;
+use JsPackager\Annotations\AnnotationParser;
+use JsPackager\Helpers\FileHandler;
+use JsPackager\Resolver\AnnotationBasedFileResolver;
 use JsPackager\Resolver\DependencyTreeParser;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Exception\MissingFile as MissingFileException;
+use org\bovigo\vfs\vfsStream;
+use Psr\Log\NullLogger;
 
 /**
  * @group      JsPackager
@@ -29,13 +38,14 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '0_deps';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = new AnnotationParser( array(), null, new NullLogger(), new FileHandler());
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertInstanceOf(
-            'JsPackager\File',
+            'JsPackager\DependencyFileInterface',
             $dependencyTree,
-            "parseFile's return value should be a File object"
+            "parseFile's return value should be a DependencyFileInterface based object"
         );
     }
 
@@ -47,18 +57,20 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '0_deps';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename, "Main file should be named main" );
         $this->assertEquals( 'js', $dependencyTree->filetype, "Main file should be of js filetype" );
         $this->assertEquals( $basePath, $dependencyTree->path, "Main file should have base path" );
-        $this->assertFalse( $dependencyTree->isRoot, 'Main file should not be marked isRoot' );
-        $this->assertEmpty( $dependencyTree->scripts, "Main.js should have no dependent scripts" );
-        $this->assertEmpty( $dependencyTree->stylesheets, "Main.js should have no dependent stylesheets" );
-        $this->assertEmpty( $dependencyTree->packages, "Main.js should have no dependent packages" );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'Main file should not be marked isRoot' );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('scripts'), "Main.js should have no dependent scripts" );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets'), "Main.js should have no dependent stylesheets" );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages'), "Main.js should have no dependent packages" );
         $this->assertEmpty(
-            $dependencyTree->annotationOrderMap->getAnnotationMappings(),
+            $dependencyTree->getMetaDataKey('annotationOrderMap')->getAnnotationMappings(),
             "Main.js should have no annotations in its ordering map"
         );
     }
@@ -71,18 +83,19 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '0_deps_root';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename );
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
-        $this->assertTrue( $dependencyTree->isRoot, 'Main.js should be marked isRoot' );
-        $this->assertEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertEmpty( $dependencyTree->packages );
+        $this->assertTrue( $dependencyTree->getMetaDataKey('isRoot'), 'Main.js should be marked isRoot' );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('scripts'));
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets'));
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages'));
         $this->assertEmpty(
-            $dependencyTree->annotationOrderMap->getAnnotationMappings(),
+            $dependencyTree->getMetaDataKey('annotationOrderMap')->getAnnotationMappings(),
             "Main.js should have no annotations in its ordering map"
         );
     }
@@ -95,24 +108,26 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_dep';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename );
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
-        $this->assertFalse( $dependencyTree->isRoot, 'File should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages') );
 
-        $this->assertCount(1, $dependencyTree->scripts, 'Should have a dependent script' );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertCount(1, $scripts, 'Should have a dependent script' );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
 
-        $this->assertEquals( 'dep_1', $dependencyTree->scripts[0]->filename );
-        $this->assertFalse( $dependencyTree->scripts[0]->isRoot, 'File should not be marked isRoot' );
+        $this->assertEquals( 'dep_1', $scripts[0]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
 
-        $annotations = $dependencyTree->annotationOrderMap->getAnnotationMappings();
+        $annotations = $dependencyTree->getMetaDataKey('annotationOrderMap')->getAnnotationMappings();
         $this->assertEquals(
             'require',
             $annotations[0]->getAnnotationName(),
@@ -133,27 +148,30 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_dep_root';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename );
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
-        $this->assertFalse( $dependencyTree->isRoot, 'File should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertNotEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('packages') );
 
-        $this->assertCount(1, $dependencyTree->scripts, 'Should have a dependent script' );
-        $this->assertCount(1, $dependencyTree->packages, 'Should have a dependent script package entry' );
+        $this->assertCount(1, $dependencyTree->getMetaDataKey('scripts'), 'Should have a dependent script' );
+        $this->assertCount(1, $dependencyTree->getMetaDataKey('packages'), 'Should have a dependent script package entry' );
 
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
-        $this->assertEquals( 'dep_1', $dependencyTree->scripts[0]->filename );
-        $this->assertTrue( $dependencyTree->scripts[0]->isRoot, 'Dependent script should be marked isRoot');
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
+        $this->assertEquals( 'dep_1', $scripts[0]->filename );
+        $this->assertTrue( $scripts[0]->getMetaDataKey('isRoot'), 'Dependent script should be marked isRoot');
 
-        $this->assertEquals( $basePath . '/somePackage/dep_1.js', $dependencyTree->packages[0] );
+        $packages = $dependencyTree->getMetaDataKey('packages');
+        $this->assertEquals( $basePath . '/somePackage/dep_1.js', $packages[0] );
 
-        $annotations = $dependencyTree->annotationOrderMap->getAnnotationMappings();
+        $annotations = $dependencyTree->getMetaDataKey('annotationOrderMap')->getAnnotationMappings();
         $this->assertEquals(
             'require',
             $annotations[0]->getAnnotationName(),
@@ -166,6 +184,34 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    private function getCommonAnnotationParser($remotePath = 'shared', $remoteSymbol = '@remote', $mutingMissingFileExceptions = false)
+    {
+        $logger = new NullLogger();
+
+        $rootHandler = new RootAnnotationHandler();
+        $noCompileHandler = new IsMarkedNoCompiledHandler();
+        $requireRemoteStyleHandler = new RequireRemoteStyleAnnotationHandler(
+            $remotePath, $remoteSymbol, $mutingMissingFileExceptions, $logger
+        );
+        $requireRemoteHandler = new RequireRemote(
+            $remotePath, $remoteSymbol, $mutingMissingFileExceptions, $logger
+        );
+
+        $mapping = array(
+            'requireRemote'     => array($requireRemoteHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($requireRemoteHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($requireRemoteStyleHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($requireRemoteHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($requireRemoteHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($requireRemoteHandler, 'doAnnotation_testsRemote' ),
+            'root'              => array($rootHandler, 'doAnnotation_root' ),
+            'nocompile'         => array($noCompileHandler, 'doAnnotation_noCompile' )
+        );
+
+        $parser = new AnnotationParser( $mapping, null, new NullLogger(), new FileHandler());
+
+        return $parser;
+    }
     /**
      * Leaving this test for clarity, stylesheets used to be File objects instead of behaving
      * like packages with full paths.
@@ -178,19 +224,21 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . 'css_with_annotations';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename, "main should be base file's name" );
         $this->assertEquals( 'js', $dependencyTree->filetype, "main.js should be a javascript file" );
         $this->assertEquals( $basePath, $dependencyTree->path, "main.js should be in the css_with_annotations fixture" );
-        $this->assertFalse( $dependencyTree->isRoot, 'main.js should not be marked isRoot' );
-        $this->assertEmpty( $dependencyTree->scripts, "main.js should have no script dependencies" );
-        $this->assertNotEmpty( $dependencyTree->stylesheets, "main.js should have 1 dependent stylesheet" );
-        $this->assertEmpty( $dependencyTree->packages, "main.js should have no packaged dependencies" );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'main.js should not be marked isRoot' );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('scripts'), "main.js should have no script dependencies" );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('stylesheets'), "main.js should have 1 dependent stylesheet" );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages'), "main.js should have no packaged dependencies" );
 
-        $this->assertCount(1, $dependencyTree->stylesheets, 'Should have one dependent stylesheet' );
-        $this->assertEquals( $basePath . '/' . 'main.css', $dependencyTree->stylesheets[0] );
+        $stylesheets = $dependencyTree->getMetaDataKey('stylesheets');
+        $this->assertCount(1, $stylesheets, 'Should have one dependent stylesheet' );
+        $this->assertEquals( $basePath . '/' . 'main.css', $stylesheets[0] );
     }
 
     public function testParseFileThrowsMissingFileExceptionOnBrokenReferencesIfNotMuted()
@@ -199,8 +247,9 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
         $basePath = self::fixturesBasePath . '1_broken_js_reference';
         $filePath = $basePath . '/main.js';
+        $parser = $this->getCommonAnnotationParser();
 
-        $treeParser = new DependencyTreeParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
 
         try {
             $dependencyTree = $treeParser->parseFile( $filePath );
@@ -225,7 +274,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_broken_css_reference';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
 
         try {
             $dependencyTree = $treeParser->parseFile( $filePath );
@@ -251,9 +301,9 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
         $basePath = self::fixturesBasePath . '1_broken_js_reference';
         $filePath = $basePath . '/main.js';
+        $parser = $this->getCommonAnnotationParser();
 
-        $treeParser = new DependencyTreeParser();
-        $treeParser->muteMissingFileExceptions();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), true, new FileHandler());
 
         $dependencyTree = $treeParser->parseFile( $filePath );
         $this->assertEquals(
@@ -264,12 +314,11 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
 
         // Test Stylesheet files
-
         $basePath = self::fixturesBasePath . '1_broken_css_reference';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
-        $treeParser->muteMissingFileExceptions();
+        $parser = $this->getCommonAnnotationParser('shared', '@remote', true);
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), true, new FileHandler());
 
         $dependencyTree = $treeParser->parseFile( $filePath );
         $this->assertEquals(
@@ -286,7 +335,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_broken_js_reference_recursive';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
 
         try {
             $dependencyTree = $treeParser->parseFile( $filePath );
@@ -324,8 +374,12 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_broken_js_reference_remote';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
-        $treeParser->remoteFolderPath = self::fixturesBasePath . '1_broken_js_reference_remote-remote';
+
+        $parser = $this->getCommonAnnotationParser( self::fixturesBasePath . '1_broken_js_reference_remote-remote' );
+
+        $treeParser = new DependencyTreeParser(
+            $parser, '@remote', self::fixturesBasePath . '1_broken_js_reference_remote-remote', null, new NullLogger(), false, new FileHandler()
+        );
 
         try {
             $dependencyTree = $treeParser->parseFile( $filePath );
@@ -361,68 +415,72 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
 
         $basePath = self::fixturesBasePath . 'remote_annotation';
         $filePath = $basePath . '/main.js';
+        $remoteFolderPath = self::fixturesBasePath . 'remote_annotation-remote';
 
-        $treeParser = new DependencyTreeParser();
-        $treeParser->remoteFolderPath = self::fixturesBasePath . 'remote_annotation-remote';
+        $parser = $this->getCommonAnnotationParser($remoteFolderPath);
+        $treeParser = new DependencyTreeParser($parser, '@remote', $remoteFolderPath, null, new NullLogger(), false, new FileHandler());
 
         $dependencyTree = $treeParser->parseFile( $filePath );
-
+        $metaData = $dependencyTree->getMetaData();
         $this->assertFalse(
-            $dependencyTree->isRemote,
+            $dependencyTree->getMetaDataKey('isRemote'),
             'Main file should not be marked remote'
         );
 
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
         $this->assertFalse(
-            $dependencyTree->scripts[0]->isRemote,
+            $scripts[0]->getMetaDataKey('isRemote'),
             'Local file before remotes in main file should not be marked remote'
         );
         $this->assertFalse(
-            $dependencyTree->scripts[1]->isRemote,
+            $scripts[1]->getMetaDataKey('isRemote'),
             'Local file in subfolder before remotes in main file should not be marked remote'
         );
 
         $this->assertTrue(
-            $dependencyTree->scripts[2]->isRemote,
+            $scripts[2]->getMetaDataKey('isRemote'),
             'Remote script file should be marked remote'
         );
 
+        $rScripts = $scripts[2]->getMetaDataKey('scripts');
         $this->assertTrue(
-            $dependencyTree->scripts[2]->scripts[0]->isRemote,
+            $rScripts[0]->getMetaDataKey('isRemote'),
             'Remote script\'s locally required file should be marked remote'
         );
 
         $this->assertTrue(
-            $dependencyTree->scripts[2]->scripts[1]->isRemote,
+            $rScripts[1]->getMetaDataKey('isRemote'),
             'Remote script\'s remotely required file should be marked remote'
         );
 
         $this->assertTrue(
-            $dependencyTree->scripts[3]->isRemote,
+            $scripts[3]->getMetaDataKey('isRemote'),
             'Remote package file should be marked remote'
         );
 
         $this->assertTrue(
-            $dependencyTree->scripts[3]->isRemote,
+            $scripts[3]->getMetaDataKey('isRemote'),
             'Remote package file should be marked remote'
         );
 
+        $rScripts = $scripts[3]->getMetaDataKey('scripts');
         $this->assertTrue(
-            $dependencyTree->scripts[3]->scripts[0]->isRemote,
+            $rScripts[0]->getMetaDataKey('isRemote'),
             'Remote script\'s locally required file should be marked remote'
         );
 
         $this->assertTrue(
-            $dependencyTree->scripts[3]->scripts[1]->isRemote,
+            $rScripts[1]->getMetaDataKey('isRemote'),
             'Remote script\'s remotely required file should be marked remote'
         );
 
         $this->assertFalse(
-            $dependencyTree->scripts[4]->isRemote,
+            $scripts[4]->getMetaDataKey('isRemote'),
             'Local file  in subfolder after remotes in main file should not be marked remote'
         );
 
         $this->assertFalse(
-            $dependencyTree->scripts[5]->isRemote,
+            $scripts[5]->getMetaDataKey('isRemote'),
             'Local file after remotes in main file should not be marked remote'
         );
 
@@ -438,25 +496,52 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $remoteFolder = 'shared';
+        $remoteSymbol = '@remote';
+        $mutingMissingFileExceptions = false;
+        $logger = new NullLogger();
+
+        $rootHandler = new RootAnnotationHandler();
+        $noCompileHandler = new IsMarkedNoCompiledHandler();
+        $requireRemoteStyleHandler = new RequireRemoteStyleAnnotationHandler(
+            $remoteFolder, $remoteSymbol, $mutingMissingFileExceptions, $logger
+        );
+        $requireRemoteHandler = new RequireRemote(
+            $remoteFolder, $remoteSymbol, $mutingMissingFileExceptions, $logger
+        );
+
+        $annotationResponseHandlerMapping = array(
+            'requireRemote'     => array($requireRemoteHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($requireRemoteHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($requireRemoteStyleHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($requireRemoteHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($requireRemoteHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($requireRemoteHandler, 'doAnnotation_testsRemote' ),
+            'root'              => array($rootHandler, 'doAnnotation_root' ),
+            'nocompile'         => array($noCompileHandler, 'doAnnotation_noCompile' )
+        );
+
+        $parser = new AnnotationParser($annotationResponseHandlerMapping, null, new NullLogger(), new FileHandler());
+        $treeParser = new DependencyTreeParser($parser, $remoteSymbol, $remoteFolder, null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename );
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
-        $this->assertFalse( $dependencyTree->isRoot, 'File should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages') );
 
-        $this->assertCount(2, $dependencyTree->scripts, 'Should have two dependent scripts' );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[1] );
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertCount(2, $scripts, 'Should have two dependent scripts' );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[1] );
 
-        $this->assertEquals( 'comp_a', $dependencyTree->scripts[0]->filename );
-        $this->assertEquals( 'comp_b', $dependencyTree->scripts[1]->filename );
-        $this->assertFalse( $dependencyTree->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertFalse( $dependencyTree->scripts[1]->isRoot, 'File should not be marked isRoot' );
+        $this->assertEquals( 'comp_a', $scripts[0]->filename );
+        $this->assertEquals( 'comp_b', $scripts[1]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertFalse( $scripts[1]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
     }
 
     /******************************************************************
@@ -468,27 +553,30 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps_1_root';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename );
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
-        $this->assertFalse( $dependencyTree->isRoot, 'File should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertNotEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('packages') );
 
-        $this->assertCount(2, $dependencyTree->scripts, 'Should have two dependent scripts' );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[1] );
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertCount(2, $scripts, 'Should have two dependent scripts' );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[1] );
 
-        $this->assertEquals( 'comp_a', $dependencyTree->scripts[0]->filename );
-        $this->assertEquals( 'comp_b', $dependencyTree->scripts[1]->filename );
-        $this->assertFalse( $dependencyTree->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertTrue(  $dependencyTree->scripts[1]->isRoot, 'File should be marked isRoot' );
+        $this->assertEquals( 'comp_a', $scripts[0]->filename );
+        $this->assertEquals( 'comp_b', $scripts[1]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertTrue(  $scripts[1]->getMetaDataKey('isRoot'), 'File should be marked isRoot' );
 
-        $this->assertEquals( $basePath . '/ComponentB/comp_b.js', $dependencyTree->packages[0], "Should have comp_b package" );
+        $packages = $dependencyTree->getMetaDataKey('packages');
+        $this->assertEquals( $basePath . '/ComponentB/comp_b.js', $packages[0], "Should have comp_b package" );
     }
 
 
@@ -504,38 +592,42 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps_individ_deps';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename );
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
-        $this->assertFalse( $dependencyTree->isRoot, 'File should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages') );
 
-        $this->assertCount(2, $dependencyTree->scripts, 'Should have two dependent scripts' );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[1] );
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertCount(2, $scripts, 'Should have two dependent scripts' );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[1] );
 
-        $this->assertEquals( 'dep_1', $dependencyTree->scripts[0]->filename );
-        $this->assertEquals( 'dep_2', $dependencyTree->scripts[1]->filename );
-        $this->assertFalse( $dependencyTree->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertFalse( $dependencyTree->scripts[1]->isRoot, 'File should not be marked isRoot' );
+        $this->assertEquals( 'dep_1', $scripts[0]->filename );
+        $this->assertEquals( 'dep_2', $scripts[1]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertFalse( $scripts[1]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
 
-        $dep1 = $dependencyTree->scripts[0];
-        $dep2 = $dependencyTree->scripts[1];
+        $dep1 = $scripts[0];
+        $dep2 = $scripts[1];
 
-        $this->assertCount(1, $dep1->scripts, 'Should have one dependent script');
-        $this->assertEquals( 'dep_3', $dep1->scripts[0]->filename );
-        $this->assertFalse( $dep1->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertEmpty( $dep1->scripts[0]->packages );
+        $scripts = $dep1->getMetaDataKey('scripts');
+        $this->assertCount(1, $scripts, 'Should have one dependent script');
+        $this->assertEquals( 'dep_3', $scripts[0]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertEmpty( $scripts[0]->getMetaDataKey('packages') );
 
-        $this->assertCount(1, $dep2->scripts, 'Should have one dependent script');
-        $this->assertEquals( 'dep_4', $dep2->scripts[0]->filename );
-        $this->assertFalse( $dep2->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertEmpty( $dep2->scripts[0]->packages );
+        $scripts = $dep2->getMetaDataKey('scripts');
+        $this->assertCount(1, $scripts, 'Should have one dependent script');
+        $this->assertEquals( 'dep_4', $scripts[0]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertEmpty( $scripts[0]->getMetaDataKey('packages') );
     }
 
     /******************************************************************
@@ -550,40 +642,44 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps_shared_deps';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         $this->assertEquals( 'main', $dependencyTree->filename );
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
-        $this->assertFalse( $dependencyTree->isRoot, 'File should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages') );
 
-        $this->assertCount(2, $dependencyTree->scripts, 'Should have two dependent scripts' );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[1] );
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertCount(2, $scripts, 'Should have two dependent scripts' );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[1] );
 
-        $this->assertEquals( 'dep_1', $dependencyTree->scripts[0]->filename );
-        $this->assertEquals( 'dep_2', $dependencyTree->scripts[1]->filename );
-        $this->assertFalse( $dependencyTree->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertFalse( $dependencyTree->scripts[1]->isRoot, 'File should not be marked isRoot' );
+        $this->assertEquals( 'dep_1', $scripts[0]->filename );
+        $this->assertEquals( 'dep_2', $scripts[1]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertFalse( $scripts[1]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
 
-        $dep1 = $dependencyTree->scripts[0];
-        $dep2 = $dependencyTree->scripts[1];
+        $dep1 = $scripts[0];
+        $dep2 = $scripts[1];
 
-        $this->assertCount(1, $dep1->scripts, 'Should have one dependent script');
-        $this->assertEquals( 'dep_3', $dep1->scripts[0]->filename );
-        $this->assertFalse( $dep1->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertEmpty( $dep1->scripts[0]->packages );
+        $dep1Scripts = $dep1->getMetaDataKey('scripts');
+        $this->assertCount(1, $dep1Scripts, 'Should have one dependent script');
+        $this->assertEquals( 'dep_3', $dep1Scripts[0]->filename );
+        $this->assertFalse( $dep1Scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertEmpty( $dep1Scripts[0]->getMetaDataKey('packages') );
 
-        $this->assertCount(1, $dep2->scripts, 'Should have one dependent script');
-        $this->assertEquals( 'dep_3', $dep2->scripts[0]->filename );
-        $this->assertFalse( $dep2->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertEmpty( $dep2->scripts[0]->packages );
+        $dep2Scripts = $dep2->getMetaDataKey('scripts');
+        $this->assertCount(1,$dep2Scripts, 'Should have one dependent script');
+        $this->assertEquals( 'dep_3',$dep2Scripts[0]->filename );
+        $this->assertFalse($dep2Scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertEmpty($dep2Scripts[0]->getMetaDataKey('packages') );
 
-        $this->assertEquals( $dep1->scripts[0]->filename, $dep2->scripts[0]->filename );
+        $this->assertEquals( $dep1Scripts[0]->filename, $dep2Scripts[0]->filename );
     }
 
     /******************************************************************
@@ -599,7 +695,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps_shared_package';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         // Ensure root file was scanned properly
@@ -608,41 +705,44 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( $basePath, $dependencyTree->path );
 
         // Ensure root file (main.js) has #1 and #2 scripts but no packages (should it have a package?)
-        $this->assertFalse( $dependencyTree->isRoot, 'Main file should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'Main file should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages') );
 
         // Ensure it has #1 and #2
-        $this->assertCount(2, $dependencyTree->scripts, 'Main file should have two dependent scripts' );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[1] );
-        $this->assertEquals( 'dep_1', $dependencyTree->scripts[0]->filename );
-        $this->assertEquals( 'dep_2', $dependencyTree->scripts[1]->filename );
-
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertCount(2, $scripts, 'Main file should have two dependent scripts' );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[1] );
+        $this->assertEquals( 'dep_1', $scripts[0]->filename );
+        $this->assertEquals( 'dep_2', $scripts[1]->filename );
+// todo left off fixing unit tests to support getMetaDataKey - it's a bit gross on these tests with the [0]s and whatnot but gotta do it at least for now!
         // Shortcut for easier access and readability
-        $dep1 = $dependencyTree->scripts[0];
-        $dep2 = $dependencyTree->scripts[1];
+        $dep1 = $scripts[0];
+        $dep2 = $scripts[1];
 
         // Ensure #1 and #2 are not root packages themselves
-        $this->assertFalse( $dep1->isRoot, 'Dep #1 should not be marked isRoot' );
-        $this->assertFalse( $dep2->isRoot, 'Dep #2 should not be marked isRoot' );
+        $this->assertFalse( $dep1->getMetaDataKey('isRoot'), 'Dep #1 should not be marked isRoot' );
+        $this->assertFalse( $dep2->getMetaDataKey('isRoot'), 'Dep #2 should not be marked isRoot' );
 
 
         // Ensure dep #1 has #3 as a package
-        $this->assertCount(1, $dep1->scripts, 'Dep #1 should have one dependent script');
-        $this->assertEquals( 'dep_3', $dep1->scripts[0]->filename );
-        $this->assertTrue( $dep1->scripts[0]->isRoot, 'Dep #3 through Dep #1 should be marked isRoot' );
-        $this->assertEmpty( $dep1->scripts[0]->packages );
+        $dep1scripts = $dep1->getMetaDataKey('scripts');
+        $this->assertCount(1, $dep1scripts, 'Dep #1 should have one dependent script');
+        $this->assertEquals( 'dep_3', $dep1scripts[0]->filename );
+        $this->assertTrue( $dep1scripts[0]->getMetaDataKey('isRoot'), 'Dep #3 through Dep #1 should be marked isRoot' );
+        $this->assertEmpty( $dep1scripts[0]->getMetaDataKey('packages') );
 
         // Ensure dep #2 has #3 as a package
-        $this->assertCount(1, $dep2->scripts, 'Dep #2 should have one dependent script');
-        $this->assertEquals( 'dep_3', $dep2->scripts[0]->filename );
-        $this->assertTrue( $dep2->scripts[0]->isRoot, 'Dep #3 through Dep #2 should be marked isRoot' );
-        $this->assertEmpty( $dep2->scripts[0]->packages );
+        $scripts = $dep2->getMetaDataKey('scripts');
+        $this->assertCount(1, $scripts, 'Dep #2 should have one dependent script');
+        $this->assertEquals( 'dep_3', $scripts[0]->filename );
+        $this->assertTrue( $scripts[0]->getMetaDataKey('isRoot'), 'Dep #3 through Dep #2 should be marked isRoot' );
+        $this->assertEmpty( $scripts[0]->getMetaDataKey('packages') );
 
         // Ensure dep #1's dependency and dep #2's dependency is the same
-        $this->assertEquals( $dep1->scripts[0]->filename, $dep2->scripts[0]->filename );
+        $this->assertEquals( $dep1scripts[0]->filename, $scripts[0]->filename );
     }
 
     /******************************************************************
@@ -658,7 +758,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_1_feedback';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         // Ensure root file was scanned properly
@@ -667,43 +768,45 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( $basePath, $dependencyTree->path );
 
         // Ensure root file (main.js) has #1 and #2 scripts but no packages
-        $this->assertFalse( $dependencyTree->isRoot, 'Root file should not be marked isRoot' );
-        $this->assertNotEmpty( $dependencyTree->scripts );
-        $this->assertEmpty( $dependencyTree->stylesheets );
-        $this->assertEmpty( $dependencyTree->packages );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), 'Root file should not be marked isRoot' );
+        $this->assertNotEmpty( $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertEmpty( $dependencyTree->getMetaDataKey('packages') );
 
         // Ensure it has #1 and #2 and #3
-        $this->assertCount(3, $dependencyTree->scripts, 'Root file should have three dependent scripts' );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[0] );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[1] );
-        $this->assertInstanceOf( 'JsPackager\File', $dependencyTree->scripts[2] );
-        $this->assertEquals( 'dep_1', $dependencyTree->scripts[0]->filename );
-        $this->assertEquals( 'dep_3', $dependencyTree->scripts[1]->filename );
-        $this->assertEquals( 'dep_2', $dependencyTree->scripts[2]->filename );
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $this->assertCount(3, $scripts, 'Root file should have three dependent scripts' );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[0] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[1] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $scripts[2] );
+        $this->assertEquals( 'dep_1', $scripts[0]->filename );
+        $this->assertEquals( 'dep_3', $scripts[1]->filename );
+        $this->assertEquals( 'dep_2', $scripts[2]->filename );
 
         // Shortcut for easier access and readability
-        $dep1 = $dependencyTree->scripts[0];
-        $dep3 = $dependencyTree->scripts[1];
-        $dep2 = $dependencyTree->scripts[2];
+        $dep1 = $scripts[0];
+        $dep3 = $scripts[1];
+        $dep2 = $scripts[2];
 
         // Ensure dependencies are not root packages themselves
-        $this->assertFalse( $dep1->isRoot, 'Dep #1 should not be marked isRoot' );
-        $this->assertFalse( $dep2->isRoot, 'Dep #2 should not be marked isRoot' );
-        $this->assertFalse( $dep3->isRoot, 'Dep #3 should not be marked isRoot' );
+        $this->assertFalse( $dep1->getMetaDataKey('isRoot'), 'Dep #1 should not be marked isRoot' );
+        $this->assertFalse( $dep2->getMetaDataKey('isRoot'), 'Dep #2 should not be marked isRoot' );
+        $this->assertFalse( $dep3->getMetaDataKey('isRoot'), 'Dep #3 should not be marked isRoot' );
 
 
         // Ensure dep #1 and #2 have no dependencies
-        $this->assertCount(0, $dep1->scripts, 'Dep #1 should have no dependent script');
-        $this->assertCount(0, $dep2->scripts, 'Dep #2 should have no dependent script');
+        $this->assertCount(0, $dep1->getMetaDataKey('scripts'), 'Dep #1 should have no dependent script');
+        $this->assertCount(0, $dep2->getMetaDataKey('scripts'), 'Dep #2 should have no dependent script');
 
         // Ensure dep #3 has #2 as a dependency
-        $this->assertCount(1, $dep3->scripts, 'Dep #3 should have one dependent script');
-        $this->assertEquals( 'dep_2', $dep3->scripts[0]->filename );
-        $this->assertFalse( $dep3->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertEmpty( $dep3->scripts[0]->packages );
+        $scripts = $dep3->getMetaDataKey('scripts');
+        $this->assertCount(1, $scripts, 'Dep #3 should have one dependent script');
+        $this->assertEquals( 'dep_2', $scripts[0]->filename );
+        $this->assertFalse( $scripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertEmpty( $scripts[0]->getMetaDataKey('packages'));
 
         // Ensure dep #3's dependency is dependency #2
-        $this->assertEquals( $dep3->scripts[0]->filename, $dep2->filename );
+        $this->assertEquals( $scripts[0]->filename, $dep2->filename );
     }
 
     /******************************************************************
@@ -719,7 +822,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_all_on_one';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         // Ensure root file was scanned properly
@@ -727,43 +831,48 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 'js', $dependencyTree->filetype );
         $this->assertEquals( $basePath, $dependencyTree->path );
 
-        $this->assertCount( 3, $dependencyTree->scripts );
-        $this->assertCount( 0, $dependencyTree->stylesheets );
-        $this->assertCount( 3, $dependencyTree->scripts );
+        $this->assertCount( 3, $dependencyTree->getMetaDataKey('scripts') );
+        $this->assertCount( 0, $dependencyTree->getMetaDataKey('stylesheets') );
+        $this->assertCount( 3, $dependencyTree->getMetaDataKey('scripts') );
 
-        $this->assertFalse( $dependencyTree->isRoot );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot') );
 
         // Shortcut for easier access and readability
-        $dep1 = $dependencyTree->scripts[0];
-        $dep2 = $dependencyTree->scripts[1];
-        $dep3 = $dependencyTree->scripts[2];
+        $scripts = $dependencyTree->getMetaDataKey('scripts');
+        $dep1 = $scripts[0];
+        $dep1Scripts = $dep1->getMetaDataKey('scripts');
+        $dep2 = $scripts[1];
+        $dep2Scripts = $dep2->getMetaDataKey('scripts');
+        $dep3 = $scripts[2];
+        $dep3Scripts = $dep3->getMetaDataKey('scripts');
 
         // Ensure dependencies are not root packages themselves
-        $this->assertFalse( $dep1->isRoot, 'Dep #1 should not be marked isRoot' );
-        $this->assertFalse( $dep2->isRoot, 'Dep #2 should not be marked isRoot' );
-        $this->assertFalse( $dep3->isRoot, 'Dep #3 should not be marked isRoot' );
+        $this->assertFalse( $dep1->getMetaDataKey('isRoot'), 'Dep #1 should not be marked isRoot' );
+        $this->assertFalse( $dep2->getMetaDataKey('isRoot'), 'Dep #2 should not be marked isRoot' );
+        $this->assertFalse( $dep3->getMetaDataKey('isRoot'), 'Dep #3 should not be marked isRoot' );
 
         // #1 & #5 depends on #4
-        $this->assertEquals( 'dep_4', $dep1->scripts[0]->filename );
+        $this->assertEquals( 'dep_4', $dep1Scripts[0]->filename );
 
-        $dep4 = $dep1->scripts[0];
-        $this->assertFalse( $dep4->isRoot, 'Dep #4 should not be marked isRoot' );
+        $dep4 = $dep1Scripts[0];
+        $this->assertFalse( $dep4->getMetaDataKey('isRoot'), 'Dep #4 should not be marked isRoot' );
 
         // #2 & #3 depend on #5
-        $this->assertEquals( 'dep_5', $dep2->scripts[0]->filename, "Dep #2 should depend on Dep #5" );
-        $this->assertEquals( 'dep_5', $dep3->scripts[0]->filename, "Dep #3 should depend on Dep #5" );
+        $this->assertEquals( 'dep_5', $dep2Scripts[0]->filename, "Dep #2 should depend on Dep #5" );
+        $this->assertEquals( 'dep_5', $dep3Scripts[0]->filename, "Dep #3 should depend on Dep #5" );
 
-        $dep5 = $dep2->scripts[0];
-        $this->assertFalse( $dep5->isRoot, 'Dep #5 should not be marked isRoot' );
+        $dep5 = $dep2Scripts[0];
+        $dep5Scripts = $dep5->getMetaDataKey('scripts');
+        $this->assertFalse( $dep5->getMetaDataKey('isRoot'), 'Dep #5 should not be marked isRoot' );
 
         // #5 depends on #4
-        $this->assertEquals( 'dep_4', $dep5->scripts[0]->filename );
+        $this->assertEquals( 'dep_4', $dep5Scripts[0]->filename );
 
         /**
          * TODO update these tests!
          * @var $orderMapEntry AnnotationOrderMapping
          */
-        $annotations = $dependencyTree->annotationOrderMap->getAnnotationMappings();
+        $annotations = $dependencyTree->getMetaDataKey('annotationOrderMap')->getAnnotationMappings();
         $orderMapEntry = $annotations[0];
         $this->assertInstanceOf('JsPackager\Annotations\AnnotationOrderMapping', $orderMapEntry, 'Returns array of AnnotationOrderMapping value objects');
         $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
@@ -775,24 +884,24 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
         $this->assertEquals( 2, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $annotations = $dep1->annotationOrderMap->getAnnotationMappings();
+        $annotations = $dep1->getMetaDataKey('annotationOrderMap')->getAnnotationMappings();
         $orderMapEntry = $annotations[0];
         $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
         $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $annotations = $dep2->annotationOrderMap->getAnnotationMappings();
+        $annotations = $dep2->getMetaDataKey('annotationOrderMap')->getAnnotationMappings();
         $orderMapEntry = $annotations[0];
         $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
         $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $annotations = $dep3->annotationOrderMap->getAnnotationMappings();
+        $annotations = $dep3->getMetaDataKey('annotationOrderMap')->getAnnotationMappings();
         $orderMapEntry = $annotations[0];
         $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
         $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
 
-        $this->assertEmpty( $dep4->annotationOrderMap->getAnnotationMappings(), "Dep #4 has no dependencies" );
+        $this->assertEmpty( $dep4->getMetaDataKey('annotationOrderMap')->getAnnotationMappings(), "Dep #4 has no dependencies" );
 
-        $annotations = $dep5->annotationOrderMap->getAnnotationMappings();
+        $annotations = $dep5->getMetaDataKey('annotationOrderMap')->getAnnotationMappings();
         $orderMapEntry = $annotations[0];
         $this->assertEquals( 'require', $orderMapEntry->getAnnotationName(), "Should reflect appropriate bucket" );
         $this->assertEquals( 0, $orderMapEntry->getAnnotationIndex(), "Should reflect appropriate order" );
@@ -812,7 +921,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_all_on_one_package';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         // Ensure root file was scanned properly
@@ -820,38 +930,44 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 'js', $dependencyTree->filetype, "Root file should be of js filetype" );
         $this->assertEquals( $basePath, $dependencyTree->path, "Root file should be in the base path" );
 
-        $this->assertCount( 3, $dependencyTree->scripts, "main.js should contain 3 scripts" );
-        $this->assertCount( 0, $dependencyTree->packages, "main.js should contain no package" );
-        $this->assertCount( 0, $dependencyTree->stylesheets, "main.js should contain no stylesheets" );
+        $this->assertCount( 3, $dependencyTree->getMetaDataKey('scripts'), "main.js should contain 3 scripts" );
+        $this->assertCount( 0, $dependencyTree->getMetaDataKey('packages'), "main.js should contain no package" );
+        $this->assertCount( 0, $dependencyTree->getMetaDataKey('stylesheets'), "main.js should contain no stylesheets" );
 
-        $this->assertFalse( $dependencyTree->isRoot, "main.js should not be marked isRoot" );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isRoot'), "main.js should not be marked isRoot" );
 
         // Shortcut for easier access and readability
-        $dep1 = $dependencyTree->scripts[0];
-        $dep2 = $dependencyTree->scripts[1];
-        $dep3 = $dependencyTree->scripts[2];
+        $depTreeScripts = $dependencyTree->getMetaDataKey('scripts');
+        $dep1 = $depTreeScripts[0];
+        $dep1Scripts = $dep1->getMetaDataKey('scripts');
+        $dep2 = $depTreeScripts[1];
+        $dep2Scripts = $dep2->getMetaDataKey('scripts');
+        $dep3 = $depTreeScripts[2];
+        $dep3Scripts = $dep3->getMetaDataKey('scripts');
 
         // Ensure dependencies are not root packages themselves
-        $this->assertFalse( $dep1->isRoot, 'Dep #1 should not be marked isRoot' );
-        $this->assertFalse( $dep2->isRoot, 'Dep #2 should not be marked isRoot' );
-        $this->assertFalse( $dep3->isRoot, 'Dep #3 should not be marked isRoot' );
+        $this->assertFalse( $dep1->getMetaDataKey('isRoot'), 'Dep #1 should not be marked isRoot' );
+        $this->assertFalse( $dep2->getMetaDataKey('isRoot'), 'Dep #2 should not be marked isRoot' );
+        $this->assertFalse( $dep3->getMetaDataKey('isRoot'), 'Dep #3 should not be marked isRoot' );
 
         // #1 & #5 depends on #4
-        $this->assertEquals( 'dep_4', $dep1->scripts[0]->filename, "Dep #1 should depend on Dep #4" );
+        $this->assertEquals( 'dep_4', $dep1Scripts[0]->filename, "Dep #1 should depend on Dep #4" );
 
-        $dep4 = $dep1->scripts[0];
-        $this->assertTrue( $dep4->isRoot, 'Dep #4 should be marked isRoot' );
+        $dep4 = $dep1Scripts[0];
+        $this->assertTrue( $dep4->getMetaDataKey('isRoot'), 'Dep #4 should be marked isRoot' );
 
         // #2 & #3 depend on #5
-        $this->assertEquals( 'dep_5', $dep2->scripts[0]->filename, "Dep #2 should depend on Dep #5" );
-        $this->assertEquals( 'dep_5', $dep3->scripts[0]->filename, "Dep #3 should depend on Dep #5" );
+        $this->assertEquals( 'dep_5', $dep2Scripts[0]->filename, "Dep #2 should depend on Dep #5" );
+        $this->assertEquals( 'dep_5', $dep3Scripts[0]->filename, "Dep #3 should depend on Dep #5" );
 
-        $dep5 = $dep2->scripts[0];
-        $this->assertFalse( $dep5->isRoot, 'File should not be marked isRoot' );
-        $this->assertEquals( $basePath . '/dep_4.js', $dep5->packages[0], 'Dep #5 should contain package entry for Dep #4');
+        $dep5 = $dep2Scripts[0];
+        $dep5Scripts = $dep5->getMetaDataKey('scripts');
+        $dep5packages = $dep5->getMetaDataKey('packages');
+        $this->assertFalse( $dep5->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertEquals( $basePath . '/dep_4.js', $dep5packages[0], 'Dep #5 should contain package entry for Dep #4');
 
         // #5 depends on #4
-        $this->assertEquals( 'dep_4', $dep5->scripts[0]->filename, "Dep #5 should depend on Dep #4" );
+        $this->assertEquals( 'dep_4', $dep5Scripts[0]->filename, "Dep #5 should depend on Dep #4" );
     }
 
 
@@ -866,7 +982,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . 'annotation_nocompile';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
         $dependencyTree = $treeParser->parseFile( $filePath );
 
         // Ensure root file was scanned properly
@@ -874,39 +991,41 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals( 'js', $dependencyTree->filetype, "Root file should be of js filetype" );
         $this->assertEquals( $basePath, $dependencyTree->path, "Root file should be in the base path" );
 
-        $this->assertCount( 4, $dependencyTree->scripts, "main.js should contain 4 scripts" );
-        $this->assertCount( 2, $dependencyTree->packages, "main.js should contain 2 packages" );
-        $this->assertCount( 0, $dependencyTree->stylesheets, "main.js should contain no stylesheets" );
+        $this->assertCount( 4, $dependencyTree->getMetaDataKey('scripts'), "main.js should contain 4 scripts" );
+        $this->assertCount( 2, $dependencyTree->getMetaDataKey('packages'), "main.js should contain 2 packages" );
+        $this->assertCount( 0, $dependencyTree->getMetaDataKey('stylesheets'), "main.js should contain no stylesheets" );
 
-        $this->assertFalse( $dependencyTree->isMarkedNoCompile, "main.js should not be marked no compile" );
+        $this->assertFalse( $dependencyTree->getMetaDataKey('isMarkedNoCompile'), "main.js should not be marked no compile" );
 
         // Shortcut for easier access and readability
-        $nocompilePackage = $dependencyTree->scripts[0];
-        $nocompileScript = $dependencyTree->scripts[1];
-        $normalPackage = $dependencyTree->scripts[2];
-        $normalScript = $dependencyTree->scripts[3];
+        $depTreeScripts = $dependencyTree->getMetaDataKey('scripts');
+        $nocompilePackage = $depTreeScripts[0];
+        $nocompileScript = $depTreeScripts[1];
+        $normalPackage = $depTreeScripts[2];
+        $normalScript = $depTreeScripts[3];
 
         // Ensure dependencies `root` annotations were handled
-        $this->assertTrue( $nocompilePackage->isRoot, 'Dep #1 should be marked isRoot' );
-        $this->assertFalse( $nocompileScript->isRoot, 'Dep #2 should not be marked isRoot' );
-        $this->assertTrue( $normalPackage->isRoot, 'Dep #3 should be marked isRoot' );
-        $this->assertFalse( $normalScript->isRoot, 'Dep #4 should not be marked isRoot' );
+        $this->assertTrue( $nocompilePackage->getMetaDataKey('isRoot'), 'Dep #1 should be marked isRoot' );
+        $this->assertFalse( $nocompileScript->getMetaDataKey('isRoot'), 'Dep #2 should not be marked isRoot' );
+        $this->assertTrue( $normalPackage->getMetaDataKey('isRoot'), 'Dep #3 should be marked isRoot' );
+        $this->assertFalse( $normalScript->getMetaDataKey('isRoot'), 'Dep #4 should not be marked isRoot' );
 
         // Ensure dependencies `nocompile` annotations were handled
-        $this->assertTrue( $nocompilePackage->isMarkedNoCompile, 'Dep #1 should be marked no compile' );
-        $this->assertTrue( $nocompileScript->isMarkedNoCompile, 'Dep #2 should be be marked no compile' );
-        $this->assertFalse( $normalPackage->isMarkedNoCompile, 'Dep #3 should not be marked no compile' );
-        $this->assertFalse( $normalScript->isMarkedNoCompile, 'Dep #4 should not be marked no compile' );
+        $this->assertTrue( $nocompilePackage->getMetaDataKey('isMarkedNoCompile'), 'Dep #1 should be marked no compile' );
+        $this->assertTrue( $nocompileScript->getMetaDataKey('isMarkedNoCompile'), 'Dep #2 should be be marked no compile' );
+        $this->assertFalse( $normalPackage->getMetaDataKey('isMarkedNoCompile'), 'Dep #3 should not be marked no compile' );
+        $this->assertFalse( $normalScript->getMetaDataKey('isMarkedNoCompile'), 'Dep #4 should not be marked no compile' );
 
+        $packages = $dependencyTree->getMetaDataKey('packages');
         // Ensure the packages were detected properly
         $this->assertEquals(
             "tests/JsPackager/fixtures/annotation_nocompile/some/nocompile/package.js",
-            $dependencyTree->packages[0]
+            $packages[0]
         );
 
         $this->assertEquals(
             "tests/JsPackager/fixtures/annotation_nocompile/some/normal/package.js",
-            $dependencyTree->packages[1]
+            $packages[1]
         );
     }
 
@@ -922,7 +1041,8 @@ class DependencyTreeParserTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . 'recursion';
         $filePath = $basePath . '/main.js';
 
-        $treeParser = new DependencyTreeParser();
+        $parser = $this->getCommonAnnotationParser();
+        $treeParser = new DependencyTreeParser($parser, '@remote', 'shared', null, new NullLogger(), false, new FileHandler());
 
         try {
             $dependencyTree = $treeParser->parseFile( $filePath );

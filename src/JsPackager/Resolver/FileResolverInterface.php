@@ -2,11 +2,11 @@
 
 namespace JsPackager\Resolver;
 
-use JsPackager\File;
-use JsPackager\ResolverContext;
+use JsPackager\DependencyFileInterface;
+use JsPackager\AnnotationBasedResolverContext;
 
 interface FileResolverInterface {
 
-    public function resolveDependenciesForFile(File $file, ResolverContext $context);
+    public function resolveDependenciesForFile(DependencyFileInterface $file, AnnotationBasedResolverContext $context);
 
 }

@@ -9,12 +9,16 @@
 
 namespace JsPackager\Compiler;
 
-class DependencySetCollection
+use Iterator;
+
+class DependencySetCollection implements Iterator
 {
+    private $position = 0;
+
     /**
      * @var array
      */
-    public $dependencySets;
+    private $dependencySets;
 
     /**
      * DependencySetCollection Constructor
@@ -24,6 +28,7 @@ class DependencySetCollection
     public function __construct()
     {
         $this->dependencySets = array();
+        $this->position = 0;
     }
 
     public function getDependencySets()
@@ -33,12 +38,12 @@ class DependencySetCollection
 
     public function appendDependencySet(DependencySet $dependencySet)
     {
-        array_push( $this->dependencySets, $dependencySet );
+        return array_push( $this->dependencySets, $dependencySet );
     }
 
     public function prependDependencySet(DependencySet $dependencySet)
     {
-        array_unshift( $this->dependencySets, $dependencySet );
+        return array_unshift( $this->dependencySets, $dependencySet );
     }
 
     public function removeReundantDependencySets()
@@ -55,4 +60,33 @@ class DependencySetCollection
         $this->dependencySets = $uniquePackages;
         return $this->getDependencySets();
     }
+
+    function rewind() {
+        $this->position = 0;
+    }
+
+    function current() {
+        return $this->dependencySets[$this->position];
+    }
+
+    function peekPrevious() {
+        $offset = ($this->position - 1);
+        if ( $offset < 0 ) {
+            return null;
+        }
+        return $this->dependencySets[ $offset ];
+    }
+
+    function key() {
+        return $this->position;
+    }
+
+    function next() {
+        ++$this->position;
+    }
+
+    function valid() {
+        return isset($this->dependencySets[$this->position]);
+    }
+
 }

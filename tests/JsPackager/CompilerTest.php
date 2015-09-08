@@ -3,6 +3,7 @@
 namespace JsPackager;
 
 use JsPackager\Compiler;
+use JsPackager\Helpers\FileHandler;
 use JsPackager\Resolver\DependencyTree;
 use Psr\Log\NullLogger;
 
@@ -27,11 +28,11 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_dep';
         $mainJsPath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $mainJsPath );
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
+        $compiler = new Compiler('shared', '@remote', new NullLogger(), false, new FileHandler());
 
         // Grab first dependency set
         $dependencySet = $roots[0];
@@ -63,11 +64,11 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_deps_2_package_2_deep';
         $mainJsPath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $mainJsPath );
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
+        $compiler = new Compiler('shared', '@remote', new NullLogger(), false, new FileHandler());
 
         // Grab first dependency set
         $dependencySet = $roots[0];
@@ -151,11 +152,11 @@ MANIFEST;
         $basePath = self::fixturesBasePath . 'annotation_nocompile';
         $mainJsPath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $mainJsPath );
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
+        $compiler = new Compiler('shared', '@remote', new NullLogger(), false, new FileHandler());
 
         // Grab first dependency set
         $dependencySet = $roots[0];
@@ -243,11 +244,10 @@ MANIFEST;
 
         $sharedPath = $basePath . '-remote';
 
-        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
-        $dependencyTree->remoteSymbol = '@rawr';
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath, '@rawr', new FileHandler() );
         $roots = $dependencyTree->getDependencySets();
 
-        $compiler = new Compiler($sharedPath, '@rawr', new NullLogger());
+        $compiler = new Compiler($sharedPath, '@rawr', new NullLogger(), false, new FileHandler());
 
         // Grab first dependency set
         $dependencySet = $roots[0];

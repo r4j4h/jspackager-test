@@ -4,6 +4,7 @@ namespace JsPackagerTest;
 use JsPackager\Exception\MissingFile;
 use JsPackager\Processor\NonStreamingConcatenationProcessor;
 use JsPackager\Processor\SimpleProcessorParams;
+use Psr\Log\NullLogger;
 
 
 class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
@@ -17,7 +18,7 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
 
     public function testConcatenateFilesHandlesNoFiles()
     {
-        $processor = new NonStreamingConcatenationProcessor();
+        $processor = new NonStreamingConcatenationProcessor(new NullLogger());
 
         $dependencies = array();
 
@@ -34,7 +35,7 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
 
         $mainContents = file_get_contents( $mainJsPath );
 
-        $processor = new NonStreamingConcatenationProcessor();
+        $processor = new NonStreamingConcatenationProcessor(new NullLogger());
         $dependencies = array(
             $mainJsPath,
         );
@@ -58,7 +59,7 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
         $dep1Contents = file_get_contents( $dep1JsPath );
         $mainContents = file_get_contents( $mainJsPath );
 
-        $processor = new NonStreamingConcatenationProcessor();
+        $processor = new NonStreamingConcatenationProcessor(new NullLogger());
         $dependencies = array(
             $dep1JsPath,
             $mainJsPath,
@@ -80,7 +81,7 @@ class NonStreamingConcatenationProcessorTest extends \PHPUnit_Framework_TestCase
         $dep1JsPath = $basePath . '/dep_1.js';
         $mainJsPath = $basePath . '/main.js.not.real'; // Second file will be broken
 
-        $processor = new NonStreamingConcatenationProcessor();
+        $processor = new NonStreamingConcatenationProcessor(new NullLogger());
         $dependencies = array(
             $dep1JsPath,
             $mainJsPath,

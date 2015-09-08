@@ -15,6 +15,8 @@ namespace JsPackager;
 
 use JsPackager\Annotations\AnnotationOrderMap;
 use JsPackager\Annotations\AnnotationOrderMapping;
+use JsPackager\Helpers\FileHandler;
+use Streamer\Stream;
 
 /**
  * Class DependencyCollection represents all of the dependencies for a file, including the file.
@@ -64,20 +66,29 @@ class DependencySet
  * Class ConstructionMode aids in constructing a valid DependencyFile.
  * @package JsPackager
  */
-class ConstructionMode {}
+abstract class ConstructionMode {
+    public abstract function __toString();
+}
 
 /**
  * Class PathConstructionMode is for indicating building a DependencyFile referencing a path to an existing file.
  * @package JsPackager
  */
-class PathConstructionMode extends ConstructionMode {}
+class PathConstructionMode extends ConstructionMode {
+    public function __toString() {
+        return 'Path';
+    }
+}
 
 /**
  * Class ContentsConstructionMode is for indicating building a DependencyFile referencing the contents of a potential
  * file.
  * @package JsPackager
  */
-class ContentsConstructionMode extends ConstructionMode {}
+class ContentsConstructionMode extends ConstructionMode {
+    public function __toString() {
+        return 'Contents';
+    } }
 
 /**
  * Class UnknownConstructModeException indicates an invalid or unexpected ConstructionMode was used.
@@ -124,77 +135,34 @@ class DependencyFile
     }
 }
 
-class VFile
+
+class VFile extends File
 {
     /**
-     * @var string File's filename
+     * @var string|null
      */
-    public $filename;
+    public $contents = null;
 
-    /**
-     * @var string File's type
-     */
-    public $filetype;
+    public $metaData = array();
 
-    /**
-     * @var string File's relative path (from public directory)
-     */
-    public $path;
-
-    /**
-     * If this file is marked to be a root package
-     *
-     * @var boolean
-     */
-    public $isRoot;
-
-    /**
-     * If this file is marked to skip compilation
-     *
-     * @var boolean
-     */
-    public $isMarkedNoCompile;
-
-    /**
-     * If this file is marked as existing on `remote` server
-     *
-     * @var boolean
-     */
-    public $isRemote;
-
-    /**
-     * Scripts this file is dependent on
-     *
-     * @var File[]
-     */
-    public $scripts;
-
-    /**
-     * Stylesheets this file is dependent on
-     *
-     * @var File[]
-     */
-    public $stylesheets;
-
-    /**
-     * @var string[] Filename of packages used
-     */
-    public $packages;
-
-    /**
-     * Each annotation found in order inside the file
-     *
-     * @var AnnotationOrderMap
-     */
-    public $annotationOrderMap;
+    public $streamRef = null;
 
     /**
      * @param string $filePath Path to file
      * @param bool $silenceMissingFileException
      * @throws Exception\MissingFile If $filePath does not point to a valid file
      */
-    public function __construct( $filePath, $silenceMissingFileException = false, FileHandler $fileHandler = null )
+    public function __construct( Stream $file_stream, $silenceMissingFileException = false, FileHandler $fileHandler = null )
     {
+        // convert $file_stream to a filenpath
+
+        //if this is a tmp file how do we et its path?
+        // if its a loaded file how do we know what its path is?
+        // this is why we need a VFile! so this isn't the right place yet haha, this should be used
+        // too wrap the VFile we need to create
+
+        parent::__construct( $filePath, $silenceMissingFileException, $fileHandler );
+
         $this->fileHandler = ( $fileHandler ? $fileHandler : new FileHandler() );
 
         if ( $this->fileHandler->is_file( $filePath ) === false && $silenceMissingFileException === false )
@@ -206,7 +174,7 @@ class VFile
 
         $this->filename = $filePathParts['filename'];
         $this->filetype = ( isset( $filePathParts['extension'] ) ? $filePathParts['extension'] : '' );
-        $this->path     = $filePathParts['dirname'];
+        $this->dirname     = $filePathParts['dirname'];
 
         $this->isRoot      = false;
         $this->isMarkedNoCompile = false;
@@ -215,6 +183,9 @@ class VFile
         $this->scripts     = array();
         $this->packages    = array();
         $this->annotationOrderMap = new AnnotationOrderMap();
+        $this->metaData = array();
+        $this->streamRef = null;
+        $this->contents = null;
     }
 
     /**
@@ -224,7 +195,7 @@ class VFile
      */
     public function getFullPath()
     {
-        $filename = $this->path . '/' . $this->filename;
+        $filename = $this->dirname . '/' . $this->filename;
         if ( $this->filetype )
             $filename .= '.' . $this->filetype;
         return $filename;

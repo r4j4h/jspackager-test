@@ -11,14 +11,16 @@ class CompiledAndManifestFileUtilityService
     /**
      * @var LoggerInterface
      */
-    public $logger;
+    private $logger;
 
-    public function __construct($logger = null) {
-        if ( $logger instanceof LoggerInterface ) {
-            $this->logger = $logger;
-        } else {
-            $this->logger = new NullLogger();
-        }
+    /**
+     * @var FilenameConverter
+     */
+    private $filenameConverter;
+
+    public function __construct(FilenameConverter $filenameConverter, LoggerInterface $logger) {
+        $this->logger = $logger;
+        $this->filenameConverter = $filenameConverter;
     }
 
     /**
@@ -31,7 +33,7 @@ class CompiledAndManifestFileUtilityService
     {
         $success = true;
         $finder = new FileFinder( $this->logger );
-        $foundFiles = $finder->parseFolderForPackageFiles( $directory );
+        $foundFiles = $finder->parseFolderForPackageFiles( $directory, $this->filenameConverter );
 
         if ( $foundFiles ) {
 

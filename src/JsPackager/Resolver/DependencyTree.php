@@ -10,13 +10,21 @@
 
 namespace JsPackager\Resolver;
 
+use JsPackager\Annotations\AnnotationHandlers\IsMarkedNoCompiledHandler;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemote;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemoteStyleAnnotationHandler;
+use JsPackager\Annotations\AnnotationHandlers\RootAnnotationHandler;
 use JsPackager\Annotations\AnnotationOrderMapping;
+use JsPackager\Annotations\AnnotationParser;
 use JsPackager\Annotations\AnnotationsToAssocArraysService;
 use JsPackager\Annotations\FileToDependencySetsService;
 use JsPackager\Compiler\DependencySet;
+use JsPackager\DependencyFileInterface;
+use JsPackager\File;
+use JsPackager\Helpers\FileHandler;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-
+// todo refactor users of this to use resolvers and have resolver use this
 class DependencyTree
 {
     private $dependencyTreeRootFile = null;
@@ -37,7 +45,7 @@ class DependencyTree
     /**
      * @var String
      */
-    public $remoteSymbol = '@remote';
+    public $remoteSymbol;
 
 
     /**
@@ -75,11 +83,11 @@ class DependencyTree
      * @throws Exception\Recursion If the dependent files have a circular dependency
      * @throws Exception\MissingFile Through internal File object if $filePath does not point to a valid file
      */
-    public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false, LoggerInterface $logger = null, $sharedPath = 'shared' ) {
-// todo some of this can go into ResolverContext - which may need to be renamed after since it may help in more than that or just be confined to this resolution stage
-// todo move remoteFolderPath into ResolverContext
-// todo move testsSourcePath into ResolverContext
-// todo move $muteMissingFileExceptions into ResolverContext
+    public function __construct( $filePath, $testsSourcePath = null, $muteMissingFileExceptions = false, LoggerInterface $logger = null, $sharedPath = 'shared', $remoteSymbol = '@remote', FileHandler $fileHandler ) {
+// todo some of this can go into AnnotationBasedResolverContext - which may need to be renamed after since it may help in more than that or just be confined to this resolution stage
+// todo move remoteFolderPath into AnnotationBasedResolverContext
+// todo move testsSourcePath into AnnotationBasedResolverContext
+// todo move $muteMissingFileExceptions into AnnotationBasedResolverContext
         $this->filePath = $filePath;
         $this->testsSourcePath = $testsSourcePath;
         $this->mutingMissingFileExceptions = $muteMissingFileExceptions;
@@ -89,6 +97,8 @@ class DependencyTree
             $this->logger = $logger;
         }
         $this->remoteFolderPath = $sharedPath;
+        $this->remoteSymbol = $remoteSymbol;
+        $this->fileHandler = $fileHandler;
 
     }
 
@@ -97,7 +107,41 @@ class DependencyTree
      */
     public function createDefaultDependencyTreeParser()
     {
-        $dependencyTreeParser = new DependencyTreeParser( $this->remoteSymbol, $this->remoteFolderPath, $this->logger );
+        $rootHandler = new RootAnnotationHandler();
+        $noCompileHandler = new IsMarkedNoCompiledHandler();
+        $requireRemoteStyleHandler = new RequireRemoteStyleAnnotationHandler(
+            $this->remoteFolderPath, $this->remoteSymbol, $this->mutingMissingFileExceptions, $this->logger
+        );
+        $requireRemoteHandler = new RequireRemote(
+            $this->remoteFolderPath, $this->remoteSymbol, $this->mutingMissingFileExceptions, $this->logger
+        );
+
+        $annotationResponseHandlerMapping = array(
+            'requireRemote'     => array($requireRemoteHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($requireRemoteHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($requireRemoteStyleHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($requireRemoteHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($requireRemoteHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($requireRemoteHandler, 'doAnnotation_testsRemote' ),
+            'root'              => array($rootHandler, 'doAnnotation_root' ),
+            'nocompile'         => array($noCompileHandler, 'doAnnotation_noCompile' )
+        );
+
+        $annParser = new AnnotationParser(
+            $annotationResponseHandlerMapping,
+            $this->testsSourcePath,
+            $this->logger,
+            $this->fileHandler
+        );
+        $dependencyTreeParser = new DependencyTreeParser(
+            $annParser,
+            $this->remoteSymbol,
+            $this->remoteFolderPath,
+            $this->testsSourcePath,
+            $this->logger,
+            $this->mutingMissingFileExceptions,
+            $this->fileHandler
+        );
         $this->configureTreeParser( $dependencyTreeParser );
         $this->dependencyTreeParser = $dependencyTreeParser;
         return $dependencyTreeParser;
@@ -129,7 +173,7 @@ class DependencyTree
     /**
      * Get the raw nested File object hierarchy representing this dependency tree
      *
-     * @return File|null
+     * @return DependencyFileInterface|null
      * @throws \Exception
      */
     public function getTree() {
@@ -137,7 +181,7 @@ class DependencyTree
 
             $treeParser = $this->getDependencyTreeParser();
 
-            $this->dependencyTreeRootFile = $treeParser->parseFile( $this->getFilePath(), $this->getTestsSourcePath(), false );
+            $this->dependencyTreeRootFile = $treeParser->parseFile( $this->getFilePath(), false );
 
             if ( !$this->dependencyTreeRootFile ) {
                 throw new \Exception('No file tree parsed');
@@ -157,7 +201,7 @@ class DependencyTree
     public function flattenDependencyTree( $respectRootPackages = false )
     {
         /**
-         * @var File $thisTree
+         * @var DependencyFileInterface $thisTree
          */
         $thisTree = $this->getTree();
         if ( !$thisTree ) {

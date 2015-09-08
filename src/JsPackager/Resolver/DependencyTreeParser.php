@@ -30,19 +30,19 @@
 
 namespace JsPackager\Resolver;
 
+use JsPackager\Annotations\AnnotationOrderMap;
+use JsPackager\Annotations\AnnotationParser;
+use JsPackager\DependencyFileInterface;
 use JsPackager\Exception;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Recursion as RecursionException;
-use JsPackager\File;
 use JsPackager\Helpers\FileHandler;
 use JsPackager\Helpers\PathFinder;
-use JsPackager\Resolver\AnnotationBasedFileResolver;
-use JsPackager\Resolver\FileResolverInterface;
-use JsPackager\ResolverContext;
+use JsPackager\AnnotationBasedResolverContext;
+use JsPackager\StreamBasedFile;
+use JsPackager\StreamBasedFileFileFactory;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
-
 
 class DependencyTreeParser
 {
@@ -50,12 +50,12 @@ class DependencyTreeParser
     /**
      * @var string
      */
-    public $remoteFolderPath = 'shared';
+    public $remoteFolderPath;
 
     /**
      * @var string
      */
-    public $remoteSymbol = '@remote';
+    public $remoteSymbol;
 
     /**
      * Definition list of file types that are scanned for annotation tokens
@@ -88,7 +88,7 @@ class DependencyTreeParser
      *
      * @var bool
      */
-    private $mutingMissingFileExceptions = false;
+    private $mutingMissingFileExceptions;
 
 
     /**
@@ -98,59 +98,38 @@ class DependencyTreeParser
 
 
     /**
-     * @var FileResolverInterface
+     * @var AnnotationParser
      */
-    private $resolver;
+    private $parser;
 
     /**
      * @var PathFinder
      */
     private $pathFinder;
 
-    /**
-     * @return mixed
-     */
-    public function createDefaultResolver() // todo extreme php says we need to force this to be required to be passed in
-    {
-        $resolver = new AnnotationBasedFileResolver($this->logger);
-        $resolver->setFileHandler( $this->getFileHandler() );
-        $this->setResolver( $resolver );
-        return $resolver;
-    }
 
     /**
-     * @return mixed
-     */
-    public function getResolver()
-    {
-        return ( $this->resolver ? $this->resolver : $this->createDefaultResolver() );
-    }
-
-    /**
-     * @param mixed $resolver
-     */
-    public function setResolver($resolver)
-    {
-        $this->resolver = $resolver;
-    }
-
-    /**
+     * @param \JsPackager\Annotations\AnnotationParser $parser
      * @param string $remoteSymbol
      * @param string $remoteFolderPath
-     * @param LoggerInterface [$logger]
+     * @param LoggerInterface $logger
+     * @param bool $muteMissingFileExceptions
      */
-    public function __construct($remoteSymbol = '@remote', $remoteFolderPath = 'shared', $logger = null)
+    public function __construct(AnnotationParser $parser, $remoteSymbol = '@remote', $remoteFolderPath = 'shared', $testsSourcePath = null, LoggerInterface $logger, $muteMissingFileExceptions = false, FileHandler $fileHandler)
     {
-        if ( $logger ) {
-            $this->logger = $logger;
-        } else {
-            $this->logger = new NullLogger();
-        }
+        $this->logger = $logger;
+
+        $this->parser = $parser;
 
         $this->remoteSymbol = $remoteSymbol;
         $this->remoteFolderPath = $remoteFolderPath;
+        $this->testsSourcePath = $testsSourcePath;
 
         $this->pathFinder = new PathFinder();
+
+        $this->mutingMissingFileExceptions = $muteMissingFileExceptions;
+
+        $this->fileHandler = $fileHandler;
     }
 
 
@@ -216,24 +195,26 @@ class DependencyTreeParser
      */
     public $recursionDepth = 0;
 
+    public function recursivelyParseFile( $filePath )
+    {
+        return $this->parseFile( $filePath, true);
+    }
 
     /**
+     * Creates context
+     *
      * Converts a file via path into a JsPackager\File object and
      * parses it for dependencies, caching it for re-use if called again
      * with same file.
      *
      * @param string $filePath File's relative path from public folder
-     * @param string $testsSourcePath Optional. For @tests annotations, the source scripts root path with no trailing
-     * slash. Default: given file's folder.
      * @param bool $recursing Internal recursion flag. Always call with false.
-     * @return File
+     * @return DependencyFileInterface
      * @throws Exception\Recursion If the dependent files have a circular dependency
      * @throws Exception\MissingFile Through internal File object if $filePath does not point to a valid file
      */
-    public function parseFile( $filePath, $testsSourcePath = null, $recursing = false )
+    public function parseFile( $filePath, $recursing = false )
     {
-        $resolver = $this->getResolver();
-
         $this->logger->info("Parsing file '" . $filePath . "'.");
 
         // If we're starting off (not recursing), Clear parsed filename caches
@@ -248,7 +229,18 @@ class DependencyTreeParser
         try
         {
             // Create file object
-            $file = new File( $filePath, $this->mutingMissingFileExceptions );
+//            $file = new File( $filePath, $this->mutingMissingFileExceptions );
+//            $file = new PathBasedFile($filePath, array());
+            $factory = new StreamBasedFileFileFactory(sys_get_temp_dir(), $this->fileHandler, $this->mutingMissingFileExceptions);
+            $file = $factory->createFile($filePath, array());
+
+            $file->addMetaData('isRoot' , false);
+            $file->addMetaData('isMarkedNoCompile' , false);
+            $file->addMetaData('isRemote' , false);
+            $file->addMetaData('stylesheets' , array());
+            $file->addMetaData('scripts' , array());
+            $file->addMetaData('packages' , array());
+            $file->addMetaData('annotationOrderMap', new AnnotationOrderMap());
         }
         catch (MissingFileException $e)
         {
@@ -257,22 +249,27 @@ class DependencyTreeParser
             throw $e;
         }
 
-        $context = new ResolverContext();
+        $pathinfo = pathinfo($file->getPath());
+        $file_pathinfo_dirname = $pathinfo['dirname'];
+        $filetype = ( isset( $pathinfo['extension'] ) ? $pathinfo['extension'] : '' );
 
-        $context->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
-        $context->remoteFolderPath = $this->remoteFolderPath;
-        $context->remoteSymbol = $this->remoteSymbol;
-        $context->recursionCb = array($this, 'parseFile');
-
-        if ( !$testsSourcePath )
+        if ( !$this->testsSourcePath )
         {
             // Default test's Source path to be the same folder as the given file if it was not provided
             // which restores the original behavior
-            $this->logger->info("testsSourcePath not provided, so defaulting it to file's path ('" . $file->path . "').");
-            $context->testsSourcePath = $file->path;
-        } else {
-            $context->testsSourcePath = $testsSourcePath;
+            $this->logger->info(
+                "testsSourcePath not provided, so defaulting it to file's path ('" . $file_pathinfo_dirname . "')."
+            );
+            $this->testsSourcePath = $file_pathinfo_dirname;
         }
+
+        $context = new AnnotationBasedResolverContext();
+        $context->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
+        $context->remoteFolderPath = $this->remoteFolderPath;
+        $context->remoteSymbol = $this->remoteSymbol;
+        $context->recursionCb = array($this, 'recursivelyParseFile');
+        $context->testsSourcePath = $this->testsSourcePath;
+
 
         // Build identifier
         $fileIdentifier = $this->buildIdentifierFromFile($file);
@@ -294,9 +291,9 @@ class DependencyTreeParser
             );
         }
 
-        $this->logger->debug("Verifying file type '" . $file->filetype . "' is on parsing whitelist.");
+        $this->logger->debug("Verifying file type '" . $filetype . "' is on parsing whitelist.");
 
-        if ( in_array( $file->filetype, $this->filetypesAllowingAnnotations) )
+        if ( in_array( $filetype, $this->filetypesAllowingAnnotations) )
         {
             // Mark as seen
             $this->logger->debug("Marking {$filePath} as seen.");
@@ -304,11 +301,11 @@ class DependencyTreeParser
 
             $this->logger->debug("Reading annotations in {$filePath}");
             // Read annotations
-            $file = $resolver->resolveDependenciesForFile( $file, $context );
+            $file = $this->parser->parseAnnotationsInFile( $file, $context );
         }
 
         // Store in cache
-        $this->logger->debug("Storing {$file->getFullPath()} in parsedFiles array.");
+        $this->logger->debug("Storing {$file->getPath()} in parsedFiles array.");
         $this->parsedFiles[ $fileIdentifier ] = $file;
 
         // Return populated object
@@ -323,28 +320,6 @@ class DependencyTreeParser
      */
     protected $fileHandler;
 
-    /**
-     * Get the file handler.
-     *
-     * @return mixed
-     */
-    public function getFileHandler()
-    {
-        return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
-    }
-
-    /**
-     * Set the file handler.
-     *
-     * @param $fileHandler
-     * @return File
-     */
-    public function setFileHandler($fileHandler)
-    {
-        $this->fileHandler = $fileHandler;
-        return $this;
-    }
-
     private function clearParsedFilenameCaches()
     {
         $this->parsedFiles = array();
@@ -356,12 +331,12 @@ class DependencyTreeParser
     /**
      * Build identifier from file used for caching
      *
-     * @param File $file
+     * @param DependencyFileInterface $file
      * @return mixed|string
      */
-    private function buildIdentifierFromFile(File $file)
+    private function buildIdentifierFromFile(DependencyFileInterface $file)
     {
-        $identifier = $this->pathFinder->normalizeRelativePath($file->getFullPath());
+        $identifier = $this->pathFinder->normalizeRelativePath($file->getPath());
         return $identifier;
     }
 }

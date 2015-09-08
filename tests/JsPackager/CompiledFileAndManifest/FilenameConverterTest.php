@@ -14,37 +14,37 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCompiledFilename()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getCompiledFilename( $filename );
         $this->assertEquals( 'some_file.compiled.js', $compiledFilename );
     }
 
     public function testGetCompiledFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getCompiledFilename( $filename );
         $this->assertEquals( '../some/directory/and/some_file.compiled.js', $compiledFilename );
     }
 
     public function testGetCompiledFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getCompiledFilename( $filename );
         $this->assertEquals( 'some_file.css', $compiledFilename );
     }
 
     public function testGetCompiledFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getCompiledFilename( $filename );
         $this->assertEquals( 'some.js.file.compiled.js', $compiledFilename );
     }
 
@@ -54,37 +54,37 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromCompiledFilename()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.compiled.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getSourceFilenameFromCompiledFilename( $filename );
         $this->assertEquals( 'some_file.js', $compiledFilename );
     }
 
     public function testgetSourceFilenameFromCompiledFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.compiled.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getSourceFilenameFromCompiledFilename( $filename );
         $this->assertEquals( '../some/directory/and/some_file.js', $compiledFilename );
     }
 
     public function testgetSourceFilenameFromCompiledFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getSourceFilenameFromCompiledFilename( $filename );
         $this->assertEquals( 'some_file.css', $compiledFilename );
     }
 
     public function testgetSourceFilenameFromCompiledFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.compiled.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $compiledFilename = FilenameConverter::getSourceFilenameFromCompiledFilename( $filename );
+        $compiledFilename = $filenameConverter->getSourceFilenameFromCompiledFilename( $filename );
         $this->assertEquals( 'some.js.file.js', $compiledFilename );
     }
 
@@ -95,37 +95,37 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testGetManifestFilename()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getManifestFilename( $filename );
         $this->assertEquals( 'some_file.js.manifest', $manifestFilename );
     }
 
     public function testGetManifestFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getManifestFilename( $filename );
         $this->assertEquals( '../some/directory/and/some_file.js.manifest', $manifestFilename );
     }
 
     public function testGetManifestFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getManifestFilename( $filename );
         $this->assertEquals( 'some_file.css', $manifestFilename );
     }
 
     public function testGetManifestFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.js';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getManifestFilename( $filename );
         $this->assertEquals( 'some.js.file.js.manifest', $manifestFilename );
     }
 
@@ -135,37 +135,37 @@ class FilenameConverterTest extends \PHPUnit_Framework_TestCase
 
     public function testgetSourceFilenameFromManifestFilename()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.js.manifest';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getSourceFilenameFromManifestFilename( $filename );
         $this->assertEquals( 'some_file.js', $manifestFilename );
     }
 
     public function testgetSourceFilenameFromManifestFilenameDoesNotHarmPaths()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = '../some/directory/and/some_file.js.manifest';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getSourceFilenameFromManifestFilename( $filename );
         $this->assertEquals( '../some/directory/and/some_file.js', $manifestFilename );
     }
 
     public function testgetSourceFilenameFromManifestFilenameIgnoresImproperFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some_file.css';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getSourceFilenameFromManifestFilename( $filename );
         $this->assertEquals( 'some_file.css', $manifestFilename );
     }
 
     public function testgetSourceFilenameFromManifestFilenameDoesNotHarmOddNamedFile()
     {
-        $compiler = new Compiler('shared', '@remote', new NullLogger());
         $filename = 'some.js.file.js.manifest';
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $manifestFilename = FilenameConverter::getSourceFilenameFromManifestFilename( $filename );
+        $manifestFilename = $filenameConverter->getSourceFilenameFromManifestFilename( $filename );
         $this->assertEquals( 'some.js.file.js', $manifestFilename );
     }
 

@@ -2,7 +2,7 @@
 
 namespace JsPackager;
 
-class ResolverContext
+class AnnotationBasedResolverContext
 {
     /**
      * @var string

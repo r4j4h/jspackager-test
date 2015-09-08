@@ -39,12 +39,6 @@ use Psr\Log\NullLogger;
 
 class ManifestResolver
 {
-    /**
-     * Regexp pattern for detecting annotations with optional space delimited arguments
-     * @var string
-     */
-    const TOKEN_PATTERN = '/@(.*?)(?:\s(.*))*$/i';
-
 
     /**
      * @var LoggerInterface
@@ -132,6 +126,7 @@ class ManifestResolver
 
 
     /**
+     * todo move to Helpers\PathTools
      * Get the base path to a file.
      *
      * Give it something like '/my/cool/file.jpg' and get '/my/cool/' back.
@@ -145,6 +140,7 @@ class ManifestResolver
     }
 
     /**
+     * todo this should be a helper, maybe Helpers\PathFinder maybe Helpers\String?
      * Remove sub-string from a string if it is in there.
      *
      * @param $path
@@ -192,7 +188,7 @@ class ManifestResolver
      * necessary files to load.
      *
      * @param $sourceFilePath
-     * @return array
+     * @return array Array of file paths, with @remote annotations hydrated out
      * @throws MissingFile
      */
     protected function reverseResolveFromCompiledFile($sourceFilePath, $deeper = false)
@@ -200,6 +196,7 @@ class ManifestResolver
         $this->logger->info('reverseResolveFromCompiledFile given ' . $sourceFilePath );
 
         // Lets try to always trim out the cwd if we can
+        // todo the end user should do this, cli script or whatever, this is affecting our object's state too
         $this->baseFolderPath = $this->removeCurrentWorkingDirectoryFromPath( $this->baseFolderPath );
         $this->remoteFolderPath = $this->removeCurrentWorkingDirectoryFromPath( $this->remoteFolderPath );
 
@@ -214,12 +211,13 @@ class ManifestResolver
 
         // Lets try to always trim out the cwd if we can
         $sourceFilePath = $this->removeCurrentWorkingDirectoryFromPath( $sourceFilePath );
+        $filenameConverter = new FilenameConverter('compiled', 'manifest');
 
-        $sourceFilePath = FilenameConverter::getSourceFilenameFromCompiledFilename( $sourceFilePath );
+        $sourceFilePath = $filenameConverter->getSourceFilenameFromCompiledFilename( $sourceFilePath );
         $this->logger->info('Reverse resolving for source file ' . $sourceFilePath );
 
-        $compiledFilePath = FilenameConverter::getCompiledFilename( $sourceFilePath );
-        $manifestFilePath = FilenameConverter::getManifestFilename( $sourceFilePath );
+        $compiledFilePath = $filenameConverter->getCompiledFilename( $sourceFilePath );
+        $manifestFilePath = $filenameConverter->getManifestFilename( $sourceFilePath );
 
         // If we are using absolute paths, we want to trim the duplicative parts here
         $basePathFromSourceFile = $this->getBasePathFromSourceFile( $sourceFilePath );

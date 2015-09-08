@@ -2,13 +2,21 @@
 
 namespace JsPackager;
 
+use JsPackager\Annotations\AnnotationHandlers\IsMarkedNoCompiledHandler;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemote;
+use JsPackager\Annotations\AnnotationHandlers\RequireRemoteStyleAnnotationHandler;
+use JsPackager\Annotations\AnnotationHandlers\RootAnnotationHandler;
+use JsPackager\Annotations\AnnotationParser;
 use JsPackager\Annotations\FileToDependencySetsService;
 use JsPackager\Compiler\DependencySet;
 use JsPackager\Exception\Recursion as RecursionException;
 use JsPackager\Exception\MissingFile as MissingFileException;
 use JsPackager\Exception\Parsing as ParsingException;
+use JsPackager\Helpers\FileHandler;
+use JsPackager\Resolver\AnnotationBasedFileResolver;
 use JsPackager\Resolver\DependencyTree;
 use JsPackager\Resolver\DependencyTreeParser;
+use Psr\Log\NullLogger;
 
 /**
  * @group      JsPackager
@@ -33,27 +41,28 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->getTree();
-        $this->assertInstanceOf( 'JsPackager\File', $fileHierarchy );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $fileHierarchy );
 
         $this->assertEquals( 'main', $fileHierarchy->filename );
         $this->assertEquals( 'js', $fileHierarchy->filetype );
         $this->assertEquals( $basePath, $fileHierarchy->path );
-        $this->assertFalse( $fileHierarchy->isRoot, 'File should not be marked isRoot' );
-        $this->assertNotEmpty( $fileHierarchy->scripts );
-        $this->assertEmpty( $fileHierarchy->stylesheets );
-        $this->assertEmpty( $fileHierarchy->packages );
+        $this->assertFalse( $fileHierarchy->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertNotEmpty( $fileHierarchy->getMetaDataKey('scripts') );
+        $this->assertEmpty( $fileHierarchy->getMetaDataKey('stylesheets') );
+        $this->assertEmpty( $fileHierarchy->getMetaDataKey('packages') );
 
-        $this->assertCount(2, $fileHierarchy->scripts, 'Should have two dependent scripts' );
-        $this->assertInstanceOf( 'JsPackager\File', $fileHierarchy->scripts[0] );
-        $this->assertInstanceOf( 'JsPackager\File', $fileHierarchy->scripts[1] );
+        $this->assertCount(2, $fileHierarchy->getMetaDataKey('scripts'), 'Should have two dependent scripts' );
+        $depScripts = $fileHierarchy->getMetaDataKey('scripts');
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $depScripts[0] );
+        $this->assertInstanceOf( 'JsPackager\DependencyFileInterface', $depScripts[1] );
 
-        $this->assertEquals( 'comp_a', $fileHierarchy->scripts[0]->filename );
-        $this->assertEquals( 'comp_b', $fileHierarchy->scripts[1]->filename );
-        $this->assertFalse( $fileHierarchy->scripts[0]->isRoot, 'File should not be marked isRoot' );
-        $this->assertFalse( $fileHierarchy->scripts[1]->isRoot, 'File should not be marked isRoot' );
+        $this->assertEquals( 'comp_a', $depScripts[0]->filename );
+        $this->assertEquals( 'comp_b', $depScripts[1]->filename );
+        $this->assertFalse( $depScripts[0]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
+        $this->assertFalse( $depScripts[1]->getMetaDataKey('isRoot'), 'File should not be marked isRoot' );
     }
 
 
@@ -67,7 +76,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( false );
 
@@ -84,7 +93,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( false );
 
@@ -108,7 +117,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps_individ_deps';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( false );
 
@@ -133,7 +142,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps_shared_deps';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( false );
 
@@ -157,7 +166,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_indep_deps_1_root';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( false );
 
@@ -181,7 +190,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_deps_1_package_2_deep';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( false );
 
@@ -206,7 +215,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_deps_1_package_2_deep';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( true );
 
@@ -229,7 +238,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_deps_2_package_2_deep';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( false );
 
@@ -260,7 +269,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_deps_2_package_2_deep';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree( true );
 
@@ -283,7 +292,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_1_feedback';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree();
 
@@ -302,7 +311,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $remotePath = self::fixturesBasePath . 'remote_annotation-remote';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath, '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree();
 
@@ -337,7 +346,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $remotePath = self::fixturesBasePath . 'remote_annotation-remote';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath, '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTreeIntoAssocArrays( false );
 
@@ -375,7 +384,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $remotePath = self::fixturesBasePath . 'remote_annotation-remote';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath, '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTreeIntoAssocArrays( true );
 
@@ -425,12 +434,37 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '2_deps_2_package_2_deep';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTreeParser = new DependencyTreeParser( '@remote', $basePath );
-        $fileObject = $dependencyTreeParser->parseFile( $filePath, $basePath, false );
-        $service = new FileToDependencySetsService();
+        $mutingMissingFileExceptions = false;
+        $logger = new NullLogger();
+
+        $rootHandler = new RootAnnotationHandler();
+        $noCompileHandler = new IsMarkedNoCompiledHandler();
+        $requireRemoteStyleHandler = new RequireRemoteStyleAnnotationHandler(
+            $basePath, '@remote', $mutingMissingFileExceptions, $logger
+        );
+        $requireRemoteHandler = new RequireRemote(
+            $basePath, '@remote', $mutingMissingFileExceptions, $logger
+        );
+
+        $annotationResponseHandlerMapping = array(
+            'requireRemote'     => array($requireRemoteHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($requireRemoteHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($requireRemoteStyleHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($requireRemoteHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($requireRemoteHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($requireRemoteHandler, 'doAnnotation_testsRemote' ),
+            'root'              => array($rootHandler, 'doAnnotation_root' ),
+            'nocompile'         => array($noCompileHandler, 'doAnnotation_noCompile' )
+        );
+
+        // todo rename DependencyTreeParsingFileFactory?
+        $parser = new AnnotationParser( $annotationResponseHandlerMapping, null, new NullLogger(), new FileHandler());
+        $fileFactory = new DependencyTreeParser( $parser, '@remote', $basePath, null, new NullLogger(), false, new FileHandler());
+        $fileObject = $fileFactory->parseFile( $filePath, $basePath, false );
+        $service = new FileToDependencySetsService(new NullLogger());
         $roots = $service->getDependencySets( $fileObject );
 
-//        $dependencyTree = new DependencyTree( $filePath );
+//        $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
 //        $roots = $dependencyTree->getDependencySets();
 
         $this->assertCount( 3, $roots, "There should be 3 dependency sets returned" );
@@ -479,7 +513,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $filePath = $basePath . '/main.js';
 
         try {
-            $dependencyTree = new DependencyTree( $filePath );
+            $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
             $roots = $dependencyTree->getDependencySets();
             $this->fail('Set should throw a missing file exception');
         } catch (ParsingException $e) {
@@ -502,7 +536,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $filePath = $basePath . '/main.js';
 
         try {
-            $dependencyTree = new DependencyTree( $filePath );
+            $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
             $roots = $dependencyTree->getDependencySets();
             $this->fail('Set should throw a missing file exception');
         } catch (MissingFileException $e) {
@@ -527,7 +561,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_broken_js_reference';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath, null, true );
+        $dependencyTree = new DependencyTree( $filePath, null, true, new NullLogger(), 'shared', '@remote', new FileHandler() );
         $roots = $dependencyTree->getDependencySets();
 
         $this->assertCount( 1, $roots, "There should be 1 dependency set returned" );
@@ -547,7 +581,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '1_broken_css_reference';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath, null, true );
+        $dependencyTree = new DependencyTree( $filePath, null, true, new NullLogger(), 'shared', '@remote', new FileHandler() );
         $roots = $dependencyTree->getDependencySets();
 
         $this->assertCount( 1, $roots, "There should be 1 dependency set returned" );
@@ -572,7 +606,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $filePath = $basePath . '/main.js';
 
         try {
-            $dependencyTree = new DependencyTree( $filePath );
+            $dependencyTree = new DependencyTree( $filePath, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
             $roots = $dependencyTree->getDependencySets();
             $this->fail('Set should throw a recursion exception');
         } catch (RecursionException $e) { }
@@ -590,7 +624,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_packages';
         $index = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $index );
+        $dependencyTree = new DependencyTree( $index, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
         $roots = $dependencyTree->getDependencySets();
 
         $this->assertInstanceOf( 'JsPackager\Compiler\DependencySet', $roots[0], "Should be a DependencySet" );
@@ -603,7 +637,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_packages';
         $index = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $index );
+        $dependencyTree = new DependencyTree( $index, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
         $roots = $dependencyTree->getDependencySets();
 
         $this->assertEquals(3, count($roots), "Should contain 3 dependency sets");
@@ -622,7 +656,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $basePath = self::fixturesBasePath . '3_deps_1_feedback_shared_packages';
         $index = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $index );
+        $dependencyTree = new DependencyTree( $index, null, false, new NullLogger(), 'shared', '@remote', new FileHandler() );
         $roots = $dependencyTree->getDependencySets();
 
         $this->assertEquals(3, count($roots), "Should contain 3 dependency sets");
@@ -653,21 +687,40 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $mainJsPath = $basePath . '/main.js';
         $sharedPath = self::fixturesBasePath . 'remote_annotation-remote';
 
-        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
-        $dependencyTree->remoteSymbol = '$!cashmoney!$foobarbaz$!cashmoney!$'; // or whatever non @remote thing we want to use for testing
-        $dependencySets = $dependencyTree->getDependencySets();
+//        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath, '$!cashmoney!$foobarbaz$!cashmoney!$', new FileHandler() );
+//        $dependencySets = $dependencyTree->getDependencySets();
 
-        $dependencyTreeParser = new DependencyTreeParser( '$!cashmoney!$foobarbaz$!cashmoney!$', $sharedPath );
-        $fileObject = $dependencyTreeParser->parseFile( $mainJsPath, $basePath, false );
-        $service = new FileToDependencySetsService();
-        $dependencySets = $service->getDependencySets( $fileObject );
+        $remoteSymbol = '$!cashmoney!$foobarbaz$!cashmoney!$';
+        $mutingMissingFileExceptions = false;
+        $logger = new NullLogger();
 
-
-        $this->assertEquals(
-            $sharedPath,
-            $dependencyTree->remoteFolderPath,
-            'Should provide a default value to use in place of ' . $dependencyTree->remoteSymbol
+        $rootHandler = new RootAnnotationHandler();
+        $noCompileHandler = new IsMarkedNoCompiledHandler();
+        $requireRemoteStyleHandler = new RequireRemoteStyleAnnotationHandler(
+            $sharedPath, $remoteSymbol, $mutingMissingFileExceptions, $logger
         );
+        $requireRemoteHandler = new RequireRemote(
+            $sharedPath, $remoteSymbol, $mutingMissingFileExceptions, $logger
+        );
+
+        $annotationResponseHandlerMapping = array(
+            'requireRemote'     => array($requireRemoteHandler, 'doAnnotation_requireRemote' ),
+            'require'           => array($requireRemoteHandler, 'doAnnotation_require' ),
+            'requireRemoteStyle'=> array($requireRemoteStyleHandler, 'doAnnotation_requireRemoteStyle' ),
+            'requireStyle'      => array($requireRemoteHandler, 'doAnnotation_requireStyle' ),
+            'tests'             => array($requireRemoteHandler, 'doAnnotation_tests' ),
+            'testsRemote'       => array($requireRemoteHandler, 'doAnnotation_testsRemote' ),
+            'root'              => array($rootHandler, 'doAnnotation_root' ),
+            'nocompile'         => array($noCompileHandler, 'doAnnotation_noCompile' )
+        );
+
+        $parser = new AnnotationParser($annotationResponseHandlerMapping, null, new NullLogger(), new FileHandler());
+        $fileFactory = new DependencyTreeParser(
+            $parser, $remoteSymbol, $sharedPath, null, new NullLogger(), false, new FileHandler()
+        );
+        $fileObject = $fileFactory->parseFile( $mainJsPath, false );
+        $service = new FileToDependencySetsService(new NullLogger());
+        $dependencySets = $service->getDependencySets( $fileObject );
 
         $this->assertEquals(
             2,
@@ -685,15 +738,15 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertEquals(
-            $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.js',
+            $remoteSymbol . '/remotepackage/package_subfolder/local_on_remote.js',
             $remoteDependencySet->dependencies[0]
         );
         $this->assertEquals(
-            $dependencyTree->remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.js',
+            $remoteSymbol . '/remotepackage/package_subfolder/remote_on_remote.js',
             $remoteDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            $dependencyTree->remoteSymbol . '/remotepackage/script.js',
+            $remoteSymbol . '/remotepackage/script.js',
             $remoteDependencySet->dependencies[2]
         );
 
@@ -711,7 +764,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
             "Local dependency set has 1 package."
         );
         $this->assertEquals(
-            $dependencyTree->remoteSymbol . '/remotepackage/script.js',
+            $remoteSymbol . '/remotepackage/script.js',
             $localDependencySet->packages[0],
             "Local dependency set's package is the remote package."
         );
@@ -726,15 +779,15 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
             $localDependencySet->dependencies[1]
         );
         $this->assertEquals(
-            $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/local_on_remote.js',
+            $remoteSymbol . '/remotescript/script_subfolder/local_on_remote.js',
             $localDependencySet->dependencies[2]
         );
         $this->assertEquals(
-            $dependencyTree->remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.js',
+            $remoteSymbol . '/remotescript/script_subfolder/remote_on_remote.js',
             $localDependencySet->dependencies[3]
         );
         $this->assertEquals(
-            $dependencyTree->remoteSymbol . '/remotescript/script.js',
+            $remoteSymbol . '/remotescript/script.js',
             $localDependencySet->dependencies[4]
         );
         $this->assertEquals(
@@ -767,7 +820,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
 
         $sharedPath = $basePath . '-remote';
 
-        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath );
+        $dependencyTree = new DependencyTree( $mainJsPath, null, false, null, $sharedPath, '@remote', new FileHandler() );
 
         $dependencySets = $dependencyTree->getDependencySets();
 
@@ -868,7 +921,7 @@ class DependencyTreeTest extends \PHPUnit_Framework_TestCase
         $remotePath = self::fixturesBasePath . 'remote_annotation-remote';
         $filePath = $basePath . '/main.js';
 
-        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath );
+        $dependencyTree = new DependencyTree( $filePath, null, false, null, $remotePath, '@remote', new FileHandler() );
 
         $fileHierarchy = $dependencyTree->flattenDependencyTree();
 

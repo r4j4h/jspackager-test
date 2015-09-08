@@ -1,73 +1,40 @@
 <?php
-namespace JsPackager\Annotations;
 
-use JsPackager\Exception;
-use JsPackager\Exception\Parsing as ParsingException;
-use JsPackager\Exception\MissingFile as MissingFileException;
-use JsPackager\Exception\Recursion as RecursionException;
+namespace JsPackager\Annotations\AnnotationHandlers;
+
+use JsPackager\Annotations\AnnotationHandlerParameters;
+use JsPackager\Annotations\AnnotationOrderMap;
+use JsPackager\Annotations\AnnotationOrderMapping;
+use JsPackager\Exception\MissingFile;
+use JsPackager\Exception\Parsing;
 use JsPackager\File;
-use JsPackager\Helpers\FileHandler;
 use JsPackager\Helpers\ArrayTraversalService;
+use JsPackager\Helpers\FileHandler;
 use JsPackager\Helpers\PathFinder;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
-class AnnotationHandlerParameters
+class RequireRemote
 {
-
-    public $filePath;
-    public $testsSourcePath;
-    public $path;
-    public $file;
-    public $recursionCb;
-
-    public function __construct($filePath,
-                                $testsSourcePath,
-                                $path,
-                                File &$file,
-                                $recursionCb) {
-        $this->filePath = $filePath;
-        $this->testsSourcePath = $testsSourcePath;
-        $this->path = $path;
-        $this->file = $file;
-        $this->recursionCb = $recursionCb;
-    }
-
-}
-
-class AnnotationResponseHandler
-{
-
-    /**
-     * Flag to disable missing file exceptions. Set and unset via muteMissingFileExceptions and
-     * unMuteMissingFileExceptions.
-     *
-     * @var bool
-     */
-    public $mutingMissingFileExceptions = false;
-
     /**
      * @var LoggerInterface
      */
-    public $logger;
+    protected $logger;
 
     /**
      * @var String
      */
     public $remoteSymbol;
 
-
-    public function __construct($remoteSymbol = '@remote')
-    {
-        $this->logger = new NullLogger();
-        $this->arrayTraversalService = new ArrayTraversalService();
-        $this->pathFinder = new PathFinder();
-        $this->remoteSymbol = $remoteSymbol;
-    }
-
-
-
+    /**
+     * @var string
+     */
     public $remoteFolderPath = 'shared';
+
+    /**
+     * @var boolean
+     */
+    public $mutingMissingFileExceptions;
+
 
     /**
      * Flag used to indicate when we are recursing into a remote file so that we can catch "locally" required files
@@ -92,8 +59,19 @@ class AnnotationResponseHandler
      */
     public $recursionDepth = 0;
 
+    public function __construct($remoteFolderPath, $remoteSymbol, $mutingMissingFileExceptions, LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+        $this->remoteSymbol = $remoteSymbol;
+        $this->remoteFolderPath = $remoteFolderPath;
+        $this->mutingMissingFileExceptions = $mutingMissingFileExceptions;
+        $this->pathFinder = new PathFinder();
+        $this->arrayTraversalService = new ArrayTraversalService();
+    }
+
 
     /**
+     *
      * Get the base path to a file.
      *
      * Give it something like '/my/cool/file.jpg' and get '/my/cool/' back.
@@ -102,54 +80,6 @@ class AnnotationResponseHandler
      */
     protected function getBasePathFromFilePathWithoutTrailingSlash($filePath) {
         return ltrim( ( substr( $filePath, 0, strrpos($filePath, '/' ) ) ), '/' );
-    }
-
-
-    /**
-     * Get the base path to a file.
-     *
-     * Give it something like '/my/cool/file.jpg' and get '/my/cool/' back.
-     * @param $sourceFilePath
-     * @return string
-     */
-    protected function getBasePathFromSourceFileWithTrailingSlash($sourceFilePath) {
-        return ltrim( ( substr( $sourceFilePath, 0, strrpos($sourceFilePath, '/' )+1 ) ), '/' );
-    }
-
-    /**
-     * @var FileHandler
-     */
-    protected $fileHandler;
-
-    /**
-     * Get the file handler.
-     *
-     * @return mixed
-     */
-    public function getFileHandler()
-    {
-        return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
-    }
-
-
-    public function doAnnotation_root(AnnotationHandlerParameters $params)
-    {
-        // This is considered parameterless so if params came through ignore it as it is likely a misread.
-        if ( $params->path ) {
-            return;
-        }
-
-        $params->file->isRoot = true;
-    }
-
-    public function doAnnotation_noCompile(AnnotationHandlerParameters $params)
-    {
-        // This is considered parameterless so if params came through ignore it as it is likely a misread.
-        if ( $params->path ) {
-            return;
-        }
-
-        $params->file->isMarkedNoCompile = true;
     }
 
     public function doAnnotation_requireRemote(AnnotationHandlerParameters $params)
@@ -174,54 +104,69 @@ class AnnotationResponseHandler
             $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromFilePathWithoutTrailingSlash($params->path);
             $this->recursedPath[] = $basePathFromSourceFileWithoutTrailingSlash;
             $this->recursionDepth++;
-            $dependencyFile = call_user_func($params->recursionCb, $htmlPath, $params->testsSourcePath, true );
+            $dependencyFile = call_user_func($params->recursionCb, $htmlPath);
             $this->recursionDepth--;
             array_pop( $this->recursedPath );
-            $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
-            if ( $dependencyFile->isRemote ) {
+            $dependencyFile->addMetaData('isRemote', $this->currentlyRecursingInRemoteFile);
+            $metaData = $dependencyFile->getMetaData();
+            if ( $metaData['isRemote'] == true ) {
                 // Reset path from actual to using @remote symbol
-                $dependencyFile->path = $this->remoteSymbol . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+//                if ( $dependencyFile->path ) { // todo this is temporary
+                    $dependencyFile->path = $this->remoteSymbol . '/' . $basePathFromSourceFileWithoutTrailingSlash;
+//                }
+                $dependencyFile->addMetaData('path',
+                    $this->remoteSymbol . '/' . $basePathFromSourceFileWithoutTrailingSlash
+                );
             }
             if ( $this->recursionDepth === 0 && $this->currentlyRecursingInRemoteFile ) {
                 $this->currentlyRecursingInRemoteFile = false;
             }
 
         }
-        catch (MissingFileException $e)
+        catch (MissingFile $e)
         {
-            throw new ParsingException("Failed to include missing file \"{$e->getMissingFilePath()}\" while trying to parse \"{$params->filePath}\"", null, $e->getMissingFilePath());
+            throw new Parsing("Failed to include missing file \"{$e->getMissingFilePath()}\" while trying to parse \"{$params->filePath}\"", null, $e->getMissingFilePath());
         }
 
 
+        $metaData = $params->file->getMetaData();
+        $dependencyFileMetaData = $dependencyFile->getMetaData();
 
-        if ( $dependencyFile->isRoot )
+        if ( $dependencyFileMetaData['isRoot'] )
         {
             $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
-            $params->file->packages[] = $htmlPath;
+            $metaData['packages'][] = $htmlPath;
+            $params->file->addMetaData('packages', $metaData['packages']);
         }
 
-
         // It has root set from parseFile so callee can handle that
-        $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
-        $params->file->scripts[] = $dependencyFile;
+        $this->logger->debug("Adding {$dependencyFile->getPath()} to scripts array.");
+        $metaData['scripts'][] = $dependencyFile;
+        $params->file->addMetaData('scripts', $metaData['scripts']);
 
         // Switch order map to use require, since we normalized the remote files so they fit in
         // same bucket as normal files.
         $this->logger->debug("Defining entry in annotationOrderMap as a require annotation instead of requireRemote since we have normalized the remote file's path.");
-        $params->file->annotationOrderMap->addAnnotation(
+        $orderMap = $metaData['annotationOrderMap'];
+        if ( !$orderMap ) {
+            $orderMap = new AnnotationOrderMap();
+        }
+        $orderMap->addAnnotation(
             new AnnotationOrderMapping(
                 'require',
-                count( $params->file->scripts ) - 1
+                count( $metaData['scripts'] ) - 1
             )
         );
+        $params->file->addMetaData('annotationOrderMap', $orderMap);
     }
-
 
     public function doAnnotation_require(AnnotationHandlerParameters $params)
     {
+        $pathinfo = pathinfo($params->file->getPath());
+        $path = $pathinfo['dirname'];
 
         // Build dependency's identifier
-        $htmlPath = $this->pathFinder->normalizeRelativePath( $params->file->path . '/' . $params->path );
+        $htmlPath = $this->pathFinder->normalizeRelativePath( $path . '/' . $params->path );
 
         $this->logger->debug("Calculated {$htmlPath} as required files' path.");
 
@@ -242,103 +187,78 @@ class AnnotationResponseHandler
 
             }
 
-            $dependencyFile = call_user_func($params->recursionCb, $htmlPath, $params->testsSourcePath, true );
-            $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
+            $dependencyFile = call_user_func($params->recursionCb, $htmlPath);
 
             if ( $this->currentlyRecursingInRemoteFile ) {
+                $dependencyFile->addMetaData('isRemote', $this->currentlyRecursingInRemoteFile);
                 if ( $basePathFromSourceFileWithoutTrailingSlash !== '' ) {
                     array_pop($this->recursedPath);
                     $this->recursionDepth--;
                 }
             }
 
-            if ( $dependencyFile->isRemote ) {
+            $metaData = $dependencyFile->getMetaData();
+
+            if ( $metaData['isRemote'] == true ) {
                 // Reset path from actual to using @remote symbol
                 $basePathFromDependents = $this->arrayTraversalService->array_last( $this->recursedPath );
                 $basePathFromSourceFile = $this->getBasePathFromFilePathWithoutTrailingSlash($params->path);
                 // don't prepend recursedPath if it already is the beginning
 
-                $dependencyFile->path = rtrim(
+//                if ( $dependencyFile->path ) { // todo this is temporary
+                    $dependencyFile->path = rtrim(
+                        $this->remoteSymbol . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/'
+                    );
+//                }
+                $dependencyFile->addMetaData('path', rtrim(
                     $this->remoteSymbol . '/' . $basePathFromDependents . '/' . $basePathFromSourceFile, '/'
-                );
+                ));
 
             }
         }
-        catch (MissingFileException $e)
+        catch (MissingFile $e)
         {
-            throw new ParsingException(
+            throw new Parsing(
                 "Failed to include missing file \"{$e->getMissingFilePath()}\" while trying to parse \"{$params->filePath}\"",
                 null,
                 $e->getMissingFilePath()
             );
         }
 
-        if ( $dependencyFile->isRoot )
+        $metaData = $params->file->getMetaData();
+
+        $dependencyFileMetaData = $dependencyFile->getMetaData();
+        if ( $dependencyFileMetaData['isRoot'] )
         {
             $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
-            $params->file->packages[] = $htmlPath;
+            $metaData['packages'][] = $htmlPath;
+            $params->file->addMetaData('packages', $metaData['packages'] );
         }
 
         // It has root set from parseFile so callee can handle that
-        $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
-        $params->file->scripts[] = $dependencyFile;
+        $this->logger->debug("Adding {$dependencyFile->getPath()} to scripts array.");
+        $metaData['scripts'][] = $dependencyFile;
+//        $params->file->addMetaData('scripts', $metaData['scripts'] );
 
 
 
 
         // Populate ordering map on File object
         $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
-        $params->file->annotationOrderMap->addAnnotation(
+        $orderMap = $metaData['annotationOrderMap'];
+        if ( !$orderMap ) {
+            $orderMap = new AnnotationOrderMap();
+        }
+        $orderMap->addAnnotation(
             new AnnotationOrderMapping(
                 'require',
-                count( $params->file->scripts ) - 1
+                count( $metaData['scripts'] ) - 1
             )
         );
+        $params->file->addMetaData('scripts', $metaData['scripts']);
+        $params->file->addMetaData('annotationOrderMap', $orderMap);
     }
 
-
-    public function doAnnotation_requireRemoteStyle(AnnotationHandlerParameters $params)
-    {
-
-        $fileHandler = $this->getFileHandler();
-
-        // need to load actual file
-        // but store @remote/
-
-        // Alter path to remote files' root
-        $remotePath = $this->remoteFolderPath;
-
-        // Build dependency's identifier
-        $htmlPath = $this->pathFinder->normalizeRelativePath( $remotePath . '/' . $params->path );
-
-        $this->logger->debug("Calculated {$htmlPath} as remote files' path.");
-
-        // When parsing CSS files is desired, it will go through parseFile so non file exceptions will
-        // be caught and thrown there before parsing. Until that is desired, we will just manually
-        // do it without parsing the file.
-        if ( $fileHandler->is_file( $remotePath . '/' . $params->path ) === false && $this->mutingMissingFileExceptions === false )
-        {
-            throw new Exception\MissingFile($remotePath . '/' . $params->path . ' is not a valid file!', 0, null, $remotePath . '/' . $params->path);
-        }
-
-        // Reset path from actual to using @remote symbol
-        $htmlPath = $this->remoteSymbol . '/' . $params->path;
-
-
-        // Add to stylesheets list
-        $this->logger->debug("Adding {$htmlPath} to stylesheets array.");
-        $params->file->stylesheets[] = $htmlPath;
-
-        // Switch order map to use requireStyle, since we normalized the remote files so they fit in
-        // same bucket as normal files.
-        $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation instead of requireRemoteStyle since we have normalized the remote file's path.");
-        $params->file->annotationOrderMap->addAnnotation(
-            new AnnotationOrderMapping(
-                'requireStyle',
-                count( $params->file->stylesheets ) - 1
-            )
-        );
-    }
 
 
     public function doAnnotation_requireStyle(AnnotationHandlerParameters $params)
@@ -346,18 +266,20 @@ class AnnotationResponseHandler
 
         $fileHandler = $this->getFileHandler();
 
+        $pathinfo = pathinfo($params->file->getPath());
+        $dirname = $pathinfo['dirname'];
 
         // Build dependency's identifier
-        $htmlPath = $this->pathFinder->normalizeRelativePath( $params->file->path . '/' . $params->path );
+        $htmlPath = $this->pathFinder->normalizeRelativePath( $dirname . '/' . $params->path );
 
         $this->logger->debug("Calculated {$htmlPath} as required files' path.");
 
         // When parsing CSS files is desired, it will go through parseFile so non file exceptions will
         // be caught and thrown there before parsing. Until that is desired, we will just manually
         // do it without parsing the file.
-        if ( $fileHandler->is_file( $params->file->path . '/' . $params->path ) === false && $this->mutingMissingFileExceptions === false )
+        if ( $fileHandler->is_file( $dirname . '/' . $params->path ) === false && $this->mutingMissingFileExceptions === false )
         {
-            throw new Exception\MissingFile($params->file->path . '/' . $params->path . ' is not a valid file!', 0, null, $params->file->path . '/' . $params->path);
+            throw new MissingFile($dirname . '/' . $params->path . ' is not a valid file!', 0, null, $dirname . '/' . $params->path);
         }
 
         if ( $this->currentlyRecursingInRemoteFile ) {
@@ -367,18 +289,27 @@ class AnnotationResponseHandler
             $htmlPath = $this->remoteSymbol . '/' . $basePathFromDependents .'/' . $params->path;
         }
 
+        $metaData = $params->file->getMetaData();
+
         // Add to stylesheets list
         $this->logger->debug("Adding {$htmlPath} to stylesheets array.");
-        $params->file->stylesheets[] = $htmlPath;
+        $metaData['stylesheets'][] = $htmlPath;
+        $params->file->addMetaData('stylesheets', $metaData['stylesheets']);
 
         // Populate ordering map on File object
         $this->logger->debug("Defining entry in annotationOrderMap as a requireStyle annotation.");
-        $params->file->annotationOrderMap->addAnnotation(
+        $orderMap = $metaData['annotationOrderMap'];
+        if ( !$orderMap ) {
+            $orderMap = new AnnotationOrderMap();
+        }
+        $orderMap->addAnnotation(
             new AnnotationOrderMapping(
                 'requireStyle',
-                count( $params->file->stylesheets ) - 1
+                count( $metaData['stylesheets'] ) - 1
             )
         );
+        $params->file->addMetaData('stylesheets', $metaData['stylesheets']);
+        $params->file->addMetaData('annotationOrderMap', $orderMap);
 
     }
 
@@ -405,8 +336,8 @@ class AnnotationResponseHandler
                 }
 
             }
-            $dependencyFile = call_user_func($params->recursionCb, $htmlPath, $params->testsSourcePath, true );
-            $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
+            $dependencyFile = call_user_func($params->recursionCb, $htmlPath);
+            $dependencyFile->addMetaData('isRemote', $this->currentlyRecursingInRemoteFile);
 
             if ( $this->currentlyRecursingInRemoteFile ) {
                 if ( $basePathFromSourceFileWithoutTrailingSlash !== '' ) {
@@ -415,7 +346,8 @@ class AnnotationResponseHandler
                 }
             }
 
-            if ( $dependencyFile->isRemote ) {
+            $metaData = $dependencyFile->getMetaData();
+            if ( $metaData['isRemote'] == true ) {
                 // Reset path from actual to using @remote symbol
                 $basePathFromDependents = $this->arrayTraversalService->array_last( $this->recursedPath );
                 $basePathFromSourceFile = $this->getBasePathFromFilePathWithoutTrailingSlash($params->path);
@@ -425,30 +357,42 @@ class AnnotationResponseHandler
 
             }
         }
-        catch (MissingFileException $e)
+        catch (MissingFile $e)
         {
             $missingFilePath = $e->getMissingFilePath();
             $errorString = "Failed to include missing file \"{$missingFilePath}\" while trying to parse \"{$params->filePath}\"";
-            throw new ParsingException($errorString, null, $missingFilePath);
+            throw new Parsing($errorString, null, $missingFilePath);
         }
 
-        if ( $dependencyFile->isRoot )
+        if ( $dependencyFile->getMetaDataKey('isRoot') )
         {
             $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
-            $params->file->packages[] = $htmlPath;
+            $packages = $params->file->getMetaDataKey('packages');
+            $packages[] = $htmlPath;
+            $params->file->addMetaData('packages', $packages);
         }
+
+        $metaData = $params->file->getMetaData();
 
         // It has root set from parseFile so callee can handle that
         $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
-        $params->file->scripts[] = $dependencyFile;
+        $metaData['scripts'][] = $dependencyFile;
+        $params->file->addMetaData('scripts', $metaData['scripts']);
 
         // Populate ordering map on File object
         $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
-        $params->file->annotationOrderMap->addAnnotation(
+        $orderMap = $metaData['annotationOrderMap'];
+        if ( !$orderMap ) {
+            $orderMap = new AnnotationOrderMap();
+        }
+        $orderMap->addAnnotation(
             new AnnotationOrderMapping(
                 'require',
-                count( $params->file->scripts ) - 1 )
+                count( $metaData['scripts'] ) - 1
+            )
         );
+        $params->file->addMetaData('scripts', $metaData['scripts']);
+        $params->file->addMetaData('annotationOrderMap', $orderMap);
     }
 
 
@@ -473,11 +417,14 @@ class AnnotationResponseHandler
             $basePathFromSourceFileWithoutTrailingSlash = $this->getBasePathFromFilePathWithoutTrailingSlash($params->path);
             $this->recursedPath[] = $basePathFromSourceFileWithoutTrailingSlash;
             $this->recursionDepth++;
-            $dependencyFile = call_user_func($params->recursionCb, $htmlPath, $params->testsSourcePath, true );
+            $dependencyFile = call_user_func($params->recursionCb, $htmlPath);
             $this->recursionDepth--;
             array_pop( $this->recursedPath );
-            $dependencyFile->isRemote = $this->currentlyRecursingInRemoteFile;
-            if ( $dependencyFile->isRemote ) {
+            $dependencyFile->addMetaData('isRemote', $this->currentlyRecursingInRemoteFile);
+
+            $metaData = $dependencyFile->getMetaData();
+
+            if ( $metaData['isRemote'] == true ) {
                 // Reset path from actual to using @remote symbol
                 $dependencyFile->path = $this->remoteSymbol . '/' . $basePathFromSourceFileWithoutTrailingSlash;
             }
@@ -485,30 +432,69 @@ class AnnotationResponseHandler
                 $this->currentlyRecursingInRemoteFile = false;
             }
         }
-        catch (MissingFileException $e)
+        catch (MissingFile $e)
         {
             $missingFilePath = $e->getMissingFilePath();
             $errorString = "Failed to include missing file \"{$missingFilePath}\" while trying to parse \"{$params->filePath}\"";
-            throw new ParsingException($errorString, null, $missingFilePath);
+            throw new Parsing($errorString, null, $missingFilePath);
         }
 
-        if ( $dependencyFile->isRoot )
+
+        if ( $dependencyFile->getMetaDataKey('isRoot') )
         {
             $this->logger->debug("Dependency is a root file! Adding {$htmlPath} to packages array.");
-            $params->file->packages[] = $htmlPath;
+            $packages = $params->file->getMetaDataKey('packages');
+            $packages[] = $htmlPath;
+            $params->file->addMetaData('packages', $packages);
         }
+
+        $metaData = $params->file->getMetaData();
 
         // It has root set from parseFile so callee can handle that
         $this->logger->debug("Adding {$dependencyFile->getFullPath()} to scripts array.");
-        $params->file->scripts[] = $dependencyFile;
+        $metaData['scripts'][] = $dependencyFile;
+        $params->file->addMetaData('scripts', $metaData['scripts']);
 
         // Populate ordering map on File object
         $this->logger->debug("Defining entry in annotationOrderMap as a require annotation.");
-        $params->file->annotationOrderMap->addAnnotation(
+
+        $orderMap = $metaData['annotationOrderMap'];
+        if ( !$orderMap ) {
+            $orderMap = new AnnotationOrderMap();
+        }
+        $orderMap->addAnnotation(
             new AnnotationOrderMapping(
                 'require',
-                count( $params->file->scripts ) - 1
+                count( $metaData['scripts'] ) - 1
             )
         );
+        $params->file->addMetaData('scripts', $metaData['scripts']);
+        $params->file->addMetaData('annotationOrderMap', $orderMap);
     }
+
+
+    protected $fileHandler;
+
+    /**
+     * Get the file handler.
+     *
+     * @return mixed
+     */
+    public function getFileHandler()
+    {
+        return ( $this->fileHandler ? $this->fileHandler : new FileHandler() );
+    }
+
+    /**
+     * Set the file handler.
+     *
+     * @param $fileHandler
+     * @return File
+     */
+    public function setFileHandler($fileHandler)
+    {
+        $this->fileHandler = $fileHandler;
+        return $this;
+    }
+
 }

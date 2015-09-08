@@ -14,21 +14,29 @@ namespace JsPackager\Compiler;
 class DependencySet
 {
     /**
+     * Array of relative stylesheet paths
+     *
      * @var array
      */
     public $stylesheets;
 
     /**
+     * Array of relative package root paths
+     *
      * @var array
      */
     public $packages;
 
     /**
+     * Array of relative script paths, with this root file being the last
+     *
      * @var array
      */
     public $dependencies;
 
     /**
+     * Array of paths of files that should not be compiled
+     *
      * @var array
      */
     public $pathsMarkedNoCompile;

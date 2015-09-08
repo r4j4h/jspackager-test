@@ -45,19 +45,6 @@ class ManifestContentsGenerator
         $this->logger = $logger;
     }
 
-
-    /**
-     * Convert a given filename to its compiled equivalent
-     *
-     * @param string $filename
-     * @return string
-     */
-    protected function getCompiledFilename($filename)
-    {
-        return preg_replace('/.js$/', '.' . Constants::COMPILED_SUFFIX . '.js', $filename);
-    }
-
-
     /**
      * Take an array of stylesheet file paths and package file paths and generate a manifest file from them.
      *
@@ -182,7 +169,8 @@ class ManifestContentsGenerator
             $packagePath = $packagePath;
         } else {
             $this->logger->debug( "Using compiled filename..." );
-            $packagePath = FilenameConverter::getCompiledFilename($packagePath);
+            $filenameConverter = new FilenameConverter('compiled', 'manifest');
+            $packagePath = $filenameConverter->getCompiledFilename($packagePath);
         }
 
         $pathUsesRemote = $remoteAnnotationStringService->stringContainsRemoteAnnotation( $packagePath );

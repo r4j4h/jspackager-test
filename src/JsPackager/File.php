@@ -17,7 +17,7 @@ use JsPackager\Annotations\AnnotationOrderMap;
 use JsPackager\Annotations\AnnotationOrderMapping;
 use JsPackager\Helpers\FileHandler;
 
-class File
+class File implements DependencyFileInterface
 {
     /**
      * @var string File's filename
@@ -32,54 +32,54 @@ class File
     /**
      * @var string File's relative path (from public directory)
      */
-    public $path;
+    public $dirname;
 
     /**
      * If this file is marked to be a root package
      *
      * @var boolean
      */
-    public $isRoot;
+//    public $isRoot;
 
     /**
      * If this file is marked to skip compilation
      *
      * @var boolean
      */
-    public $isMarkedNoCompile;
+//    public $isMarkedNoCompile;
 
     /**
      * If this file is marked as existing on `remote` server
      *
      * @var boolean
      */
-    public $isRemote;
+//    public $isRemote;
 
     /**
      * Scripts this file is dependent on
      *
      * @var File[]
      */
-    public $scripts;
+//    public $scripts;
 
     /**
      * Stylesheets this file is dependent on
      *
      * @var File[]
      */
-    public $stylesheets;
+//    public $stylesheets;
 
     /**
      * @var string[] Filename of packages used
      */
-    public $packages;
+//    public $packages;
 
     /**
      * Each annotation found in order inside the file
      *
      * @var AnnotationOrderMap
      */
-    public $annotationOrderMap;
+//    public $annotationOrderMap;
 
     /**
      * @param string $filePath Path to file
@@ -90,6 +90,8 @@ class File
     {
         $this->fileHandler = ( $fileHandler ? $fileHandler : new FileHandler() );
 
+        // todo change this to a valid file boolean or something? or should we have a MissingFile variant class?
+        // or should we not change?
         if ( $this->fileHandler->is_file( $filePath ) === false && $silenceMissingFileException === false )
         {
             throw new Exception\MissingFile($filePath . ' is not a valid file!', 0, null, $filePath);
@@ -99,15 +101,29 @@ class File
 
         $this->filename = $filePathParts['filename'];
         $this->filetype = ( isset( $filePathParts['extension'] ) ? $filePathParts['extension'] : '' );
-        $this->path     = $filePathParts['dirname'];
+        $this->dirname     = $filePathParts['dirname'];
 
-        $this->isRoot      = false;
-        $this->isMarkedNoCompile = false;
-        $this->isRemote = false;
-        $this->stylesheets = array();
-        $this->scripts     = array();
-        $this->packages    = array();
-        $this->annotationOrderMap = new AnnotationOrderMap();
+        $this->addMetaData('isRoot' , false);
+        $this->addMetaData('isMarkedNoCompile' , false);
+        $this->addMetaData('isRemote' , false);
+        $this->addMetaData('stylesheets' , array());
+        $this->addMetaData('scripts' , array());
+        $this->addMetaData('packages' , array());
+        $this->addMetaData('annotationOrderMap', new AnnotationOrderMap());
+    }
+
+    public function getDirName()
+    {
+        return $this->dirname;
+    }
+
+    public function getFileName()
+    {
+        $filename = $this->filename;
+        if ( $this->filetype ) {
+            $filename .= '.' . $this->filetype;
+        }
+        return $filename;
     }
 
     /**
@@ -117,9 +133,7 @@ class File
      */
     public function getFullPath()
     {
-        $filename = $this->path . '/' . $this->filename;
-        if ( $this->filetype )
-            $filename .= '.' . $this->filetype;
+        $filename = $this->getDirName() . '/' . $this->getFileName();
         return $filename;
     }
 
@@ -128,4 +142,52 @@ class File
      */
     protected $fileHandler;
 
+    private $metaData = array();
+
+    public function getPath()
+    {
+        return $this->getFullPath();
+    }
+
+    public function getStream()
+    {
+        $source = fopen($this->getFullPath(), 'r');
+        $tmp = fopen('php://temp', 'r+');
+        stream_copy_to_stream($source, $tmp);
+        rewind($tmp);
+        return $tmp;
+    }
+
+    public function getContents()
+    {
+        return stream_get_contents($this->getStream());
+    }
+
+    public function getMetaData()
+    {
+        return $this->metaData;
+    }
+
+    public function getMetaDataKey($key)
+    {
+        $metaData = $this->getMetaData();
+        return $metaData[$key];
+    }
+
+    public function addMetaData($key, $value)
+    {
+        $this->metaData[$key] = $value;
+    }
+
+    public function setContentsFromString(string $newContents)
+    {
+        throw new \Exception('not implemented');
+        // TODO: Implement setContentsFromString() method.
+    }
+
+    public function setContentsFromStream(resource $newContents)
+    {
+        throw new \Exception('not implemented');
+        // TODO: Implement setContentsFromStream() method.
+    }
 }
