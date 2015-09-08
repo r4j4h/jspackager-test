@@ -33,9 +33,8 @@ use JsPackager\Exception;
 use JsPackager\Exception\MissingFile;
 use JsPackager\Exception\Parsing as ParsingException;
 use JsPackager\Helpers\FileHandler;
-use JsPackager\Helpers\FileTypeRecognizer;
+use JsPackager\Helpers\MapDrivenFileTypeRecognizer;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 class ManifestResolver
 {
@@ -65,6 +64,10 @@ class ManifestResolver
      */
     protected $fileHandler;
 
+    /**
+     * @var MapDrivenFileTypeRecognizer
+     */
+    private $recognizer;
 
     /**
      * @param string $baseFolderPath
@@ -78,6 +81,16 @@ class ManifestResolver
         $this->remoteFolderPath = $remoteFolderPath;
         $this->remoteSymbol = $remoteSymbol;
         $this->logger = $logger;
+
+
+        $this->recognizer = new MapDrivenFileTypeRecognizer();
+        $this->recognizer->addRecognition(
+            'javascript',  array('JsPackager\Helpers\FileTypeRecognizer', 'isJavaScriptFile')
+        );
+        $this->recognizer->addRecognition(
+            'stylesheet',  array('JsPackager\Helpers\FileTypeRecognizer', 'isStylesheetFile')
+        );
+
     }
 
 
@@ -310,10 +323,10 @@ class ManifestResolver
                 $line = $basePath . $line;
             }
 
-            if ( FileTypeRecognizer::isJavaScriptFile( $line ) ) {
+            if ( $this->recognizer->recognize('javascript', $line ) ) {
                 $packages[] = $line;
             }
-            else if ( FileTypeRecognizer::isStylesheetFile( $line ) ) {
+            else if ( $this->recognizer->recognize('stylesheet', $line ) ) {
                 $stylesheets[] = $line;
             }
             else {

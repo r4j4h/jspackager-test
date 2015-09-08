@@ -17,6 +17,11 @@ class FileFinder {
     protected $logger;
 
     /**
+     * @var MapDrivenFileTypeRecognizer
+     */
+    private $recognizer;
+
+    /**
      * @param LoggerInterface [$logger] Defaults to NullLogger.
      */
     public function __construct($logger = false) {
@@ -25,6 +30,11 @@ class FileFinder {
         } else {
             $this->logger = new NullLogger();
         }
+
+        $this->recognizer = new MapDrivenFileTypeRecognizer();
+        $this->recognizer->addRecognition(
+            'source-file', array('JsPackager\Helpers\FileTypeRecognizer', 'isSourceFile')
+        );
     }
 
     /**
@@ -44,7 +54,7 @@ class FileFinder {
 
         $this->logger->debug("Parsing folder '".$folderPath."' for source files...");
         foreach ($iterator as $file) {
-            if ( $file->isFile() && FileTypeRecognizer::isSourceFile( $file->getFilename() ) ) {
+            if ( $file->isFile() && $this->recognizer->recognize('source-file', $file->getFilename()) ) {
                 $files[] = $file->getRealPath();
                 $fileCount++;
             }
@@ -76,7 +86,7 @@ class FileFinder {
         $this->logger->debug("Parsing folder '".$directory."' for package files...");
 
         foreach ($iterator as $file) {
-            if ( $file->isFile() && preg_match( '/.js$/', $file->getFilename() ) && !preg_match( '/.compiled.js$/', $file->getFilename() ) ) {
+            if ( $file->isFile() && $this->recognizer->recognize('source-file', $file->getFilename() ) ) {
 
                 $sourceFileCount++;
 
