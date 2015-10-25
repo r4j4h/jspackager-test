@@ -66,6 +66,7 @@ some/stylesheet.css
 some/modifiers.css
 
 BLOCK;
+        $expectedContents = str_replace("\r\n", "\n", $expectedContents);
 
         $this->assertEquals($expectedContents, $manifestFileContents);
 
@@ -93,6 +94,7 @@ some/package.compiled.js
 another/package.compiled.js
 
 BLOCK;
+        $expectedContents = str_replace("\r\n", "\n", $expectedContents);
 
         $this->assertEquals( $expectedContents, $manifestFileContents );
     }
@@ -120,6 +122,7 @@ some/nocompile/package.js
 some/normal/package.compiled.js
 
 BLOCK;
+        $expectedContents = str_replace("\r\n", "\n", $expectedContents);
 
         $this->assertEquals( $expectedContents, $manifestFileContents );
     }
@@ -152,6 +155,7 @@ some/nocompile/package.js
 some/normal/package.compiled.js
 
 BLOCK;
+        $expectedContents = str_replace("\r\n", "\n", $expectedContents);
 
         $this->assertEquals( $expectedContents, $manifestFileContents );
     }
@@ -184,9 +188,29 @@ BLOCK;
 some/normal/package.compiled.js
 
 BLOCK;
+        $expectedContents = str_replace("\r\n", "\n", $expectedContents);
 
         $this->assertEquals( $expectedContents, $manifestFileContents );
     }
 
+    public function testGenerateManifestContainingMixtureUsesLinuxLineEndings()
+    {
+        $compiler = new ManifestContentsGenerator('@remote', 'some/remote/path', new NullLogger());
+
+        $stylesheets = array(
+            'some/stylesheet.css',
+            'some/modifiers.css'
+        );
+        $packages = array(
+            'some/package.js',
+            'another/package.js'
+        );
+
+        $manifestFileContents = $compiler->generateManifestFileContents( '', $packages, $stylesheets );
+
+        $expectedContents = "some/stylesheet.css\nsome/modifiers.css\nsome/package.compiled.js\nanother/package.compiled.js\n";
+
+        $this->assertEquals( $expectedContents, $manifestFileContents );
+    }
 
 }

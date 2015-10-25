@@ -91,6 +91,8 @@ MANIFEST;
             $result->manifestFilename,
             "Manifest filename should be from dep_4"
         );
+        $manifestContents = str_replace("\r\n", "\n", $manifestContents);
+
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
         $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
 
@@ -117,6 +119,8 @@ MANIFEST;
             $result->manifestFilename,
             "Manifest filename should be from dep_3"
         );
+        $manifestContents = str_replace("\r\n", "\n", $manifestContents);
+
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
         $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
 
@@ -230,6 +234,8 @@ MANIFEST;
             $result->manifestFilename,
             "Manifest filename should be from main"
         );
+        $manifestContents = str_replace("\r\n", "\n", $manifestContents);
+
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
         $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
     }
@@ -276,6 +282,9 @@ MANIFEST;
             $result->manifestFilename,
             "Manifest filename should be from dep_4"
         );
+        $compiledFilesContents = str_replace("\r\n", "\n", $compiledFilesContents);
+        $manifestContents = str_replace("\r\n", "\n", $manifestContents);
+
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
         $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
 
@@ -311,6 +320,9 @@ MANIFEST;
             $result->manifestFilename,
             "Manifest filename should be from dep_3"
         );
+        $compiledFilesContents = str_replace("\r\n", "\n", $compiledFilesContents);
+        $manifestContents = str_replace("\r\n", "\n", $manifestContents);
+
         $this->assertEquals( $compiledFilesContents, $result->contents );
         $this->assertEquals( $manifestContents, $result->manifestContents );
 
