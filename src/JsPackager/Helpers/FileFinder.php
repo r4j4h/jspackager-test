@@ -98,7 +98,7 @@ class FileFinder {
                     $fileCount++;
                 }
                 if ( is_file( $manifestFilename ) ) {
-                    $files[] = $compiledFilename;
+                    $files[] = $manifestFilename;
                     $fileCount++;
                 }
 
