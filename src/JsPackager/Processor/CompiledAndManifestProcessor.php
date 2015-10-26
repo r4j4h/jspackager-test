@@ -58,7 +58,7 @@ class CompiledAndManifestProcessor implements SimpleProcessorInterface
 
 
                 $this->logger->debug("Compiling manifest contents...");
-                $manifestResults = $this->manifestContentsGenerator->generateManifestFileContents()>process( $params );
+                $manifestResults = $this->manifestContentsGenerator->generateManifestFileContents()->process( $params );
 
 // todo bring in the manifest content generation stuff from Compiler.php into here
                 $this->logger->debug("Finished compiling manifest contents.");

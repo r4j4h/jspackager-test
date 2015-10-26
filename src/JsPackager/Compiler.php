@@ -21,6 +21,7 @@ use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Compiler\CompiledFile;
 use JsPackager\Compiler\CompilerInterface;
 use JsPackager\Compiler\DependencySet;
+use JsPackager\Compiler\DependencySetCollection;
 use JsPackager\Compiler\FileCompilationResult;
 use JsPackager\Compiler\FileCompilationResultCollection;
 use JsPackager\Exception\CannotWrite as CannotWriteException;
@@ -30,6 +31,7 @@ use JsPackager\Helpers\FileFinder;
 use JsPackager\Helpers\FileHandler;
 use JsPackager\Processor\ClosureCompilerProcessor;
 use JsPackager\Processor\CompiledAndManifestProcessor;
+use JsPackager\Processor\ManifestGeneratingProcessor;
 use JsPackager\Processor\ProcessingResult;
 use JsPackager\Processor\SimpleProcessorInterface;
 use JsPackager\Processor\SimpleProcessorParams;
@@ -159,6 +161,10 @@ class Compiler implements CompilerInterface
         $manifestContentsGenerator = new ManifestContentsGenerator(
             $this->remoteSymbol, $this->remoteFolderPath, $this->logger
         );
+        $manifestGeneratingProcessor = new ManifestGeneratingProcessor(
+            $this->remoteFolderPath, $this->remoteSymbol, $this->fileHandler, $manifestContentsGenerator, $this->logger, $this->filenameConverter
+        );
+
         $compiledAndManifestProcessor = new CompiledAndManifestProcessor(
             // Compile & Concatenate via Google closure Compiler Jar
             $closureCompilerProcessor,
@@ -166,10 +172,11 @@ class Compiler implements CompilerInterface
             $this->logger
         );
 
-        /*
+        $params = new SimpleProcessorParams( $dependencySet->dependencies );
+        $params->dependencySet = $dependencySet;
 
+        $depSetCollection = DependencySetCollection::fromDependencySets(array($dependencySet));
 
-        */
 
         // todo this should be CompiledAndManifestFileProcessor and
         // todo this should be added to the list before or after gcc
@@ -181,6 +188,7 @@ class Compiler implements CompilerInterface
         // I have to figure out how to not only move the above into closureCompilerProcessor but also remove the below without removing the
         // no process at all, except manifests should still be created for those files? or maybe they shouldn't be!
         // or it should be configurable? maybe that logic should live within the closureCompilerProcessor itself?
+        $arf = $manifestGeneratingProcessor->process( $depSetCollection );
 
 // Processor Compiler Compliance Classes
 // Level 3 - Supports all "Defined MetaData Keys" as of tag x.x.
@@ -210,6 +218,8 @@ class Compiler implements CompilerInterface
         }
 
         $this->logger->notice("Compiled dependency set for '" . $rootFilename . "' consisting of " . $totalDependencies . " dependencies.");
+
+        // todo this needs to return the array of files just with the added manifest and with sources replaced with compiled version
 
         return new CompiledFile(
             $rootFilePath,

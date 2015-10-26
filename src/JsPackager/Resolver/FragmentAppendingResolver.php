@@ -23,7 +23,8 @@ class FragmentAppendingResolver implements FileResolverInterface
     public function __construct($contents, $path = null)
     {
         $path = isset( $path ) ? $path : sys_get_temp_dir();
-        $file = new \JsPackager\ContentBasedFile($contents, $path, array());
+        $basename = pathinfo( $path, PATHINFO_BASENAME );
+        $file = new \JsPackager\ContentBasedFile($contents, $path, $basename, array());
     }
 
     public function resolveDependenciesForFile(\JsPackager\DependencyFileInterface $file, \JsPackager\AnnotationBasedResolverContext $context)

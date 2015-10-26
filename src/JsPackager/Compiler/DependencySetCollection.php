@@ -31,6 +31,23 @@ class DependencySetCollection implements Iterator
         $this->position = 0;
     }
 
+    /**
+     * Factory Method for constructing a DependencySetCollection from an array of dependency sets.
+     *
+     * @param $depSetsArray
+     * @return DependencySetCollection
+     */
+    public static function fromDependencySets($depSetsArray)
+    {
+        $collection = new DependencySetCollection();
+        foreach($depSetsArray as $depSet)
+        {
+            $collection->appendDependencySet($depSet);
+        }
+        $collection->removeRedundantDependencySets();
+        return $collection;
+    }
+
     public function getDependencySets()
     {
         return $this->dependencySets;
@@ -46,7 +63,7 @@ class DependencySetCollection implements Iterator
         return array_unshift( $this->dependencySets, $dependencySet );
     }
 
-    public function removeReundantDependencySets()
+    public function removeRedundantDependencySets()
     {
         // Ensure we do not return redundant root packages
         $uniquePackages = array();

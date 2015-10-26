@@ -303,7 +303,6 @@ class ManifestResolver
         $fileHandler = $this->getFileHandler();
         $stylesheets = array();
         $packages = array();
-
         if ( !$fileHandler->is_file( $filePath ) ) {
             $this->logger->error("Failed parsing manifest file: '{$filePath}''");
             return false;

@@ -28,14 +28,20 @@ class ContentBasedFile implements DependencyFileInterface
     private $metaData;
 
     /**
+     * @var string
+     */
+    private $fileName;
+
+    /**
      * @param string $content
      * @param string $temporaryDirectory
      * @param array $metaData
      */
-    public function __construct($content, $temporaryDirectory, $metaData) {
+    public function __construct($content, $temporaryDirectory, $expectedFilename, $metaData) {
         $this->content = $content;
         $this->temporaryDirectory = $temporaryDirectory;
         $this->metaData = $metaData;
+        $this->fileName = $expectedFilename;
     }
 
     public function getPath()
@@ -99,6 +105,6 @@ class ContentBasedFile implements DependencyFileInterface
 
     public function getFileName()
     {
-        // TODO: Implement getFileName() method.
+        return $this->fileName;
     }
 }

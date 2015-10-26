@@ -92,9 +92,16 @@ class ManifestGeneratingProcessor implements DependencySetBasedProcessorInterfac
                 $manifestFilename, $rollingPathsMarkedNoCompile);
 
             $deps = $dependencySet->dependencies;
-            array_push($deps, new ContentBasedFile($compiledFileManifest, 'baz.manifest', array(
-                'type' => 'manifest'
-            )));
+            if ( $compiledFileManifest ) {
+                array_push($deps, new ContentBasedFile(
+                    $compiledFileManifest,
+                    $rootFilePath,
+                    $manifestFilename,
+                    array(
+                        'type' => 'manifest'
+                    )
+                ));
+            }
 
             $newDepSet = new DependencySet(
                 $dependencySet->stylesheets,
@@ -105,7 +112,7 @@ class ManifestGeneratingProcessor implements DependencySetBasedProcessorInterfac
 
             // add everyone we didn't include to array
             // build new virtual file and add it to array
-            $newDepSets->appendDependencySet($dependencySet);
+            $newDepSets->appendDependencySet($newDepSet);
 
         }
 
