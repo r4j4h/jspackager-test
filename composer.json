@@ -12,7 +12,8 @@
         "phing/phing": "2.11.x",
         "phpmd/phpmd": "2.2.x",
         "phploc/phploc": "2.1.x",
-        "mikey179/vfsStream": "^1.5"
+        "mikey179/vfsStream": "^1.5",
+        "behat/behat": "~2.5"
     },
     "autoload": {
         "psr-4": {
