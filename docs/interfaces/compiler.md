@@ -1,4 +1,4 @@
-Given a filename passes it to a Dependency Resolver and initiates some Processors against the results and passes the processed results to an Outputter.
+Passes a given filename to a Dependency Resolver and passes the resolved results to some Processors and passes the processed results to an Outputter.
 
 -------------
 

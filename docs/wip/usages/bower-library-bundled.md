@@ -1,4 +1,4 @@
-Describing @Annotation DependencyResolver with CompiledFileAndManifest DependencyResolver
+Describing Bower Dependency Resolver with CompiledFileAndManifest DependencyResolver
 
 2 phase packaging system:
 

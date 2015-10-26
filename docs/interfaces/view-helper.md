@@ -12,13 +12,13 @@ $cfg->basePath = ::getBasePath();
 $cfg->remoteUrl = '/shared';
 if ( $conigSaysUseCompiled )
     $cfg->resolverFactory = function() {
-        return new CompiledManifestResolver('compiled.js', 'js.manifest');
+        return new CompiledManifestResolver('compiled.js', 'js.manifest', '@remote', 'shared/');
     }
 } else {
     $cfg->resolverFactory = function() {
         return new AnnotationBasedResolver(array(
             'require' => new RequireAnnotationHandler(),
-            'requireRemote' => new RequireRemoteAnnotationHandler('@remote'),
+            'requireRemote' => new RequireRemoteAnnotationHandler('@remote', 'shared/'),
             'requireStyle' => new RequireStyleAnnotationHandler(),
             'requireRemoteStyle' => new RequireRemoteStyleAnnotationHandler(),
             'root' => new RootAnnotationHandler(),
