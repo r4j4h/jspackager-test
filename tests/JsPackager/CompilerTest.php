@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackager;
+namespace JsPackager\Compiler\Unit;
 
 use JsPackager\Compiler;
 use JsPackager\Helpers\FileHandler;

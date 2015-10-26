@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Resolver\Unit;
 
 class CompiledFileAndManifestResolverTest extends \PHPUnit_Framework_TestCase
 {

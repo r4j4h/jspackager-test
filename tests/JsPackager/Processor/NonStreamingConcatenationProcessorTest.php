@@ -1,5 +1,5 @@
 <?php
-namespace JsPackagerTest;
+namespace JsPackager\Processor\Unit;
 
 use JsPackager\Exception\MissingFile;
 use JsPackager\Processor\NonStreamingConcatenationProcessor;

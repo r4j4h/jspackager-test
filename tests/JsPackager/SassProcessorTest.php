@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Processor\Unit;
 
 class SassProcessorTest extends \PHPUnit_Framework_TestCase
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Helpers\Unit;
 
 use JsPackager\File;
 use JsPackager\Resolver\DependencyTreeParser;

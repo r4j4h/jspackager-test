@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackager\Test;
+namespace JsPackager\Processor\Unit;
 
 use JsPackager\Compiler\DependencySet;
 use JsPackager\Compiler\DependencySetCollection;

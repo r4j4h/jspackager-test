@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Unit;
 
 class DocGenNjsDocProcessorTest extends \PHPUnit_Framework_TestCase
 {

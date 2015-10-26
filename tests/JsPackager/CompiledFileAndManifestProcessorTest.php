@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Unit;
 
 use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use JsPackager\Compiler\DependencySet;

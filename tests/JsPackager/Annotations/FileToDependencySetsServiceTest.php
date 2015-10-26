@@ -1,7 +1,8 @@
 <?php
 
-namespace JsPackager\Annotations;
+namespace JsPackager\Annotations\Unit;
 
+use JsPackager\Annotations\FileToDependencySetsService;
 use JsPackager\File;
 use Psr\Log\NullLogger;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackager\Test;
+namespace JsPackager\Unit;
 
 use JsPackager\Annotations\FileToDependencySetsService;
 use JsPackager\Compiler\DependencySet;

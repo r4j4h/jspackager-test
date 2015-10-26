@@ -1,5 +1,5 @@
 <?php
-namespace JsPackagerTest;
+namespace JsPackager\Processor\Unit;
 
 use JsPackager\Compiler;
 use JsPackager\Helpers\Reflection as ReflectionHelper;

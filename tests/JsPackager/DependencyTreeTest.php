@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackager;
+namespace JsPackager\Unit;
 
 use JsPackager\Annotations\AnnotationHandlers\IsMarkedNoCompiledHandler;
 use JsPackager\Annotations\AnnotationHandlers\RequireRemote;

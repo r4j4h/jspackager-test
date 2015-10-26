@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Unit;
 
 use JsPackager\Annotations\AnnotationHandlerParameters;
 use JsPackager\Annotations\AnnotationHandlers\IsMarkedNoCompiledHandler;

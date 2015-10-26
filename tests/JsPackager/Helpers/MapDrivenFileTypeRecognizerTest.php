@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Helpers\Unit;
 
 use JsPackager\Helpers\MapDrivenFileTypeRecognizer;
 

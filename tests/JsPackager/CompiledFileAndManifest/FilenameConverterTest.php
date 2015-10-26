@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackager;
+namespace JsPackager\CompiledFileAndManifest\Unit;
 
 use JsPackager\CompiledFileAndManifest\FilenameConverter;
 use Psr\Log\NullLogger;

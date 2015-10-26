@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Annotations\AnnotationHandlers\Unit;
 
 class RiotTagAnnotationHandlerTest extends \PHPUnit_Framework_TestCase
 {

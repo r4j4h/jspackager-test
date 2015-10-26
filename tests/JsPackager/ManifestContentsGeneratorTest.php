@@ -1,6 +1,6 @@
 <?php
 
-namespace JsPackagerTest;
+namespace JsPackager\Unit;
 
 use JsPackager\ManifestContentsGenerator;
 use Psr\Log\NullLogger;
