@@ -33,10 +33,25 @@ class Compiler
      */
     public $logger;
 
+    /** @var bool */
+    private $verboseWarnings = true;
+
     public function __construct()
     {
         $this->logger = new NullLogger();
         $this->rollingPathsMarkedNoCompile = array();
+
+    }
+
+    /**
+     * @param bool $enabled
+     */
+    public function setDisplayIndividualWarnings($enabled)
+    {
+        if ( ! is_bool( $enabled ) ) {
+            throw new \InvalidArgumentException('Must be given a boolean value');
+        }
+        $this->verboseWarnings = $enabled;
     }
 
     /**
@@ -303,7 +318,7 @@ class Compiler
                     call_user_func( $statusCallback, 'Successfully compiled Dependency Set: ' . $result->filename, 'success' );
                 }
 
-                if ( strlen( $result->warnings ) > 0 ) {
+                if ( $this->verboseWarnings === true && strlen( $result->warnings ) > 0 ) {
                     $this->logger->warning('Warnings: ' . PHP_EOL . $result->warnings);
                     if ( is_callable( $statusCallback ) ) {
                         call_user_func( $statusCallback, 'Warnings: ' . PHP_EOL . $result->warnings, 'warning' );
