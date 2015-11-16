@@ -9,9 +9,10 @@
 
 namespace JsPackager\Compiler;
 
+use ArrayAccess;
 use Iterator;
 
-class DependencySetCollection implements Iterator
+class DependencySetCollection implements Iterator, ArrayAccess
 {
     private $position = 0;
 
@@ -42,7 +43,13 @@ class DependencySetCollection implements Iterator
         $collection = new DependencySetCollection();
         foreach($depSetsArray as $depSet)
         {
-            $collection->appendDependencySet($depSet);
+            if ( is_array($depSet) ) {
+                foreach($depSet as $subDepSet) {
+                    $collection->appendDependencySet( $subDepSet );
+                }
+            } else {
+                $collection->appendDependencySet($depSet);
+            }
         }
         $collection->removeRedundantDependencySets();
         return $collection;
@@ -51,6 +58,11 @@ class DependencySetCollection implements Iterator
     public function getDependencySets()
     {
         return $this->dependencySets;
+    }
+
+    public function peekRoot()
+    {
+        return $this->dependencySets[ count( $this->dependencySets ) - 1 ];
     }
 
     public function appendDependencySet(DependencySet $dependencySet)
@@ -83,7 +95,7 @@ class DependencySetCollection implements Iterator
     }
 
     function current() {
-        return $this->dependencySets[$this->position];
+        return $this->offsetGet($this->position);
     }
 
     function peekPrevious() {
@@ -91,7 +103,7 @@ class DependencySetCollection implements Iterator
         if ( $offset < 0 ) {
             return null;
         }
-        return $this->dependencySets[ $offset ];
+        return $this->offsetGet($offset);
     }
 
     function key() {
@@ -103,7 +115,26 @@ class DependencySetCollection implements Iterator
     }
 
     function valid() {
-        return isset($this->dependencySets[$this->position]);
+        return $this->offsetExists($this->position);
     }
 
+    public function offsetExists($offset)
+    {
+        return isset($this->dependencySets[$offset]);
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->dependencySets[$offset];
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        $this->dependencySets[$offset] = $value;
+    }
+
+    public function offsetUnset($offset)
+    {
+        unset( $this->dependencySets[$offset] );
+    }
 }
