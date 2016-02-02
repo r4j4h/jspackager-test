@@ -25,6 +25,11 @@ class ProcessingResult
     public $err = null;
 
     /**
+     * @var string[]
+     */
+    public $warnings = array();
+
+    /**
      * Semantic constant for indicating successful or not boolean statuses
      */
     const SUCCEEDED = true;
@@ -36,12 +41,13 @@ class ProcessingResult
     const RETURNCODE_OK = 0;
     const RETURNCODE_FAIL = 1;
 
-    public function __construct($successful, $returnCode, $output = '', $err = '', $numberOfErrors = 0) {
+    public function __construct($successful, $returnCode, $output = '', $err = '', $numberOfErrors = 0, $warnings = array()) {
         $this->successful = $successful;
         $this->returnCode = $returnCode;
         $this->output = $output;
         $this->err = $err;
         $this->numberOfErrors = $numberOfErrors;
+        $this->warnings = $warnings;
     }
 
 }
