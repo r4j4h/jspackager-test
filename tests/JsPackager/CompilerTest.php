@@ -150,6 +150,8 @@ MANIFEST;
             $result->manifestFilename,
             "Manifest filename should be from main"
         );
+
+        $manifestContents = str_replace("\r\n", "\n", $manifestContents);
         $this->assertEquals( $compiledFilesContents, $result->contents, "Compiled file should contain minified files" );
         $this->assertEquals( $manifestContents, $result->manifestContents, "Manifest file should contain dependent files" );
     }
