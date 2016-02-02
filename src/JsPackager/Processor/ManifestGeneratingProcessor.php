@@ -68,10 +68,11 @@ class ManifestGeneratingProcessor implements SimpleProcessorInterface
             $totalDependencies = count( $dependencySet->dependencies );
 
             // Expand out any @remote annotations
-            foreach( $dependencySet->dependencies as $idx => $dependency ) {
-                $dependencySet->dependencies[$idx] = $this->remoteAnnotationStringTransformationService->
-                                                                        expandOutRemoteAnnotation( $dependency );
-            }
+            // This is outside this Processor's responsibility. Pipeline or someone else should have done this for us.
+//            foreach( $dependencySet->dependencies as $idx => $dependency ) {
+//                $dependencySet->dependencies[$idx] = $this->remoteAnnotationStringTransformationService->
+//                                                                        expandOutRemoteAnnotation( $dependency );
+//            }
 
             $lastDependency = $dependencySet->dependencies[ $totalDependencies - 1 ];
 
