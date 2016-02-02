@@ -94,15 +94,16 @@ class ManifestGeneratingProcessor implements SimpleProcessorInterface
                 $manifestFilename, $rollingPathsMarkedNoCompile);
 
             $deps = $dependencySet->dependencies;
+
             if ( $compiledFileManifest ) {
-                array_push($deps, new ContentBasedFile(
+                array_splice( $deps, -1, 0, array(new ContentBasedFile(
                     $compiledFileManifest,
                     $rootFilePath,
                     $manifestFilename,
                     array(
                         'type' => 'manifest'
                     )
-                ));
+                )));
             }
 
             $newDepSet = new DependencySet(
