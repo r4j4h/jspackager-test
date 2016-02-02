@@ -10,9 +10,10 @@
 namespace JsPackager\Compiler;
 
 use ArrayAccess;
+use Countable;
 use Iterator;
 
-class DependencySetCollection implements Iterator, ArrayAccess
+class DependencySetCollection implements Iterator, ArrayAccess, Countable
 {
     private $position = 0;
 
@@ -136,5 +137,19 @@ class DependencySetCollection implements Iterator, ArrayAccess
     public function offsetUnset($offset)
     {
         unset( $this->dependencySets[$offset] );
+    }
+
+    /**
+     * Count elements of an object
+     * @link http://php.net/manual/en/countable.count.php
+     * @return int The custom count as an integer.
+     * </p>
+     * <p>
+     * The return value is cast to an integer.
+     * @since 5.1.0
+     */
+    public function count()
+    {
+        return count( $this->dependencySets );
     }
 }
