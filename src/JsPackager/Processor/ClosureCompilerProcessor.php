@@ -157,25 +157,58 @@ class ClosureCompilerProcessor implements SimpleProcessorInterface
         $warningCount = 0;
 
         // Google Closure Compiler prints a error/warning count through stderr, so lets grab from that
-        $errorLines = explode("\n", $stderr); // Break by newlines
+        $errorLines = explode(PHP_EOL, $stderr); // Break by newlines
         $numErrorLines = count($errorLines);
         if ( $numErrorLines > 1 ) {
             $lastErrorLine = $errorLines[count($errorLines) - 2]; // Last last line is a newline so we want line before
             $fragments = explode(", ", $lastErrorLine);
-            sscanf($fragments[0], '%d error', $errorCount);
-            sscanf($fragments[1], '%d warning', $warningCount);
+            if ( count($fragments) < 2 )
+            {
+                throw new \RuntimeException($stderr);
+            }
+            else
+            {
+                sscanf($fragments[0], '%d error', $errorCount);
+                sscanf($fragments[1], '%d warning', $warningCount);
+            }
 
             if ($errorCount > 0) {
                 $successful = false;
             }
         }
 
+        $warnings = array();
+        if ( $warningCount > 0 ) {
+            $warningLines = explode("\r\n", $stderr); // todo correct line ending
+            $warningBuffer = '';
+            foreach($warningLines as $index => $line) {
+                if ( $line == '' ) {
+                    $warningBuffer = rtrim($warningBuffer, "\r\n"); // todo correct line ending
+                    array_push($warnings, $warningBuffer);
+                    $warningBuffer = '';
+                    continue;
+                }
+                //$matches = array();
+                //$matchesCnt = preg_match_all('/(?P<file>[a-zA-Z0-9-_.:\/]+):(?<lineno>\d+): WARNING - (?P<warning>.+)/m', $line, $matches);
+                //if ( $matchesCnt ) {
+                //    for ($i = 0; $i < count($matches['file']); $i++) {
+                //        $warningBuffer .= $matches['file'][0] . "\t" . $matches['lineno'][0] . "\t" . $matches['warning'][0];
+                //    }
+                //} else {
+                    $warningBuffer .= $line . PHP_EOL;
+                //}
+            }
+        }
+
+        array_pop($warnings);
+
         return new ProcessingResult(
             $successful,
             $returnCode,
             $stdout,
             $stderr,
-            $errorCount
+            $errorCount,
+            $warnings
         );
 
     }

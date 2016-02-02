@@ -303,9 +303,13 @@ STDOUT;
         $stderr = <<<STDERR
 tests/JsPackager/fixtures/1_dep/dep_1.js:1: WARNING - Suspicious code. The result of the 'eq' operator is not being used.
 x == 1;
-^
+  ^
 
-0 error(s), 1 warning(s)
+tests/JsPackager/fixtures/1_dep/dep_123.js:1: WARNING - Suspicious codes. The result of the 'eq' operator is not being used.
+x == 1;
+  ^
+
+0 error(s), 2 warning(s)
 
 STDERR;
 
@@ -332,6 +336,55 @@ STDERR;
 
         $this->assertEquals( true, $result->successful );
         $this->assertEquals( 0, $result->numberOfErrors );
+
+        return $result;
     }
 
+    /**
+     * @depends testHandlesValidJavaScriptOutputWithWarnings
+     * @param ProcessingResult $result
+     */
+    public function testProvidesWarningsInProcessingResult(ProcessingResult $result)
+    {
+        $this->assertCount(2, $result->warnings);
+        $this->assertContains('Suspicious code.', $result->warnings[0]);
+        $this->assertContains("The result of the 'eq' operator is not being used.\nx == 1;\n  ^", $result->warnings[0] );
+        $this->assertContains('tests/JsPackager/fixtures/1_dep/dep_1.js', $result->warnings[0] );
+        $this->assertContains('1', $result->warnings[0] );
+
+        $this->assertContains('Suspicious codes.', $result->warnings[1]);
+        $this->assertContains("The result of the 'eq' operator is not being used.\nx == 1;\n  ^", $result->warnings[1] );
+        $this->assertContains('tests/JsPackager/fixtures/1_dep/dep_123.js', $result->warnings[1] );
+        $this->assertContains('123', $result->warnings[1] );
+    }
+
+    /**
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage /usr/bin/java: not found
+     * @return ProcessingResult
+     */
+    public function testHandlesExceptionalErrors()
+    {
+        $stdout = <<<STDOUT
+
+STDOUT;
+
+        $stderr = <<<STDERR
+/usr/bin/java: not found.
+
+STDERR;
+
+        $returnCode = 1;
+        $successful = false;
+
+        $processor = new ClosureCompilerProcessor(new NullLogger(), '');
+        /**
+         * @type ProcessingResult $result
+         */
+        $result = ReflectionHelper::invoke(
+            $processor,
+            'handleClosureCompilerOutput',
+            array( $stdout, $stderr, $returnCode, $successful )
+        );
+    }
 }
