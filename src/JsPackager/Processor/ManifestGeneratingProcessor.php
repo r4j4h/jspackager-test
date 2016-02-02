@@ -137,28 +137,34 @@ class ManifestGeneratingProcessor implements DependencySetBasedProcessorInterfac
     {
         $this->logger->debug("Assembling manifest for root file '{$rootFilename}'...");
 
+        $packages = array();
+        $stylesheets = array();
+
         if ($dependencySetIndex && $dependencySetIndex > 0) {
-            $dependencySetIndexIterator = $dependencySetIndex;
-            while ($dependencySetIndexIterator > 0) {
+            $dependencySetIndexIterator = 0;
+            while ($dependencySetIndexIterator <= $dependencySetIndex) {
                 // Roll in dependent package's stylesheets so we only need to read this manifest
                 $this->logger->debug(
                     "Using dependency set and it's dependency set's stylesheets so that manifests are all-inclusive"
                 );
-                $lastDependencySet = $dependencySets->peekPrevious();
-                $stylesheets = array_merge($lastDependencySet->stylesheets, $dependencySet->stylesheets);
-                $stylesheets = array_unique($stylesheets);
-                $dependencySetIndexIterator--;
+                $lastDependencySet = $dependencySets[$dependencySetIndexIterator];
+                $stylesheets = array_merge($stylesheets, $lastDependencySet->stylesheets);
+                $packages = array_merge($packages, $lastDependencySet->packages);
+                $dependencySetIndexIterator++;
             }
+            $stylesheets = array_unique($stylesheets);
+            $packages = array_unique($packages);
         } else {
             $this->logger->debug("Using dependency set's stylesheets");
             $stylesheets = $dependencySet->stylesheets;
+            $packages = $dependencySet->packages;
         }
 
         if (count($dependencySet->stylesheets) > 0 || $totalDependencies > 1) {
             // Build manifest first
             $compiledFileManifest = $this->manifestContentsGenerator->generateManifestFileContents(
                 $rootFilePath . '/',
-                $dependencySet->packages,
+                $packages,
                 $stylesheets,
                 $rollingPathsMarkedNoCompile
             );

@@ -103,6 +103,7 @@ MANIFEST;
 
         $compiledFilesContents = "window.dep_3=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
+subpackage/dep_4_style.css
 dep_3_style.css
 subpackage/dep_4.compiled.js
 
@@ -130,7 +131,13 @@ MANIFEST;
         $result = $compiler->compileDependencySet( $dependencySet, 2, $roots );
 
         $compiledFilesContents = "window.dep_1=!0;window.dep_2=!0;window.main=!0;" . PHP_EOL;
-        $manifestContents = 'package/dep_3.compiled.js' . PHP_EOL;
+        $manifestContents = <<<MANIFEST
+package/subpackage/dep_4_style.css
+package/dep_3_style.css
+package/subpackage/dep_4.compiled.js
+package/dep_3.compiled.js
+
+MANIFEST;
 
         $this->assertEquals( $basePath, $result->path, "Compiled path should be main.js's path" );
         $this->assertEquals(
@@ -299,6 +306,8 @@ window.main_local_file_before=!0;window.main_local_subfolder_script_before=!0;wi
 COMPILEFILE;
 
         $manifestContents = <<<'MANIFEST'
+@rawr/remotepackage/package_subfolder/local_on_remote.css
+@rawr/remotepackage/package_subfolder/remote_on_remote.css
 stylesheet_before.css
 local_subfolder/local_subfolder_before.css
 @rawr/remotescript/script_subfolder/local_on_remote.css
