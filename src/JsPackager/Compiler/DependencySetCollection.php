@@ -125,7 +125,7 @@ class DependencySetCollection implements Iterator, ArrayAccess
 
     public function offsetGet($offset)
     {
-        return $this->dependencySets[$offset];
+        return ( $this->offsetExists( $offset ) ? $this->dependencySets[$offset] : null );
     }
 
     public function offsetSet($offset, $value)
