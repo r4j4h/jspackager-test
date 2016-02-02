@@ -18,7 +18,7 @@ use JsPackager\Processor\SimpleProcessorParams;
 use JsPackager\Resolver\DependencyTreeParser;
 use Psr\Log\LoggerInterface;
 
-class ManifestGeneratingProcessor implements DependencySetBasedProcessorInterface
+class ManifestGeneratingProcessor implements SimpleProcessorInterface
 {
     /**
      * @var ManifestContentsGenerator
@@ -53,8 +53,10 @@ class ManifestGeneratingProcessor implements DependencySetBasedProcessorInterfac
      * @param DependencySetCollection $dependencySets
      * @return DependencySetCollection
      */
-    public function process(DependencySetCollection $dependencySets)
+    public function process(SimpleProcessorParams $params)
     {
+        $dependencySets = $params->dependencySet;
+
         $newDepSets = new DependencySetCollection();
         $rollingPathsMarkedNoCompile = array();
 

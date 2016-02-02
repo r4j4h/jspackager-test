@@ -188,7 +188,7 @@ class Compiler implements CompilerInterface
         // I have to figure out how to not only move the above into closureCompilerProcessor but also remove the below without removing the
         // no process at all, except manifests should still be created for those files? or maybe they shouldn't be!
         // or it should be configurable? maybe that logic should live within the closureCompilerProcessor itself?
-        $arf = $manifestGeneratingProcessor->process( $depSetCollection );
+        $compiledFileManifestContentsArf = $manifestGeneratingProcessor->process( $params );
 
 // Processor Compiler Compliance Classes
 // Level 3 - Supports all "Defined MetaData Keys" as of tag x.x.
@@ -206,7 +206,7 @@ class Compiler implements CompilerInterface
 
         } else {
 
-            $compilationResults = $this->processDependencySetDependencies($closureCompilerProcessor, $dependencySet);
+            $compilationResults = $this->processDependencySetDependencies($closureCompilerProcessor, $params);
 
         }
 
@@ -297,11 +297,9 @@ class Compiler implements CompilerInterface
      * @return ProcessingResult
      * @throws \Exception
      */
-    protected function processDependencySetDependencies($processor, $dependencySet)
+    protected function processDependencySetDependencies($processor, $params)
     {
         $this->logger->debug("Processing...");
-
-        $params = new SimpleProcessorParams( $dependencySet->dependencies );
 
         $compilationResults = $processor->process($params);
 

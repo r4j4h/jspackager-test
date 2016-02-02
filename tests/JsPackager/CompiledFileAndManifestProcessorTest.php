@@ -75,7 +75,11 @@ class CompiledFileAndManifestProcessorTest extends \PHPUnit_Framework_TestCase
 
         $processor = new ManifestGeneratingProcessor('shared', '@remote', new FileHandler(), new ManifestContentsGenerator('@remote', 'shared', $logger ), $logger, new FilenameConverter('compiled', 'manifest'));
 
-        $newParams = $processor->process($depSets);
+        /** @var DependencySet $setsa */
+        $params = new SimpleProcessorParams( $depSets->getDependencySets()[0]->dependencies );
+        $params->dependencySet = $depSets;
+
+        $newParams = $processor->process($params);
 
 //        $this->assertEquals('tests/JsPackager/fixtures/1_dep/main.manifeset.js', $newParams[0]);
 //        $this->assertEquals('tests/JsPackager/fixtures/1_dep/main.compiled.js', $newParams[1]);
