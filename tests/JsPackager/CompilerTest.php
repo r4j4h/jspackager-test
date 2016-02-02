@@ -37,7 +37,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         // Grab first dependency set
         $dependencySet = $roots[0];
 
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 0, array($dependencySet) );
 
         $compiledFilesContents = 'window.dep_1=!0;window.root_test="the pooh!";' . PHP_EOL;
 
@@ -70,9 +70,9 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
 
         $compiler = new Compiler('shared', '@remote', new NullLogger(), false, new FileHandler());
 
-        // Grab first dependency set
+        // Grab first dependency set (deepest independent dependency)
         $dependencySet = $roots[0];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 0, $roots );
 
         $compiledFilesContents = "window.dep_5=!0;window.dep_4=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
@@ -99,7 +99,7 @@ MANIFEST;
 
         // Grab second dependency set
         $dependencySet = $roots[1];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 1, $roots );
 
         $compiledFilesContents = "window.dep_3=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
@@ -127,7 +127,7 @@ MANIFEST;
 
         // Grab third (and last) dependency set
         $dependencySet = $roots[2];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 2, $roots );
 
         $compiledFilesContents = "window.dep_1=!0;window.dep_2=!0;window.main=!0;" . PHP_EOL;
         $manifestContents = 'package/dep_3.compiled.js' . PHP_EOL;
@@ -164,7 +164,7 @@ MANIFEST;
 
         // Grab first dependency set
         $dependencySet = $roots[0];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 0 ,$roots );
 
         $compiledFilesContents = "window.normal_package=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
@@ -189,7 +189,7 @@ MANIFEST;
 
         // Grab second dependency set
         $dependencySet = $roots[1];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 1, $roots );
 
         $compiledFilesContents = "window.nocompile_package=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
@@ -213,7 +213,7 @@ MANIFEST;
 
         // Grab third (and last) dependency set
         $dependencySet = $roots[2];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 2, $roots );
 
         $compiledFilesContents = "window.nocompile_script=!0;window.normal_script=!0;window.main=!0;" . PHP_EOL;
         $manifestContents = <<<MANIFEST
@@ -257,7 +257,7 @@ MANIFEST;
 
         // Grab first dependency set
         $dependencySet = $roots[0];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 0, $roots );
 
         $compiledFilesContents = <<< 'COMPILEFILE'
 window.remotepackage_local_on_remote=!0;window.remotepackage_remote_on_remote=!0;window.remotepackage_script=!0;
@@ -291,7 +291,7 @@ MANIFEST;
 
         // Grab second dependency set
         $dependencySet = $roots[1];
-        $result = $compiler->compileDependencySet( $dependencySet );
+        $result = $compiler->compileDependencySet( $dependencySet, 1, $roots );
 
         $compiledFilesContents = <<<COMPILEFILE
 window.main_local_file_before=!0;window.main_local_subfolder_script_before=!0;window.remotescript_local_on_remote=!0;window.remotescript_remote_on_remote=!0;window.remotescript_script=!0;window.main_local_subfolder_script_after=!0;window.main_local_file_after=!0;window.main_js=!0;
