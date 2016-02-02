@@ -80,7 +80,6 @@ class ManifestGeneratingProcessor implements SimpleProcessorInterface
             $rootFilePath = $rootFile->getDirName();
             $rootFilename = $rootFile->getFileName();
 
-//            $compiledFilename = $this->filenameConverter->getCompiledFilename( $rootFilename );
             $manifestFilename = $this->filenameConverter->getManifestFilename( $rootFilename );
 
             $rollingPathsMarkedNoCompile = array_merge(

@@ -173,10 +173,7 @@ class Compiler implements CompilerInterface
         );
 
         $params = new SimpleProcessorParams( $dependencySet->dependencies );
-        $params->dependencySet = $dependencySet;
-
-        $depSetCollection = DependencySetCollection::fromDependencySets(array($dependencySet));
-
+        $params->dependencySet = DependencySetCollection::fromDependencySets(array($dependencySets));
 
         // todo this should be CompiledAndManifestFileProcessor and
         // todo this should be added to the list before or after gcc
@@ -186,9 +183,18 @@ class Compiler implements CompilerInterface
             $manifestFilename, $this->rollingPathsMarkedNoCompile, $manifestContentsGenerator);
 
         // I have to figure out how to not only move the above into closureCompilerProcessor but also remove the below without removing the
-        // no process at all, except manifests should still be created for those files? or maybe they shouldn't be!
-        // or it should be configurable? maybe that logic should live within the closureCompilerProcessor itself?
+        // no process at all, except manifests should still be created for those files? or maybe they shouldn't be! (let it decide if it wants to pay attention to it or make a new metadata attribute)
+        // or it should be configurable? maybe that logic should live within the closureCompilerProcessor itself? (but then compiler isn't as easily interchangeble. would manifest processor and reolvers both always require a compiling processor? what is the problem with having two processors or two resolvers? it only needs two processors in the compile phase
+        // )
+
         $compiledFileManifestContentsArf = $manifestGeneratingProcessor->process( $params );
+
+        /** @var DependencySet $rootDependencySet */
+//        $rootDependencySet = $compiledFileManifestContentsArf[ count($compiledFileManifestContentsArf)-1 ];
+//        $rootManifest = $rootDependencySet->dependencies[ count($rootDependencySet->dependencies)-2 ];
+//        if ( $rootManifest instanceof ContentBasedFile ) {
+//            $rootManifestContent = $rootManifest->getContents();
+//        }
 
 // Processor Compiler Compliance Classes
 // Level 3 - Supports all "Defined MetaData Keys" as of tag x.x.
@@ -197,7 +203,7 @@ class Compiler implements CompilerInterface
 // Level 0 - Does not support any "Defined MetaData Keys" as of tag x.x.
 
         // todo is this marked no process at all, or do we have ability to skip certain ones?
-        // todo When separated this is will be handled by a metadata annotated 'skipCompile' which our processors
+        // todo When separated this is will still need to be handled. One way could be by a metadata annotated 'skipCompile' which our processors
 // will respond to.
         if ( in_array( $rootFilePath .'/'. $rootFilename, $dependencySet->pathsMarkedNoCompile ) ) {
             $this->logger->debug("File marked as do not compile or process.");
