@@ -263,6 +263,9 @@ class DependencyTreeParser
             $this->testsSourcePath = $file_pathinfo_dirname;
         }
 
+        // todo we are building AnnotationBasedResolverContext here
+        //, but this is already close to being provided as a dependency from
+        // \JsPackager\Annotations\AnnotationParser::parseAnnotationsInFile
         $context = new AnnotationBasedResolverContext();
         $context->mutingMissingFileExceptions = $this->mutingMissingFileExceptions;
         $context->remoteFolderPath = $this->remoteFolderPath;
